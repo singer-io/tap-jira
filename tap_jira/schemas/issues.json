@@ -1,0 +1,455 @@
+{
+  "title": "Issue",
+  "type": ["null", "object"],
+  "properties": {
+    "expand": {
+      "type": ["null", "string"]
+    },
+    "id": {
+      "type": ["null", "string"]
+    },
+    "self": {
+      "type": ["null", "string"],
+      "format": "uri"
+    },
+    "key": {
+      "type": ["null", "string"]
+    },
+    "renderedFields": {
+      "type": ["null", "object"],
+      "patternProperties": {
+        ".+": {}
+      },
+      "additionalProperties": false
+    },
+    "properties": {
+      "title": "Properties",
+      "type": ["null", "object"],
+      "properties": {
+        "properties": {
+          "type": ["null", "object"],
+          "patternProperties": {
+            ".+": {
+              "type": ["null", "string"]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "names": {
+      "type": ["null", "object"],
+      "patternProperties": {
+        ".+": {
+          "type": ["null", "string"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "schema": {
+      "type": ["null", "object"],
+      "patternProperties": {
+        ".+": {
+          "$ref": "json-type"
+        }
+      },
+      "additionalProperties": false
+    },
+    "transitions": {
+      "type": ["null", "array"],
+      "items": {
+        "title": "Transition",
+        "type": ["null", "object"],
+        "properties": {
+          "id": {
+            "type": ["null", "string"]
+          },
+          "name": {
+            "type": ["null", "string"]
+          },
+          "to": {
+            "title": "Status",
+            "type": ["null", "object"],
+            "properties": {
+              "self": {
+                "type": ["null", "string"]
+              },
+              "statusColor": {
+                "type": ["null", "string"]
+              },
+              "description": {
+                "type": ["null", "string"]
+              },
+              "iconUrl": {
+                "type": ["null", "string"]
+              },
+              "name": {
+                "type": ["null", "string"]
+              },
+              "id": {
+                "type": ["null", "string"]
+              },
+              "statusCategory": {
+                "title": "Status Category",
+                "type": ["null", "object"],
+                "properties": {
+                  "self": {
+                    "type": ["null", "string"]
+                  },
+                  "id": {
+                    "type": ["null", "integer"]
+                  },
+                  "key": {
+                    "type": ["null", "string"]
+                  },
+                  "colorName": {
+                    "type": ["null", "string"]
+                  },
+                  "name": {
+                    "type": ["null", "string"]
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "hasScreen": {
+            "type": ["null", "boolean"]
+          },
+          "fields": {
+            "type": ["null", "object"],
+            "patternProperties": {
+              ".+": {
+                "$ref": "field-meta"
+              }
+            },
+            "additionalProperties": false
+          },
+          "expand": {
+            "type": ["null", "string"]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "editmeta": {
+      "title": "Edit Meta",
+      "type": ["null", "object"],
+      "properties": {
+        "fields": {
+          "type": ["null", "object"],
+          "patternProperties": {
+            ".+": {
+              "$ref": "field-meta"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "changelog": {
+      "title": "Changelog",
+      "type": ["null", "object"],
+      "properties": {
+        "startAt": {
+          "type": ["null", "integer"]
+        },
+        "maxResults": {
+          "type": ["null", "integer"]
+        },
+        "total": {
+          "type": ["null", "integer"]
+        },
+        "histories": {
+          "type": ["null", "array"],
+          "items": {
+            "title": "Change History",
+            "type": ["null", "object"],
+            "properties": {
+              "id": {
+                "type": ["null", "string"]
+              },
+              "author": {
+                "title": "User",
+                "type": ["null", "object"],
+                "properties": {
+                  "self": {
+                    "type": ["null", "string"]
+                  },
+                  "name": {
+                    "type": ["null", "string"]
+                  },
+                  "key": {
+                    "type": ["null", "string"]
+                  },
+                  "accountId": {
+                    "type": ["null", "string"]
+                  },
+                  "emailAddress": {
+                    "type": ["null", "string"]
+                  },
+                  "avatarUrls": {
+                    "type": ["null", "object"],
+                    "patternProperties": {
+                      ".+": {
+                        "type": ["null", "string"]
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "displayName": {
+                    "type": ["null", "string"]
+                  },
+                  "active": {
+                    "type": ["null", "boolean"]
+                  },
+                  "timeZone": {
+                    "type": ["null", "string"]
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "active"
+                  ]
+              },
+              "created": {
+                "type": ["null", "string"],
+                "format": "date-time"
+              },
+              "items": {
+                "type": ["null", "array"],
+                "items": {
+                  "title": "Change Item",
+                  "type": ["null", "object"],
+                  "properties": {
+                    "field": {
+                      "type": ["null", "string"]
+                    },
+                    "fieldtype": {
+                      "type": ["null", "string"]
+                    },
+                    "fieldId": {
+                      "type": ["null", "string"]
+                    },
+                    "from": {
+                      "type": ["null", "string"]
+                    },
+                    "fromString": {
+                      "type": ["null", "string"]
+                    },
+                    "to": {
+                      "type": ["null", "string"]
+                    },
+                    "toString": {
+                      "type": ["null", "string"]
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "historyMetadata": {
+                "title": "History Metadata",
+                "type": ["null", "object"],
+                "properties": {
+                  "type": {
+                    "type": ["null", "string"]
+                  },
+                  "description": {
+                    "type": ["null", "string"]
+                  },
+                  "descriptionKey": {
+                    "type": ["null", "string"]
+                  },
+                  "activityDescription": {
+                    "type": ["null", "string"]
+                  },
+                  "activityDescriptionKey": {
+                    "type": ["null", "string"]
+                  },
+                  "emailDescription": {
+                    "type": ["null", "string"]
+                  },
+                  "emailDescriptionKey": {
+                    "type": ["null", "string"]
+                  },
+                  "actor": {
+                    "$ref": "history-metadata-participant"
+                  },
+                  "generator": {
+                    "$ref": "history-metadata-participant"
+                  },
+                  "cause": {
+                    "$ref": "history-metadata-participant"
+                  },
+                  "extraData": {
+                    "type": ["null", "object"],
+                    "patternProperties": {
+                      ".+": {
+                        "type": ["null", "string"]
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "versionedRepresentations": {
+      "type": ["null", "object"],
+      "patternProperties": {
+        ".+": {
+          "type": ["null", "object"],
+          "patternProperties": {
+            ".+": {}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "fieldsToInclude": {
+      "title": "Included Fields",
+      "type": ["null", "object"]
+    },
+    "fields": {
+      "type": ["null", "object"],
+      "properties": {
+        "updated": {
+          "type": ["null", "string"],
+          "format": "date-time"
+        }
+      },
+      "patternProperties": {
+        ".+": {}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "field-meta": {
+      "title": "Field Meta",
+      "type": ["null", "object"],
+      "properties": {
+        "required": {
+          "type": ["null", "boolean"]
+        },
+        "schema": {
+          "$ref": "json-type"
+        },
+        "name": {
+          "type": ["null", "string"]
+        },
+        "key": {
+          "type": ["null", "string"]
+        },
+        "autoCompleteUrl": {
+          "type": ["null", "string"]
+        },
+        "hasDefaultValue": {
+          "type": ["null", "boolean"]
+        },
+        "operations": {
+          "type": ["null", "array"],
+          "items": {
+            "type": ["null", "string"]
+          }
+        },
+        "allowedValues": {
+          "type": ["null", "array"],
+          "items": {}
+        },
+        "defaultValue": {}
+      },
+      "additionalProperties": false,
+      "required": [
+        "required"
+      ]
+    },
+    "history-metadata-participant": {
+      "title": "History Metadata Participant",
+      "type": ["null", "object"],
+      "properties": {
+        "id": {
+          "type": ["null", "string"]
+        },
+        "displayName": {
+          "type": ["null", "string"]
+        },
+        "displayNameKey": {
+          "type": ["null", "string"]
+        },
+        "type": {
+          "type": ["null", "string"]
+        },
+        "avatarUrl": {
+          "type": ["null", "string"]
+        },
+        "url": {
+          "type": ["null", "string"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "json-type": {
+      "title": "Json Type",
+      "type": ["null", "object"],
+      "properties": {
+        "type": {
+          "type": ["null", "string"]
+        },
+        "items": {
+          "type": ["null", "string"]
+        },
+        "system": {
+          "type": ["null", "string"]
+        },
+        "custom": {
+          "type": ["null", "string"]
+        },
+        "customId": {
+          "type": ["null", "integer"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "simple-link": {
+      "title": "Simple Link",
+      "type": ["null", "object"],
+      "properties": {
+        "id": {
+          "type": ["null", "string"]
+        },
+        "styleClass": {
+          "type": ["null", "string"]
+        },
+        "iconClass": {
+          "type": ["null", "string"]
+        },
+        "label": {
+          "type": ["null", "string"]
+        },
+        "title": {
+          "type": ["null", "string"]
+        },
+        "href": {
+          "type": ["null", "string"]
+        },
+        "weight": {
+          "type": ["null", "integer"]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

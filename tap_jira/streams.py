@@ -1,0 +1,246 @@
+from functools import partial
+import singer
+from singer import metrics
+from singer.utils import strftime
+import pendulum
+from datetime import datetime
+from .http import Paginator
+import json
+
+
+def format_dt(dict_, key):
+    str_ = dict_.get(key)
+    if not str_:
+        return
+    dt = pendulum.parse(str_).in_timezone("UTC")
+    dict_[key] = strftime(dt)
+
+
+class Stream(object):
+    """Information about and functions for syncing streams for the Jira API.
+
+    Important class properties:
+
+    :var tap_stream_id:
+    :var pk_fields: A list of primary key fields
+    :var indirect_stream: If True, this indicates the stream cannot be synced
+    directly, but instead has its data generated via a separate stream.
+    :var write_to_stdout: Must be true for this stream to output any data to
+    stdout.
+
+    .. note:: By default, :var write_to_stdout: is False. Set it to True or
+    :func:`format_and_write` will not output to stdout."""
+    def __init__(self, tap_stream_id, pk_fields, indirect_stream=False):
+        self.tap_stream_id = tap_stream_id
+        self.pk_fields = pk_fields
+        self.indirect_stream = indirect_stream
+        self.write_to_stdout = False
+
+    def metrics(self, page):
+        with metrics.record_counter(self.tap_stream_id) as counter:
+            counter.increment(len(page))
+
+    def write_page(self, page):
+        """Writes page of data to stdout when :var write_to_stdout: is True."""
+        if not self.write_to_stdout:
+            return
+        singer.write_records(self.tap_stream_id, page)
+        self.metrics(page)
+
+
+class Versions(Stream):
+    def format_versions(self, versions):
+        for version in versions:
+            format_dt(version, "userStartDate")
+            format_dt(version, "userReleaseDate")
+
+    def sync(self, ctx, *, project):
+        path = "/rest/api/2/project/{}/version".format(project["id"])
+        pager = Paginator(ctx.client, order_by="sequence")
+        for page in pager.pages(self.tap_stream_id, "GET", path):
+            self.format_versions(page)
+            self.write_page(page)
+
+VERSIONS = Versions("versions", ["id"], indirect_stream=True)
+
+
+class Projects(Stream):
+    def sync(self, ctx):
+        projects = ctx.client.request(
+            self.tap_stream_id, "GET", "/rest/api/2/project")
+        for project in projects:
+            VERSIONS.format_versions(project.get("versions", []))
+        self.write_page(projects)
+        for project in projects:
+            VERSIONS.sync(ctx, project=project)
+
+
+class Everything(Stream):
+    def __init__(self, *args, path, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.path = path
+
+    def sync(self, ctx):
+        page = ctx.client.request(self.tap_stream_id, "GET", self.path)
+        self.write_page(page)
+
+
+class ProjectTypes(Stream):
+    def sync(self, ctx):
+        path = "/rest/api/2/project/type"
+        types = ctx.client.request(self.tap_stream_id, "GET", path)
+        for type_ in types:
+            type_.pop("icon")
+        self.write_page(types)
+
+
+class Users(Stream):
+    def _paginate(self, ctx, *, page_num):
+        max_results = 2
+        params = {"username": "%",
+                  "includeInactive": "true",
+                  "maxResults": max_results}
+        next_page_num = page_num
+        while next_page_num is not None:
+            params["startAt"] = next_page_num * max_results
+            page = ctx.client.request(self.tap_stream_id,
+                                      "GET",
+                                      "/rest/api/2/user/search",
+                                      params=params)
+            if len(page) < max_results:
+                next_page_num = None
+            else:
+                next_page_num += 1
+            if page:
+                yield page, next_page_num
+
+    def sync(self, ctx):
+        params = {"username": "%", "includeInactive": "true"}
+        page_num_offset = [self.tap_stream_id, "offset", "page_num"]
+        page_num = ctx.bookmark(page_num_offset) or 0
+        for page, next_page_num in self._paginate(ctx, page_num=page_num):
+            self.write_page(page)
+            ctx.set_bookmark(page_num_offset, next_page_num)
+            ctx.write_state()
+        ctx.set_bookmark(page_num_offset, None)
+        ctx.write_state()
+
+
+class IssueComments(Stream):
+    def format_comments(self, comments):
+        for comment in comments:
+            format_dt(comment, "updated")
+            format_dt(comment, "created")
+
+ISSUE_COMMENTS = IssueComments("issue_comments", ["id"], indirect_stream=True)
+
+
+class Issues(Stream):
+    def format_issues(self, issues):
+        for issue in issues:
+            format_dt(issue["fields"], "updated")
+            # The JSON schema for the search endpoint indicates an "operations"
+            # field can be present. This field is self-referential, making it
+            # difficult to deal with - we would have to flatten the operations
+            # and just have each operation include the IDs of other operations
+            # it references. However the operations field has something to do
+            # with the UI within Jira - I believe the operations are parts of
+            # the "menu" bar for each issue. This is of questionable utility,
+            # so we decided to just strip the field out for now.
+            issue.pop("operations", None)
+            for hist in issue.get("changelog", {}).get("histories", []):
+                format_dt(hist, "created")
+
+    def sync(self, ctx):
+        updated_bookmark = [self.tap_stream_id, "updated"]
+        page_num_offset = [self.tap_stream_id, "offset", "page_num"]
+        last_updated = ctx.update_start_date_bookmark(updated_bookmark)
+        start_date = pendulum.parse(last_updated).date().isoformat()
+        jql = "updated >= {} order by updated asc".format(start_date)
+        params = {"fields": "*all",
+                  "expand": "changelog",
+                  "validateQuery": "strict",
+                  "jql": jql}
+        page_num = ctx.bookmark(page_num_offset) or 0
+        pager = Paginator(ctx.client, items_key="issues", page_num=page_num)
+        for page in pager.pages(self.tap_stream_id,
+                                "GET", "/rest/api/2/search",
+                                params=params):
+            # comments are extracted before writing the page because the "pop"
+            # removes the "comment" field from each issue
+            comments = []
+            for issue in page:
+                comments += issue["fields"].pop("comment")["comments"]
+            ISSUE_COMMENTS.format_comments(comments)
+            ISSUE_COMMENTS.write_page(comments)
+            self.format_issues(page)
+            self.write_page(page)
+            last_updated = page[-1]["fields"]["updated"]
+            ctx.set_bookmark(page_num_offset, pager.next_page_num)
+            ctx.write_state()
+        ctx.set_bookmark(page_num_offset, None)
+        ctx.set_bookmark(updated_bookmark, last_updated)
+        ctx.write_state()
+
+
+class Worklogs(Stream):
+    def _fetch_ids(self, ctx, last_updated):
+        since_ts = int(pendulum.parse(last_updated).timestamp()) * 1000
+        return ctx.client.request(
+            self.tap_stream_id,
+            "GET",
+            "/rest/api/2/worklog/updated",
+            params={"since": since_ts},
+        )
+
+    def _fetch_worklogs(self, ctx, ids):
+        if not ids:
+            return []
+        return ctx.client.request(
+            self.tap_stream_id, "POST", "/rest/api/2/worklog/list",
+            headers={"Content-Type": "application/json"},
+            data=json.dumps({"ids": ids}),
+        )
+
+    def sync(self, ctx):
+        updated_bookmark = [self.tap_stream_id, "updated"]
+        last_updated = ctx.update_start_date_bookmark(updated_bookmark)
+        while True:
+            ids_page = self._fetch_ids(ctx, last_updated)
+            if not ids_page["values"]:
+                break
+            ids = [x["worklogId"] for x in ids_page["values"]]
+            worklogs = self._fetch_worklogs(ctx, ids)
+            for worklog in worklogs:
+                format_dt(worklog, "created")
+                format_dt(worklog, "updated")
+            self.write_page(worklogs)
+            max_updated = max(w["updated"] for w in worklogs)
+            if max_updated <= last_updated:
+                # Note: This route doesn't include any way to give a page
+                # number. It also only ever returns 1000 items. If there were
+                # ever a situation where there were more than 1000 worklogs
+                # updated at the same time, this baby would be f-ed. We'll be
+                # safe and just make sure we aren't getting the same page
+                # repeatedly.
+                raise Exception("Page's max updated ({}) <= previous page's ({})"
+                                .format(max_updated, last_updated))
+            last_updated = max_updated
+            ctx.set_bookmark(updated_bookmark, last_updated)
+            ctx.write_state()
+            if ids_page.get("lastPage"):
+                break
+
+all_streams = [
+    Projects("projects", ["id"]),
+    VERSIONS,
+    ProjectTypes("project_types", ["key"]),
+    Everything("project_categories", ["id"], path="/rest/api/2/projectCategory"),
+    Everything("resolutions", ["id"], path="/rest/api/2/resolution"),
+    Everything("roles", ["id"], path="/rest/api/2/role"),
+    Users("users", ["key"]),
+    Issues("issues", ["id"]),
+    ISSUE_COMMENTS,
+    Worklogs("worklogs", ["id"]),
+]
+all_stream_ids = [s.tap_stream_id for s in all_streams]
