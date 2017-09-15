@@ -72,8 +72,7 @@ def main():
     else:
         catalog = Catalog.from_dict(args.properties) \
             if args.properties else discover()
-        ctx = Context(args.config, args.state, catalog)
-        sync(ctx)
+        sync(Context(args.config, args.state, catalog))
 
 if __name__ == "__main__":
     main()

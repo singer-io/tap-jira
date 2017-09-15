@@ -6,9 +6,19 @@ spec](https://github.com/singer-io/getting-started/blob/master/SPEC.md).
 
 This tap:
 
-- Pulls raw data from [FIXME](http://example.com)
+- Pulls raw data from the [JIRA Cloud REST
+  API](https://docs.atlassian.com/jira/REST/cloud/#api/2/)
 - Extracts the following resources:
-  - [FIXME](http://example.com)
+  - [`projects`](https://docs.atlassian.com/jira/REST/cloud/#api/2/project-getAllProjects)
+  - [`versions`](https://docs.atlassian.com/jira/REST/cloud/#api/2/project-getProjectVersionsPaginated)
+  - [`project_types`](https://docs.atlassian.com/jira/REST/cloud/#api/2/project/type-getAllProjectTypes)
+  - [`project_categories`](https://docs.atlassian.com/jira/REST/cloud/#api/2/projectCategory-getAllProjectCategories)
+  - [`resolutions`](https://docs.atlassian.com/jira/REST/cloud/#api/2/resolution-getResolutions)
+  - [`roles`](https://docs.atlassian.com/jira/REST/cloud/#api/2/role-getProjectRoles)
+  - [`users`](https://docs.atlassian.com/jira/REST/cloud/#api/2/user-findUsers)
+  - [`issues`](https://docs.atlassian.com/jira/REST/cloud/#api/2/search-search)
+  - [`issue_comments`](https://docs.atlassian.com/jira/REST/cloud/#api/2/search-search)
+  - [`worklogs`](https://docs.atlassian.com/jira/REST/cloud/#api/2/worklog-getWorklogsForIds)
 - Outputs the schema for each resource
 - Incrementally pulls data based on the input state
 

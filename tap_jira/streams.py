@@ -29,23 +29,20 @@ class Stream(object):
     stdout.
 
     .. note:: By default, :var write_to_stdout: is False. Set it to True or
-    :func:`format_and_write` will not output to stdout."""
+    :func:`write_page` will not output to stdout."""
     def __init__(self, tap_stream_id, pk_fields, indirect_stream=False):
         self.tap_stream_id = tap_stream_id
         self.pk_fields = pk_fields
         self.indirect_stream = indirect_stream
         self.write_to_stdout = False
 
-    def metrics(self, page):
-        with metrics.record_counter(self.tap_stream_id) as counter:
-            counter.increment(len(page))
-
     def write_page(self, page):
         """Writes page of data to stdout when :var write_to_stdout: is True."""
         if not self.write_to_stdout:
             return
         singer.write_records(self.tap_stream_id, page)
-        self.metrics(page)
+        with metrics.record_counter(self.tap_stream_id) as counter:
+            counter.increment(len(page))
 
 
 class Versions(Stream):
