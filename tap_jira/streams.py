@@ -213,7 +213,8 @@ class Worklogs(Stream):
                 format_dt(worklog, "updated")
             self.write_page(worklogs)
             max_updated = max(w["updated"] for w in worklogs)
-            if max_updated <= last_updated:
+            last_page = ids_page.get("lastPage")
+            if not last_page and (max_updated <= last_updated):
                 # Note: This route doesn't include any way to give a page
                 # number. It also only ever returns 1000 items. If there were
                 # ever a situation where there were more than 1000 worklogs
@@ -225,7 +226,7 @@ class Worklogs(Stream):
             last_updated = max_updated
             ctx.set_bookmark(updated_bookmark, last_updated)
             ctx.write_state()
-            if ids_page.get("lastPage"):
+            if last_page:
                 break
 
 all_streams = [
