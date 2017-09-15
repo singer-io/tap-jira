@@ -5,7 +5,7 @@ from tap_jira.http import Client
 import uuid
 import json
 import random
-import sys
+import argparse
 
 
 def _uuid():
@@ -68,32 +68,25 @@ def project_category(client):
     )
 
 
-def issue(client):
+def issue(client, args):
     project = random_project(client)
-    summary = "something's wrong " + _uuid()
-    issue = {
-        "fields": {
-            "project": {"id": project["id"]},
-            "summary": summary,
-            "issuetype": {"id": "10002"},
-        }
-    }
+    issues = []
+    for _ in range(args.num_issues):
+        issues.append({
+            "fields": {
+                "project": {"id": project["id"]},
+                "summary": "something's wrong " + _uuid(),
+                "issuetype": {"id": "10002"},
+            }
+        })
     return client.post(
-        "/rest/api/2/issue",
-        data=issue,
+        "/rest/api/2/issue/bulk",
+        data={"issueUpdates": issues},
     )
 
 
 def random_issue(client):
     return random.choice(client.send("GET", "/rest/api/2/search").json()["issues"])
-
-
-def delete_issue(client):
-    issue = random_issue(client)
-    return client.send(
-        "DELETE",
-        "/rest/api/2/issue/{}".format(issue["id"]),
-    )
 
 
 def comment(client):
@@ -117,34 +110,6 @@ def worklog(client):
     )
 
 
-def _test(client):
-    return client.send(
-        "GET",
-        "/rest/api/2/search",
-        params={
-            "startAt": 1,
-            "maxResults": 1,
-            "fields": "created",
-            "jql": "order by id asc",
-        }
-    )
-
-
-def attachments_meta(client):
-    return client.send(
-        "GET",
-        "/rest/api/2/attachment/10000"
-    )
-
-
-def test(client):
-    ids = []
-    for _ in range(10):
-        ids.append(_test(client).json()["issues"][0]["id"])
-    return set(ids)
-
-
-
 def jpretty(text):
     try:
         return json.dumps(json.loads(text), indent=2)
@@ -153,9 +118,26 @@ def jpretty(text):
 
 
 def main():
-    with open("config.json") as f:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", "-c", required=True, help="config file")
+    parser.add_argument("--num-issues", type=int, default=1,
+                        help="when creating issues, the number to create "
+                        "(using the bulk endpoint)")
+    parser.add_argument("resource",
+                        choices=["project",
+                                 "version",
+                                 "project_category",
+                                 "issue",
+                                 "comment",
+                                 "worklog"])
+    s_args = parser.parse_args()
+    with open(s_args.config) as f:
         config = json.loads(f.read())
-    res = eval(sys.argv[1])(WriteableClient(config))
+    func = eval(s_args.resource)
+    f_args = [WriteableClient(config)]
+    if "args" in func.__code__.co_varnames:
+        f_args.append(s_args)
+    res = func(*f_args)
     if type(res) == Response:
         print(res.status_code, jpretty(res.text))
     else:
@@ -163,4 +145,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
