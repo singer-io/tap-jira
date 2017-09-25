@@ -5,7 +5,7 @@ from singer import utils
 import json
 from .streams import all_streams, all_stream_ids
 from .context import Context
-from singer.catalog import Catalog
+from singer.catalog import Catalog, CatalogEntry, Schema
 
 REQUIRED_CONFIG_KEYS = ["start_date", "username", "password", "base_url"]
 
@@ -24,17 +24,18 @@ def load_schema(tap_stream_id):
 
 
 def discover():
-    result = {"streams": []}
+    catalog = Catalog([])
     for stream in all_streams:
-        schema = load_schema(stream.tap_stream_id)
-        schema["selected"] = False
-        result["streams"].append(
-            dict(stream=stream.tap_stream_id,
-                 tap_stream_id=stream.tap_stream_id,
-                 key_properties=stream.pk_fields,
-                 schema=schema)
-        )
-    return Catalog.from_dict(result)
+        schema = Schema.from_dict(load_schema(stream.tap_stream_id),
+                                  inclusion="automatic")
+        schema.selected = False
+        catalog.streams.append(CatalogEntry(
+            stream=stream.tap_stream_id,
+            tap_stream_id=stream.tap_stream_id,
+            key_properties=stream.pk_fields,
+            schema=schema,
+        ))
+    return catalog
 
 
 def output_schema(stream):
