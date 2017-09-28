@@ -83,9 +83,8 @@ def main():
         discover(args.config).dump()
         print()
     else:
-        if not args.properties:
-            raise Exception("--properties is a required argument when syncing.")
-        catalog = Catalog.from_dict(args.properties)
+        catalog = Catalog.from_dict(args.properties) \
+            if args.properties else discover(args.config)
         sync(Context(args.config, args.state, catalog))
 
 if __name__ == "__main__":
