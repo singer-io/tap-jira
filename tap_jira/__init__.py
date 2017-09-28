@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 import os
+import json
 import singer
 from singer import utils
-import json
-from .streams import all_streams, all_stream_ids
-from .context import Context
 from singer.catalog import Catalog, CatalogEntry, Schema
+from . import streams as streams_
+from .context import Context
+from .http import Client
 
 REQUIRED_CONFIG_KEYS = ["start_date", "username", "password", "base_url"]
 
@@ -23,9 +24,16 @@ def load_schema(tap_stream_id):
     return schema
 
 
-def discover():
+def test_credentials_are_authorized(config):
+    client = Client(config)
+    client.request(streams_.ISSUES.tap_stream_id, "GET", "/rest/api/2/search",
+                   params={"maxResults": 1})
+
+
+def discover(config):
+    test_credentials_are_authorized(config)
     catalog = Catalog([])
-    for stream in all_streams:
+    for stream in streams_.all_streams:
         schema = Schema.from_dict(load_schema(stream.tap_stream_id),
                                   inclusion="automatic")
         catalog.streams.append(CatalogEntry(
@@ -44,11 +52,11 @@ def output_schema(stream):
 
 def sync(ctx):
     currently_syncing = ctx.state.get("currently_syncing")
-    start_idx = all_stream_ids.index(currently_syncing) \
+    start_idx = streams_.all_stream_ids.index(currently_syncing) \
         if currently_syncing else 0
     stream_ids_to_sync = [cs.tap_stream_id for cs in ctx.catalog.streams
                           if cs.is_selected()]
-    streams = [s for s in all_streams[start_idx:]
+    streams = [s for s in streams_.all_streams[start_idx:]
                if s.tap_stream_id in stream_ids_to_sync]
     # two loops through streams are necessary so that write_to_stdout is set
     # for all appropriate streams BEFORE syncing any streams. Otherwise, the
@@ -72,11 +80,12 @@ def sync(ctx):
 def main():
     args = utils.parse_args(REQUIRED_CONFIG_KEYS)
     if args.discover:
-        discover().dump()
+        discover(args.config).dump()
         print()
     else:
-        catalog = Catalog.from_dict(args.properties) \
-            if args.properties else discover()
+        if not args.properties:
+            raise Exception("--properties is a required argument when syncing.")
+        catalog = Catalog.from_dict(args.properties)
         sync(Context(args.config, args.state, catalog))
 
 if __name__ == "__main__":

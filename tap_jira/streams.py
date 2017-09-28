@@ -188,6 +188,8 @@ class Issues(Stream):
         ctx.set_bookmark(updated_bookmark, last_updated)
         ctx.write_state()
 
+ISSUES = Issues("issues", ["id"])
+
 
 class Worklogs(Stream):
     def _fetch_ids(self, ctx, last_updated):
@@ -246,7 +248,7 @@ all_streams = [
     Everything("resolutions", ["id"], path="/rest/api/2/resolution"),
     Everything("roles", ["id"], path="/rest/api/2/role"),
     Users("users", ["key"]),
-    Issues("issues", ["id"]),
+    ISSUES,
     ISSUE_COMMENTS,
     Worklogs("worklogs", ["id"]),
 ]
