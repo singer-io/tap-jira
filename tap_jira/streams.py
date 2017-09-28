@@ -67,9 +67,15 @@ VERSIONS = Versions("versions", ["id"], indirect_stream=True)
 class Projects(Stream):
     def sync(self, ctx):
         projects = ctx.client.request(
-            self.tap_stream_id, "GET", "/rest/api/2/project")
+            self.tap_stream_id, "GET", "/rest/api/2/project",
+            params={"expand": "description,lead,url,projectKeys"})
         for project in projects:
-            VERSIONS.format_versions(project.get("versions", []))
+            # The Jira documentation suggests that a "versions" key may appear
+            # in the project, but from my testing that hasn't been the case
+            # (even when projects do have versions). Since we are already
+            # syncing versions separately, pop this key just in case it
+            # appears.
+            project.pop("versions", None)
         self.write_page(projects)
         for project in projects:
             VERSIONS.sync(ctx, project=project)
