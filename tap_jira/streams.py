@@ -36,6 +36,9 @@ class Stream(object):
         self.indirect_stream = indirect_stream
         self.write_to_stdout = False
 
+    def __repr__(self):
+        return "<Stream(" + self.tap_stream_id + ")>"
+
     def write_page(self, page):
         """Writes page of data to stdout when :var write_to_stdout: is True."""
         if not self.write_to_stdout:
