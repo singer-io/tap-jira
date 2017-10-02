@@ -58,13 +58,13 @@ def sync(ctx):
                           if cs.is_selected()]
     streams = [s for s in streams_.all_streams[start_idx:]
                if s.tap_stream_id in stream_ids_to_sync]
-    # two loops through streams are necessary so that write_to_stdout is set
+    # two loops through streams are necessary so that selected is set
     # for all appropriate streams BEFORE syncing any streams. Otherwise, the
     # first stream might generate data for the second stream, but the second
-    # stream hasn't set write_to_stdout yet
+    # stream hasn't set selected yet
     for stream in streams:
         output_schema(stream)
-        stream.write_to_stdout = True
+        stream.selected = True
     for stream in streams:
         # indirect_stream indicates the data for the stream comes from some
         # other stream, so we don't sync it directly.
