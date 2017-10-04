@@ -87,13 +87,13 @@ def main_impl():
             if args.properties else discover(args.config)
         sync(Context(args.config, args.state, catalog))
 
+
 def main():
     try:
         main_impl()
     except Exception as exc:
         LOGGER.critical(exc)
         raise exc
-
 
 if __name__ == "__main__":
     main()
