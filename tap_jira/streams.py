@@ -24,13 +24,11 @@ class Stream(object):
     :var tap_stream_id:
     :var pk_fields: A list of primary key fields
     :var indirect_stream: If True, this indicates the stream cannot be synced
-    directly, but instead has its data generated via a separate stream.
-    :var selected: Must be true for this stream to sync any data."""
+    directly, but instead has its data generated via a separate stream."""
     def __init__(self, tap_stream_id, pk_fields, indirect_stream=False):
         self.tap_stream_id = tap_stream_id
         self.pk_fields = pk_fields
         self.indirect_stream = indirect_stream
-        self.selected = False
 
     def __repr__(self):
         return "<Stream(" + self.tap_stream_id + ")>"
@@ -70,7 +68,7 @@ class Projects(Stream):
             # appears.
             project.pop("versions", None)
         self.write_page(projects)
-        if VERSIONS.selected:
+        if VERSIONS.tap_stream_id in ctx.selected_stream_ids:
             for project in projects:
                 VERSIONS.sync(ctx, project=project)
 
@@ -171,7 +169,7 @@ class Issues(Stream):
             comments = []
             for issue in page:
                 comments += issue["fields"].pop("comment")["comments"]
-            if ISSUE_COMMENTS.selected:
+            if ISSUE_COMMENTS.tap_stream_id in ctx.selected_stream_ids:
                 ISSUE_COMMENTS.format_comments(comments)
                 ISSUE_COMMENTS.write_page(comments)
             self.format_issues(page)
