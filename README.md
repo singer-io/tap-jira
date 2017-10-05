@@ -22,6 +22,42 @@ This tap:
 - Outputs the schema for each resource
 - Incrementally pulls data based on the input state
 
+## Quick Start
+
+1. Install
+
+    pip install tap-jira
+
+2. Create the config file
+
+   Create a JSON file called `config.json`. Its contents should look like:
+
+   ```json
+    {
+        "start_date": "2010-01-01",
+        "username": "your-jira-username",
+        "password": "your-jira-password",
+        "base_url": "https://your-jira-domain"
+    }
+    ```
+
+   The `start_date` specifies the date at which the tap will begin pulling data
+   (for those resources that support this).
+
+   The `base_url` is the URL where your Jira installation can be found. For
+   example, it might look like: `https://mycompany.atlassian.net`.
+
+4. Run the Tap in Discovery Mode
+
+    tap-jira -c config.json -d
+
+   See the Singer docs on discovery mode
+   [here](https://github.com/singer-io/getting-started/blob/master/BEST_PRACTICES.md#discover-mode-and-connection-checks).
+
+5. Run the Tap in Sync Mode
+
+    tap-jira -c config.json -p catalog-file.json
+
 ## Test Data
 
 This repo provides a script for creating some data in JIRA. Use `./create.py
