@@ -68,8 +68,9 @@ class Projects(Stream):
             # appears.
             project.pop("versions", None)
         self.write_page(projects)
-        for project in projects:
-            VERSIONS.sync(ctx, project=project)
+        if VERSIONS.tap_stream_id in ctx.selected_stream_ids:
+            for project in projects:
+                VERSIONS.sync(ctx, project=project)
 
 
 class Everything(Stream):
@@ -168,8 +169,9 @@ class Issues(Stream):
             comments = []
             for issue in page:
                 comments += issue["fields"].pop("comment")["comments"]
-            ISSUE_COMMENTS.format_comments(comments)
-            ISSUE_COMMENTS.write_page(comments)
+            if ISSUE_COMMENTS.tap_stream_id in ctx.selected_stream_ids:
+                ISSUE_COMMENTS.format_comments(comments)
+                ISSUE_COMMENTS.write_page(comments)
             self.format_issues(page)
             self.write_page(page)
             last_updated = page[-1]["fields"]["updated"]
