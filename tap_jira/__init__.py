@@ -54,17 +54,14 @@ def sync(ctx):
     currently_syncing = ctx.state.get("currently_syncing")
     start_idx = streams_.all_stream_ids.index(currently_syncing) \
         if currently_syncing else 0
-    stream_ids_to_sync = [cs.tap_stream_id for cs in ctx.catalog.streams
-                          if cs.is_selected()]
     streams = [s for s in streams_.all_streams[start_idx:]
-               if s.tap_stream_id in stream_ids_to_sync]
-    # two loops through streams are necessary so that write_to_stdout is set
-    # for all appropriate streams BEFORE syncing any streams. Otherwise, the
-    # first stream might generate data for the second stream, but the second
-    # stream hasn't set write_to_stdout yet
+               if s.tap_stream_id in ctx.selected_stream_ids]
+    # two loops through streams are necessary so that the schema is output
+    # BEFORE syncing any streams. Otherwise, the first stream might generate
+    # data for the second stream, but the second stream hasn't output its
+    # schema yet
     for stream in streams:
         output_schema(stream)
-        stream.write_to_stdout = True
     for stream in streams:
         # indirect_stream indicates the data for the stream comes from some
         # other stream, so we don't sync it directly.

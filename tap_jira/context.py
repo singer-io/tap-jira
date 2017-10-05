@@ -9,6 +9,10 @@ class Context(object):
         self.state = state
         self.catalog = catalog
         self.client = Client(config)
+        self.selected_stream_ids = set(
+            [s.tap_stream_id for s in self.catalog.streams
+             if s.is_selected()]
+        )
 
     @property
     def bookmarks(self):

@@ -24,25 +24,16 @@ class Stream(object):
     :var tap_stream_id:
     :var pk_fields: A list of primary key fields
     :var indirect_stream: If True, this indicates the stream cannot be synced
-    directly, but instead has its data generated via a separate stream.
-    :var write_to_stdout: Must be true for this stream to output any data to
-    stdout.
-
-    .. note:: By default, :var write_to_stdout: is False. Set it to True or
-    :func:`write_page` will not output to stdout."""
+    directly, but instead has its data generated via a separate stream."""
     def __init__(self, tap_stream_id, pk_fields, indirect_stream=False):
         self.tap_stream_id = tap_stream_id
         self.pk_fields = pk_fields
         self.indirect_stream = indirect_stream
-        self.write_to_stdout = False
 
     def __repr__(self):
         return "<Stream(" + self.tap_stream_id + ")>"
 
     def write_page(self, page):
-        """Writes page of data to stdout when :var write_to_stdout: is True."""
-        if not self.write_to_stdout:
-            return
         singer.write_records(self.tap_stream_id, page)
         with metrics.record_counter(self.tap_stream_id) as counter:
             counter.increment(len(page))
@@ -77,8 +68,9 @@ class Projects(Stream):
             # appears.
             project.pop("versions", None)
         self.write_page(projects)
-        for project in projects:
-            VERSIONS.sync(ctx, project=project)
+        if VERSIONS.tap_stream_id in ctx.selected_stream_ids:
+            for project in projects:
+                VERSIONS.sync(ctx, project=project)
 
 
 class Everything(Stream):
@@ -177,8 +169,9 @@ class Issues(Stream):
             comments = []
             for issue in page:
                 comments += issue["fields"].pop("comment")["comments"]
-            ISSUE_COMMENTS.format_comments(comments)
-            ISSUE_COMMENTS.write_page(comments)
+            if ISSUE_COMMENTS.tap_stream_id in ctx.selected_stream_ids:
+                ISSUE_COMMENTS.format_comments(comments)
+                ISSUE_COMMENTS.write_page(comments)
             self.format_issues(page)
             self.write_page(page)
             last_updated = page[-1]["fields"]["updated"]
