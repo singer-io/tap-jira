@@ -134,6 +134,7 @@ ISSUE_COMMENTS = IssueComments("issue_comments", ["id"], indirect_stream=True)
 class Changelog(Stream):
     def format_changelogs(self, changelogs):
         for changelog in changelogs:
+            format_dt(changelog, "created")
             for hist in changelog.get("histories", []):
                 format_dt(hist, "created")
 
@@ -150,7 +151,13 @@ CHANGELOG = Changelog("changelog", ["id"], indirect_stream=True)
 class Issues(Stream):
     def format_issues(self, issues):
         for issue in issues:
-            format_dt(issue["fields"], "updated")
+            fields = issue["fields"]
+            format_dt(fields, "updated")
+            format_dt(fields, "created")
+            format_dt(fields, "lastViewed")
+            for att in fields["attachment"]:
+                format_dt(att, "created")
+            fields.pop("worklog", None)
             # The JSON schema for the search endpoint indicates an "operations"
             # field can be present. This field is self-referential, making it
             # difficult to deal with - we would have to flatten the operations
@@ -216,6 +223,12 @@ class Worklogs(Stream):
             data=json.dumps({"ids": ids}),
         )
 
+    def format_worklogs(self, worklogs):
+        for worklog in worklogs:
+            format_dt(worklog, "created")
+            format_dt(worklog, "updated")
+            format_dt(worklog, "started")
+
     def sync(self, ctx):
         updated_bookmark = [self.tap_stream_id, "updated"]
         last_updated = ctx.update_start_date_bookmark(updated_bookmark)
@@ -225,9 +238,7 @@ class Worklogs(Stream):
                 break
             ids = [x["worklogId"] for x in ids_page["values"]]
             worklogs = self._fetch_worklogs(ctx, ids)
-            for worklog in worklogs:
-                format_dt(worklog, "created")
-                format_dt(worklog, "updated")
+            self.format_worklogs(worklogs)
             self.write_page(worklogs)
             max_updated = max(w["updated"] for w in worklogs)
             last_page = ids_page.get("lastPage")
