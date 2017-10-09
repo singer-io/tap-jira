@@ -131,6 +131,22 @@ class IssueComments(Stream):
 ISSUE_COMMENTS = IssueComments("issue_comments", ["id"], indirect_stream=True)
 
 
+class Changelog(Stream):
+    def format_changelogs(self, changelogs):
+        for changelog in changelogs:
+            for hist in changelog.get("histories", []):
+                format_dt(hist, "created")
+
+    def sync(self, ctx, *, issue):
+        path = "/rest/api/2/issue/{}/changelog".format(issue["id"])
+        pager = Paginator(ctx.client)
+        for page in pager.pages(self.tap_stream_id, "GET", path):
+            self.format_changelogs(page)
+            self.write_page(page)
+
+CHANGELOG = Changelog("changelog", ["id"], indirect_stream=True)
+
+
 class Issues(Stream):
     def format_issues(self, issues):
         for issue in issues:
@@ -144,8 +160,6 @@ class Issues(Stream):
             # the "menu" bar for each issue. This is of questionable utility,
             # so we decided to just strip the field out for now.
             issue.pop("operations", None)
-            for hist in issue.get("changelog", {}).get("histories", []):
-                format_dt(hist, "created")
 
     def sync(self, ctx):
         updated_bookmark = [self.tap_stream_id, "updated"]
@@ -154,7 +168,6 @@ class Issues(Stream):
         start_date = pendulum.parse(last_updated).date().isoformat()
         jql = "updated >= {} order by updated asc".format(start_date)
         params = {"fields": "*all",
-                  "expand": "changelog",
                   "validateQuery": "strict",
                   "jql": jql}
         page_num = ctx.bookmark(page_num_offset) or 0
@@ -167,11 +180,13 @@ class Issues(Stream):
             comments = []
             for issue in page:
                 comments += issue["fields"].pop("comment")["comments"]
+            self.format_issues(page)
+            self.write_page(page)
             if ISSUE_COMMENTS.tap_stream_id in ctx.selected_stream_ids:
                 ISSUE_COMMENTS.format_comments(comments)
                 ISSUE_COMMENTS.write_page(comments)
-            self.format_issues(page)
-            self.write_page(page)
+            if CHANGELOG.tap_stream_id in ctx.selected_stream_ids:
+                CHANGELOG.sync(ctx, issue=issue)
             last_updated = page[-1]["fields"]["updated"]
             ctx.set_bookmark(page_num_offset, pager.next_page_num)
             ctx.write_state()
@@ -241,6 +256,7 @@ all_streams = [
     Users("users", ["key"]),
     ISSUES,
     ISSUE_COMMENTS,
+    CHANGELOG,
     Worklogs("worklogs", ["id"]),
 ]
 all_stream_ids = [s.tap_stream_id for s in all_streams]
