@@ -1,11 +1,9 @@
-from functools import partial
+import json
 import singer
 from singer import metrics
 from singer.utils import strftime
 import pendulum
-from datetime import datetime
 from .http import Paginator
-import json
 
 
 def format_dt(dict_, key):
