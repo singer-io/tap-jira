@@ -226,5 +226,32 @@
       "additionalProperties": false
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "definitions": {
+    "history-metadata-participant": {
+      "title": "History Metadata Participant",
+      "type": ["null", "object"],
+      "properties": {
+        "id": {
+          "type": ["null", "string"]
+        },
+        "displayName": {
+          "type": ["null", "string"]
+        },
+        "displayNameKey": {
+          "type": ["null", "string"]
+        },
+        "type": {
+          "type": ["null", "string"]
+        },
+        "avatarUrl": {
+          "type": ["null", "string"]
+        },
+        "url": {
+          "type": ["null", "string"]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
 }
