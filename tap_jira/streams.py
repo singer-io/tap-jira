@@ -131,7 +131,7 @@ class IssueComments(Stream):
 ISSUE_COMMENTS = IssueComments("issue_comments", ["id"], indirect_stream=True)
 
 
-class Changelog(Stream):
+class Changelogs(Stream):
     def format_changelogs(self, changelogs):
         for changelog in changelogs:
             format_dt(changelog, "created")
@@ -145,7 +145,7 @@ class Changelog(Stream):
             self.format_changelogs(page)
             self.write_page(page)
 
-CHANGELOG = Changelog("changelog", ["id"], indirect_stream=True)
+CHANGELOGS = Changelogs("changelogs", ["id"], indirect_stream=True)
 
 
 class Issues(Stream):
@@ -192,8 +192,8 @@ class Issues(Stream):
             if ISSUE_COMMENTS.tap_stream_id in ctx.selected_stream_ids:
                 ISSUE_COMMENTS.format_comments(comments)
                 ISSUE_COMMENTS.write_page(comments)
-            if CHANGELOG.tap_stream_id in ctx.selected_stream_ids:
-                CHANGELOG.sync(ctx, issue=issue)
+            if CHANGELOGS.tap_stream_id in ctx.selected_stream_ids:
+                CHANGELOGS.sync(ctx, issue=issue)
             last_updated = page[-1]["fields"]["updated"]
             ctx.set_bookmark(page_num_offset, pager.next_page_num)
             ctx.write_state()
@@ -267,7 +267,7 @@ all_streams = [
     Users("users", ["key"]),
     ISSUES,
     ISSUE_COMMENTS,
-    CHANGELOG,
+    CHANGELOGS,
     Worklogs("worklogs", ["id"]),
 ]
 all_stream_ids = [s.tap_stream_id for s in all_streams]
