@@ -39,7 +39,7 @@ class Client(object):
         request = requests.Request(
             method, self.url(path), auth=self.auth,
             headers=self._headers(headers),
-            **kwargs,
+            **kwargs
         )
         return self.session.send(request.prepare())
 
