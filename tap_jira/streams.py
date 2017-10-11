@@ -257,8 +257,10 @@ class Worklogs(Stream):
             if last_page:
                 break
 
+PROJECTS = Projects("projects", ["id"])
+
 all_streams = [
-    Projects("projects", ["id"]),
+    PROJECTS,
     VERSIONS,
     ProjectTypes("project_types", ["key"]),
     Everything("project_categories", ["id"], path="/rest/api/2/projectCategory"),
@@ -271,3 +273,23 @@ all_streams = [
     Worklogs("worklogs", ["id"]),
 ]
 all_stream_ids = [s.tap_stream_id for s in all_streams]
+
+
+class DependencyException(Exception):
+    pass
+
+
+def validate_dependencies(ctx):
+    errs = []
+    selected = ctx.selected_stream_ids
+    msg_tmpl = ("Unable to extract {0} data. "
+                "To receive {0} data, you also need to select {1}.")
+    if VERSIONS.tap_stream_id in selected and PROJECTS.tap_stream_id not in selected:
+        errs.append(msg_tmpl.format("Versions", "Projects"))
+    if ISSUES.tap_stream_id not in selected:
+        if CHANGELOGS.tap_stream_id in selected:
+            errs.append(msg_tmpl.format("Changelog", "Issues"))
+        if ISSUE_COMMENTS.tap_stream_id in selected:
+            errs.append(msg_tmpl.format("Issue Comments", "Issues"))
+    if errs:
+        raise DependencyException(" ".join(errs))
