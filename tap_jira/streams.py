@@ -131,10 +131,33 @@ class IssueComments(Stream):
 ISSUE_COMMENTS = IssueComments("issue_comments", ["id"], indirect_stream=True)
 
 
+class Changelogs(Stream):
+    def format_changelogs(self, changelogs):
+        for changelog in changelogs:
+            format_dt(changelog, "created")
+            for hist in changelog.get("histories", []):
+                format_dt(hist, "created")
+
+    def sync(self, ctx, *, issue):
+        path = "/rest/api/2/issue/{}/changelog".format(issue["id"])
+        pager = Paginator(ctx.client)
+        for page in pager.pages(self.tap_stream_id, "GET", path):
+            self.format_changelogs(page)
+            self.write_page(page)
+
+CHANGELOGS = Changelogs("changelogs", ["id"], indirect_stream=True)
+
+
 class Issues(Stream):
     def format_issues(self, issues):
         for issue in issues:
-            format_dt(issue["fields"], "updated")
+            fields = issue["fields"]
+            format_dt(fields, "updated")
+            format_dt(fields, "created")
+            format_dt(fields, "lastViewed")
+            for att in fields["attachment"]:
+                format_dt(att, "created")
+            fields.pop("worklog", None)
             # The JSON schema for the search endpoint indicates an "operations"
             # field can be present. This field is self-referential, making it
             # difficult to deal with - we would have to flatten the operations
@@ -144,8 +167,6 @@ class Issues(Stream):
             # the "menu" bar for each issue. This is of questionable utility,
             # so we decided to just strip the field out for now.
             issue.pop("operations", None)
-            for hist in issue.get("changelog", {}).get("histories", []):
-                format_dt(hist, "created")
 
     def sync(self, ctx):
         updated_bookmark = [self.tap_stream_id, "updated"]
@@ -154,7 +175,6 @@ class Issues(Stream):
         start_date = pendulum.parse(last_updated).date().isoformat()
         jql = "updated >= {} order by updated asc".format(start_date)
         params = {"fields": "*all",
-                  "expand": "changelog",
                   "validateQuery": "strict",
                   "jql": jql}
         page_num = ctx.bookmark(page_num_offset) or 0
@@ -167,11 +187,13 @@ class Issues(Stream):
             comments = []
             for issue in page:
                 comments += issue["fields"].pop("comment")["comments"]
+            self.format_issues(page)
+            self.write_page(page)
             if ISSUE_COMMENTS.tap_stream_id in ctx.selected_stream_ids:
                 ISSUE_COMMENTS.format_comments(comments)
                 ISSUE_COMMENTS.write_page(comments)
-            self.format_issues(page)
-            self.write_page(page)
+            if CHANGELOGS.tap_stream_id in ctx.selected_stream_ids:
+                CHANGELOGS.sync(ctx, issue=issue)
             last_updated = page[-1]["fields"]["updated"]
             ctx.set_bookmark(page_num_offset, pager.next_page_num)
             ctx.write_state()
@@ -201,6 +223,12 @@ class Worklogs(Stream):
             data=json.dumps({"ids": ids}),
         )
 
+    def format_worklogs(self, worklogs):
+        for worklog in worklogs:
+            format_dt(worklog, "created")
+            format_dt(worklog, "updated")
+            format_dt(worklog, "started")
+
     def sync(self, ctx):
         updated_bookmark = [self.tap_stream_id, "updated"]
         last_updated = ctx.update_start_date_bookmark(updated_bookmark)
@@ -210,9 +238,7 @@ class Worklogs(Stream):
                 break
             ids = [x["worklogId"] for x in ids_page["values"]]
             worklogs = self._fetch_worklogs(ctx, ids)
-            for worklog in worklogs:
-                format_dt(worklog, "created")
-                format_dt(worklog, "updated")
+            self.format_worklogs(worklogs)
             self.write_page(worklogs)
             max_updated = max(w["updated"] for w in worklogs)
             last_page = ids_page.get("lastPage")
@@ -231,8 +257,10 @@ class Worklogs(Stream):
             if last_page:
                 break
 
+PROJECTS = Projects("projects", ["id"])
+
 all_streams = [
-    Projects("projects", ["id"]),
+    PROJECTS,
     VERSIONS,
     ProjectTypes("project_types", ["key"]),
     Everything("project_categories", ["id"], path="/rest/api/2/projectCategory"),
@@ -241,6 +269,27 @@ all_streams = [
     Users("users", ["key"]),
     ISSUES,
     ISSUE_COMMENTS,
+    CHANGELOGS,
     Worklogs("worklogs", ["id"]),
 ]
 all_stream_ids = [s.tap_stream_id for s in all_streams]
+
+
+class DependencyException(Exception):
+    pass
+
+
+def validate_dependencies(ctx):
+    errs = []
+    selected = ctx.selected_stream_ids
+    msg_tmpl = ("Unable to extract {0} data. "
+                "To receive {0} data, you also need to select {1}.")
+    if VERSIONS.tap_stream_id in selected and PROJECTS.tap_stream_id not in selected:
+        errs.append(msg_tmpl.format("Versions", "Projects"))
+    if ISSUES.tap_stream_id not in selected:
+        if CHANGELOGS.tap_stream_id in selected:
+            errs.append(msg_tmpl.format("Changelog", "Issues"))
+        if ISSUE_COMMENTS.tap_stream_id in selected:
+            errs.append(msg_tmpl.format("Issue Comments", "Issues"))
+    if errs:
+        raise DependencyException(" ".join(errs))

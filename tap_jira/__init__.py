@@ -8,6 +8,7 @@ from . import streams as streams_
 from .context import Context
 from .http import Client
 
+LOGGER = singer.get_logger()
 REQUIRED_CONFIG_KEYS = ["start_date", "username", "password", "base_url"]
 
 
@@ -51,6 +52,7 @@ def output_schema(stream):
 
 
 def sync(ctx):
+    streams_.validate_dependencies(ctx)
     currently_syncing = ctx.state.get("currently_syncing")
     start_idx = streams_.all_stream_ids.index(currently_syncing) \
         if currently_syncing else 0
