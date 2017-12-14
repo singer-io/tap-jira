@@ -40,6 +40,8 @@ class Stream(object):
 class Versions(Stream):
     def format_versions(self, versions):
         for version in versions:
+            format_dt(version, "releaseDate")
+            format_dt(version, "startDate")
             format_dt(version, "userStartDate")
             format_dt(version, "userReleaseDate")
 

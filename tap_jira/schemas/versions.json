@@ -35,6 +35,10 @@
       "type": ["null", "string"],
       "format": "date-time"
     },
+    "startDate": {
+      "type": ["null", "string"],
+      "format": "date-time"
+    },
     "userReleaseDate": {
       "type": ["null", "string"],
       "format": "date-time"
