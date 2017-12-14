@@ -24,6 +24,10 @@
     "released": {
       "type": ["null", "boolean"]
     },
+    "releaseDate": {
+      "type": ["null", "string"],
+      "format": "date-time"
+    },
     "overdue": {
       "type": ["null", "boolean"]
     },
