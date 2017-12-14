@@ -2,6 +2,9 @@
   "title": "Project",
   "type": ["null", "object"],
   "properties": {
+    "simplified": {
+      "type": ["null", "boolean"]
+    },
     "expand": {
       "type": ["null", "string"]
     },
