@@ -28,10 +28,13 @@ class Client(object):
         self.next_request_at = datetime.now()
 
     def url(self, path):
+        # defend against if the base_url does or does not provide
+        # either side of the full URL
         base_url = self.base_url
         base_url = re.sub('^http[s]?://', '', base_url)
-        base_url = re.sub('.jira.com$', '', base_url)        
-        return _join('https://', base_url, '.jira.com', path)
+        base_url = re.sub('.jira.com[/]?$', '', base_url)
+        base_url = 'https://' + base_url + '.jira.com'
+        return _join(base_url, path)
 
     def _headers(self, headers):
         headers = headers.copy()
