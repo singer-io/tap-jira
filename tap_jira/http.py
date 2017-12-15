@@ -1,4 +1,5 @@
 import requests
+import re
 from requests.auth import HTTPBasicAuth
 from singer import metrics
 import backoff
@@ -27,7 +28,10 @@ class Client(object):
         self.next_request_at = datetime.now()
 
     def url(self, path):
-        return _join(self.base_url, path)
+        base_url = self.base_url
+        base_url = re.sub('^http[s]?://', '', base_url)
+        base_url = re.sub('.jira.com$', '', base_url)        
+        return _join('https://', base_url, '.jira.com', path)
 
     def _headers(self, headers):
         headers = headers.copy()
