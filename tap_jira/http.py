@@ -29,11 +29,10 @@ class Client(object):
 
     def url(self, path):
         # defend against if the base_url does or does not provide
-        # either side of the full URL
+        # https://
         base_url = self.base_url
         base_url = re.sub('^http[s]?://', '', base_url)
-        base_url = re.sub('.jira.com[/]?$', '', base_url)
-        base_url = 'https://' + base_url + '.jira.com'
+        base_url = 'https://' + base_url
         return _join(base_url, path)
 
     def _headers(self, headers):
