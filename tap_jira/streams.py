@@ -157,7 +157,7 @@ class Issues(Stream):
             format_dt(fields, "updated")
             format_dt(fields, "created")
             format_dt(fields, "lastViewed")
-            for att in fields["attachment"]:
+            for att in fields.get("attachment", []):
                 format_dt(att, "created")
             fields.pop("worklog", None)
             # The JSON schema for the search endpoint indicates an "operations"
