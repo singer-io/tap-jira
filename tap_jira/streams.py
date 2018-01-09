@@ -178,13 +178,13 @@ class Issues(Stream):
         for page in pager.pages(self.tap_stream_id,
                                 "GET", "/rest/api/2/search",
                                 params=params):
-            # comments and changelogs are extracted before writing the page 
+            # comments and changelogs are extracted before writing the page
             # because the "pop" removes these fields from each issue
             comments = []
             changelogs = []
             for issue in page:
                 issue_changelogs = issue.pop("changelog")["histories"]
-                # add issue ID to the changelog so it can be linked back to 
+                # add issue ID to the changelog so it can be linked back to
                 # its parent issue
                 for issue_changelog in issue_changelogs:
                     issue_changelog["issueId"] = issue["id"]
