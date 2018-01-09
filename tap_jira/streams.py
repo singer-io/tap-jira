@@ -140,13 +140,6 @@ class Changelogs(Stream):
             for hist in changelog.get("histories", []):
                 format_dt(hist, "created")
 
-    def sync(self, ctx, *, issue):
-        path = "/rest/api/2/issue/{}/changelog".format(issue["id"])
-        pager = Paginator(ctx.client)
-        for page in pager.pages(self.tap_stream_id, "GET", path):
-            self.format_changelogs(page)
-            self.write_page(page)
-
 CHANGELOGS = Changelogs("changelogs", ["id"], indirect_stream=True)
 
 
@@ -177,6 +170,7 @@ class Issues(Stream):
         start_date = pendulum.parse(last_updated).date().isoformat()
         jql = "updated >= {} order by updated asc".format(start_date)
         params = {"fields": "*all",
+                  "expand": ["changelog"],
                   "validateQuery": "strict",
                   "jql": jql}
         page_num = ctx.bookmark(page_num_offset) or 0
@@ -195,7 +189,8 @@ class Issues(Stream):
                 ISSUE_COMMENTS.format_comments(comments)
                 ISSUE_COMMENTS.write_page(comments)
             if CHANGELOGS.tap_stream_id in ctx.selected_stream_ids:
-                CHANGELOGS.sync(ctx, issue=issue)
+                CHANGELOGS.format_changelogs(changelogs)
+                CHANGELOGS.write_page(changelogs)
             last_updated = page[-1]["fields"]["updated"]
             ctx.set_bookmark(page_num_offset, pager.next_page_num)
             ctx.write_state()
