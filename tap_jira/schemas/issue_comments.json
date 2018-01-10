@@ -8,6 +8,9 @@
     "id": {
       "type": ["null", "string"]
     },
+    "issueId": {
+      "type": ["null","string"]
+    },
     "author": {
       "$ref": "user"
     },

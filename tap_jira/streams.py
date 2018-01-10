@@ -130,6 +130,15 @@ class IssueComments(Stream):
             format_dt(comment, "updated")
             format_dt(comment, "created")
 
+    def sync_issue_comments(self, issue, ctx):
+        issue_comments = issue["fields"].pop("comment")["comments"]
+        # add issue ID to to link comment back to its parent issue
+        for issue_comment in issue_comments:
+            issue_comment["issueId"] = issue["id"]
+        if (len(issue_comments) > 0) and (self.tap_stream_id in ctx.selected_stream_ids):
+            self.format_comments(issue_comments)
+            self.write_page(issue_comments)
+
 ISSUE_COMMENTS = IssueComments("issue_comments", ["id"], indirect_stream=True)
 
 
@@ -139,6 +148,14 @@ class Changelogs(Stream):
             format_dt(changelog, "created")
             for hist in changelog.get("histories", []):
                 format_dt(hist, "created")
+    def sync_issue_changelogs(self, issue, ctx):
+        issue_changelogs = issue.pop("changelog")["histories"]
+        # add issue ID to to link changelog back to its parent issue
+        for issue_changelog in issue_changelogs:
+            issue_changelog["issueId"] = issue["id"]
+        if (len(issue_changelogs) > 0) and (self.tap_stream_id in ctx.selected_stream_ids):
+            self.format_changelogs(issue_changelogs)
+            self.write_page(issue_changelogs)
 
 CHANGELOGS = Changelogs("changelogs", ["id"], indirect_stream=True)
 
@@ -178,26 +195,16 @@ class Issues(Stream):
         for page in pager.pages(self.tap_stream_id,
                                 "GET", "/rest/api/2/search",
                                 params=params):
-            # comments and changelogs are extracted before writing the page
-            # because the "pop" removes these fields from each issue
-            comments = []
-            changelogs = []
+
+            # sync issue_comments and changelogs for each issue
             for issue in page:
-                issue_changelogs = issue.pop("changelog")["histories"]
-                # add issue ID to the changelog so it can be linked back to
-                # its parent issue
-                for issue_changelog in issue_changelogs:
-                    issue_changelog["issueId"] = issue["id"]
-                changelogs += issue_changelogs
-                comments += issue["fields"].pop("comment")["comments"]
+                CHANGELOGS.sync_issue_changelogs(issue, ctx)
+                ISSUE_COMMENTS.sync_issue_comments(issue, ctx)
+
+            # sync issues
             self.format_issues(page)
             self.write_page(page)
-            if ISSUE_COMMENTS.tap_stream_id in ctx.selected_stream_ids:
-                ISSUE_COMMENTS.format_comments(comments)
-                ISSUE_COMMENTS.write_page(comments)
-            if CHANGELOGS.tap_stream_id in ctx.selected_stream_ids:
-                CHANGELOGS.format_changelogs(changelogs)
-                CHANGELOGS.write_page(changelogs)
+
             last_updated = page[-1]["fields"]["updated"]
             ctx.set_bookmark(page_num_offset, pager.next_page_num)
             ctx.write_state()
