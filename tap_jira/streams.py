@@ -125,37 +125,23 @@ class Users(Stream):
 
 
 class IssueComments(Stream):
-    def format_comments(self, comments):
+    def format_comments(self, issue, comments):
         for comment in comments:
+            comment["issueId"] = issue["id"]
             format_dt(comment, "updated")
             format_dt(comment, "created")
 
-    def sync_issue_comments(self, issue, ctx):
-        issue_comments = issue["fields"].pop("comment")["comments"]
-        # add issue ID to to link comment back to its parent issue
-        for issue_comment in issue_comments:
-            issue_comment["issueId"] = issue["id"]
-        if (len(issue_comments) > 0) and (self.tap_stream_id in ctx.selected_stream_ids):
-            self.format_comments(issue_comments)
-            self.write_page(issue_comments)
 
 ISSUE_COMMENTS = IssueComments("issue_comments", ["id"], indirect_stream=True)
 
 
 class Changelogs(Stream):
-    def format_changelogs(self, changelogs):
+    def format_changelogs(self, issue, changelogs):
         for changelog in changelogs:
+            changelog["issueId"] = issue["id"]
             format_dt(changelog, "created")
             for hist in changelog.get("histories", []):
                 format_dt(hist, "created")
-    def sync_issue_changelogs(self, issue, ctx):
-        issue_changelogs = issue.pop("changelog")["histories"]
-        # add issue ID to to link changelog back to its parent issue
-        for issue_changelog in issue_changelogs:
-            issue_changelog["issueId"] = issue["id"]
-        if (len(issue_changelogs) > 0) and (self.tap_stream_id in ctx.selected_stream_ids):
-            self.format_changelogs(issue_changelogs)
-            self.write_page(issue_changelogs)
 
 CHANGELOGS = Changelogs("changelogs", ["id"], indirect_stream=True)
 
@@ -198,8 +184,7 @@ class Issues(Stream):
 
             # sync issue_comments and changelogs for each issue
             for issue in page:
-                CHANGELOGS.sync_issue_changelogs(issue, ctx)
-                ISSUE_COMMENTS.sync_issue_comments(issue, ctx)
+                self.sync_comments_and_changelogs(issue, ctx)
 
             # sync issues
             self.format_issues(page)
@@ -211,6 +196,19 @@ class Issues(Stream):
         ctx.set_bookmark(page_num_offset, None)
         ctx.set_bookmark(updated_bookmark, last_updated)
         ctx.write_state()
+
+    def sync_comments_and_changelogs(self, issue, ctx):
+        #sync comments
+        comments = issue["fields"].pop("comment")["comments"]
+        if comments and (ISSUE_COMMENTS.tap_stream_id in ctx.selected_stream_ids):
+            ISSUE_COMMENTS.format_comments(issue, comments)
+            ISSUE_COMMENTS.write_page(comments)
+
+        #sync changelogs
+        changelogs = issue.pop("changelog")["histories"]
+        if changelogs and (CHANGELOGS.tap_stream_id in ctx.selected_stream_ids):
+            CHANGELOGS.format_changelogs(issue, changelogs)
+            CHANGELOGS.write_page(changelogs)
 
 ISSUES = Issues("issues", ["id"])
 
