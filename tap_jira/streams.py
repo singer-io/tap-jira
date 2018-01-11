@@ -185,7 +185,6 @@ class Issues(Stream):
             # sync issues
             self.format_issues(page)
             self.write_page(page)
-
             last_updated = page[-1]["fields"]["updated"]
             ctx.set_bookmark(page_num_offset, pager.next_page_num)
             ctx.write_state()
