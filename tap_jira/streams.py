@@ -131,7 +131,6 @@ class IssueComments(Stream):
             format_dt(comment, "updated")
             format_dt(comment, "created")
 
-
 ISSUE_COMMENTS = IssueComments("issue_comments", ["id"], indirect_stream=True)
 
 
@@ -181,11 +180,8 @@ class Issues(Stream):
         for page in pager.pages(self.tap_stream_id,
                                 "GET", "/rest/api/2/search",
                                 params=params):
-
-            # sync issue_comments and changelogs for each issue
-            for issue in page:
-                self.sync_comments_and_changelogs(issue, ctx)
-
+            # sync comments and changelogs for each issue
+            self.sync_comments_and_changelogs(page, ctx)
             # sync issues
             self.format_issues(page)
             self.write_page(page)
@@ -197,18 +193,18 @@ class Issues(Stream):
         ctx.set_bookmark(updated_bookmark, last_updated)
         ctx.write_state()
 
-    def sync_comments_and_changelogs(self, issue, ctx):
-        #sync comments
-        comments = issue["fields"].pop("comment")["comments"]
-        if comments and (ISSUE_COMMENTS.tap_stream_id in ctx.selected_stream_ids):
-            ISSUE_COMMENTS.format_comments(issue, comments)
-            ISSUE_COMMENTS.write_page(comments)
-
-        #sync changelogs
-        changelogs = issue.pop("changelog")["histories"]
-        if changelogs and (CHANGELOGS.tap_stream_id in ctx.selected_stream_ids):
-            CHANGELOGS.format_changelogs(issue, changelogs)
-            CHANGELOGS.write_page(changelogs)
+    def sync_comments_and_changelogs(self, page, ctx):
+        for issue in page:
+            #sync comments
+            comments = issue["fields"].pop("comment")["comments"]
+            if comments and (ISSUE_COMMENTS.tap_stream_id in ctx.selected_stream_ids):
+                ISSUE_COMMENTS.format_comments(issue, comments)
+                ISSUE_COMMENTS.write_page(comments)
+            #sync changelogs
+            changelogs = issue.pop("changelog")["histories"]
+            if changelogs and (CHANGELOGS.tap_stream_id in ctx.selected_stream_ids):
+                CHANGELOGS.format_changelogs(issue, changelogs)
+                CHANGELOGS.write_page(changelogs)
 
 ISSUES = Issues("issues", ["id"])
 
