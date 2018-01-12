@@ -125,8 +125,9 @@ class Users(Stream):
 
 
 class IssueComments(Stream):
-    def format_comments(self, comments):
+    def format_comments(self, issue, comments):
         for comment in comments:
+            comment["issueId"] = issue["id"]
             format_dt(comment, "updated")
             format_dt(comment, "created")
 
@@ -134,18 +135,12 @@ ISSUE_COMMENTS = IssueComments("issue_comments", ["id"], indirect_stream=True)
 
 
 class Changelogs(Stream):
-    def format_changelogs(self, changelogs):
+    def format_changelogs(self, issue, changelogs):
         for changelog in changelogs:
+            changelog["issueId"] = issue["id"]
             format_dt(changelog, "created")
             for hist in changelog.get("histories", []):
                 format_dt(hist, "created")
-
-    def sync(self, ctx, *, issue):
-        path = "/rest/api/2/issue/{}/changelog".format(issue["id"])
-        pager = Paginator(ctx.client)
-        for page in pager.pages(self.tap_stream_id, "GET", path):
-            self.format_changelogs(page)
-            self.write_page(page)
 
 CHANGELOGS = Changelogs("changelogs", ["id"], indirect_stream=True)
 
@@ -177,6 +172,7 @@ class Issues(Stream):
         start_date = pendulum.parse(last_updated).date().isoformat()
         jql = "updated >= {} order by updated asc".format(start_date)
         params = {"fields": "*all",
+                  "expand": ["changelog"],
                   "validateQuery": "strict",
                   "jql": jql}
         page_num = ctx.bookmark(page_num_offset) or 0
@@ -184,24 +180,30 @@ class Issues(Stream):
         for page in pager.pages(self.tap_stream_id,
                                 "GET", "/rest/api/2/search",
                                 params=params):
-            # comments are extracted before writing the page because the "pop"
-            # removes the "comment" field from each issue
-            comments = []
-            for issue in page:
-                comments += issue["fields"].pop("comment")["comments"]
+            # sync comments and changelogs for each issue
+            self.sync_comments_and_changelogs(page, ctx)
+            # sync issues
             self.format_issues(page)
             self.write_page(page)
-            if ISSUE_COMMENTS.tap_stream_id in ctx.selected_stream_ids:
-                ISSUE_COMMENTS.format_comments(comments)
-                ISSUE_COMMENTS.write_page(comments)
-            if CHANGELOGS.tap_stream_id in ctx.selected_stream_ids:
-                CHANGELOGS.sync(ctx, issue=issue)
             last_updated = page[-1]["fields"]["updated"]
             ctx.set_bookmark(page_num_offset, pager.next_page_num)
             ctx.write_state()
         ctx.set_bookmark(page_num_offset, None)
         ctx.set_bookmark(updated_bookmark, last_updated)
         ctx.write_state()
+
+    def sync_comments_and_changelogs(self, page, ctx):
+        for issue in page:
+            #sync comments
+            comments = issue["fields"].pop("comment")["comments"]
+            if comments and (ISSUE_COMMENTS.tap_stream_id in ctx.selected_stream_ids):
+                ISSUE_COMMENTS.format_comments(issue, comments)
+                ISSUE_COMMENTS.write_page(comments)
+            #sync changelogs
+            changelogs = issue.pop("changelog")["histories"]
+            if changelogs and (CHANGELOGS.tap_stream_id in ctx.selected_stream_ids):
+                CHANGELOGS.format_changelogs(issue, changelogs)
+                CHANGELOGS.write_page(changelogs)
 
 ISSUES = Issues("issues", ["id"])
 
