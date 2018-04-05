@@ -134,6 +134,15 @@ class IssueComments(Stream):
 ISSUE_COMMENTS = IssueComments("issue_comments", ["id"], indirect_stream=True)
 
 
+class IssueTransitions(Stream):
+    def format_transitions(self, issue, transitions):
+        for transition in transitions:
+            transition["issueId"] = issue["id"]
+
+ISSUE_TRANSITIONS = IssueTransitions("issue_transitions", ["id"],
+                                     indirect_stream=True)
+
+
 class Changelogs(Stream):
     def format_changelogs(self, issue, changelogs):
         for changelog in changelogs:
@@ -172,7 +181,7 @@ class Issues(Stream):
         start_date = pendulum.parse(last_updated).date().isoformat()
         jql = "updated >= {} order by updated asc".format(start_date)
         params = {"fields": "*all",
-                  "expand": ["changelog"],
+                  "expand": "changelog,transitions",
                   "validateQuery": "strict",
                   "jql": jql}
         page_num = ctx.bookmark(page_num_offset) or 0
@@ -181,7 +190,7 @@ class Issues(Stream):
                                 "GET", "/rest/api/2/search",
                                 params=params):
             # sync comments and changelogs for each issue
-            self.sync_comments_and_changelogs(page, ctx)
+            self.sync_sub_streams(page, ctx)
             # sync issues
             self.format_issues(page)
             self.write_page(page)
@@ -192,18 +201,20 @@ class Issues(Stream):
         ctx.set_bookmark(updated_bookmark, last_updated)
         ctx.write_state()
 
-    def sync_comments_and_changelogs(self, page, ctx):
+    def sync_sub_streams(self, page, ctx):
         for issue in page:
-            #sync comments
             comments = issue["fields"].pop("comment")["comments"]
             if comments and (ISSUE_COMMENTS.tap_stream_id in ctx.selected_stream_ids):
                 ISSUE_COMMENTS.format_comments(issue, comments)
                 ISSUE_COMMENTS.write_page(comments)
-            #sync changelogs
             changelogs = issue.pop("changelog")["histories"]
             if changelogs and (CHANGELOGS.tap_stream_id in ctx.selected_stream_ids):
                 CHANGELOGS.format_changelogs(issue, changelogs)
                 CHANGELOGS.write_page(changelogs)
+            transitions = issue.pop("transitions")
+            if transitions and (ISSUE_TRANSITIONS.tap_stream_id in ctx.selected_stream_ids):
+                ISSUE_TRANSITIONS.format_transitions(issue, transitions)
+                ISSUE_TRANSITIONS.write_page(transitions)
 
 ISSUES = Issues("issues", ["id"])
 
@@ -274,6 +285,7 @@ all_streams = [
     ISSUES,
     ISSUE_COMMENTS,
     CHANGELOGS,
+    ISSUE_TRANSITIONS,
     Worklogs("worklogs", ["id"]),
 ]
 all_stream_ids = [s.tap_stream_id for s in all_streams]
@@ -295,5 +307,7 @@ def validate_dependencies(ctx):
             errs.append(msg_tmpl.format("Changelog", "Issues"))
         if ISSUE_COMMENTS.tap_stream_id in selected:
             errs.append(msg_tmpl.format("Issue Comments", "Issues"))
+        if ISSUE_TRANSITIONS.tap_stream_id in selected:
+            errs.append(msg_tmpl.format("Issue Transitions", "Issues"))
     if errs:
         raise DependencyException(" ".join(errs))
