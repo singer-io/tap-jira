@@ -92,6 +92,6 @@ class Paginator(object):
             if len(page) < response["maxResults"]:
                 self.next_page_num = None
             else:
-                self.next_page_num += 1
+                self.next_page_num += response["maxResults"]
             if page:
                 yield page
