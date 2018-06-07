@@ -164,6 +164,7 @@ class Issues(Stream):
             for att in fields.get("attachment", []):
                 format_dt(att, "created")
             fields.pop("worklog", None)
+
             # The JSON schema for the search endpoint indicates an "operations"
             # field can be present. This field is self-referential, making it
             # difficult to deal with - we would have to flatten the operations

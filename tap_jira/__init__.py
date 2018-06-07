@@ -35,13 +35,13 @@ def discover(config):
     test_credentials_are_authorized(config)
     catalog = Catalog([])
     for stream in streams_.all_streams:
-        schema = Schema.from_dict(load_schema(stream.tap_stream_id),
-                                  inclusion="automatic")
+        schema = Schema.from_dict(load_schema(stream.tap_stream_id))
         catalog.streams.append(CatalogEntry(
             stream=stream.tap_stream_id,
             tap_stream_id=stream.tap_stream_id,
             key_properties=stream.pk_fields,
             schema=schema,
+            metadata=foo
         ))
     return catalog
 
