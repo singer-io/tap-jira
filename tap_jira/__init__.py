@@ -3,6 +3,7 @@ import os
 import json
 import singer
 from singer import utils
+from singer import metadata
 from singer.catalog import Catalog, CatalogEntry, Schema
 from . import streams as streams_
 from .context import Context
@@ -31,6 +32,17 @@ def test_credentials_are_authorized(config):
                    params={"maxResults": 1})
 
 
+def load_metadata(stream, schema):
+    mdata = metadata.new()
+
+    for field_name in schema.properties.keys():
+        if field_name in stream.pk_fields:
+            mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
+        else:
+            mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'available')
+
+    return metadata.to_list(mdata)
+
 def discover(config):
     test_credentials_are_authorized(config)
     catalog = Catalog([])
@@ -41,7 +53,7 @@ def discover(config):
             tap_stream_id=stream.tap_stream_id,
             key_properties=stream.pk_fields,
             schema=schema,
-            metadata=foo
+            metadata=load_metadata(stream, schema)
         ))
     return catalog
 
