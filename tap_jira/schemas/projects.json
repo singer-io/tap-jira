@@ -83,7 +83,7 @@
             "type": ["null", "integer"]
           }
         },
-        "additionalProperties": false,
+        "additionalProperties": true,
         "required": [
           "isAssigneeTypeValid"
         ]
@@ -117,7 +117,7 @@
             "type": ["null", "integer"]
           }
         },
-        "additionalProperties": false,
+        "additionalProperties": true,
         "required": [
           "subtask"
         ]
@@ -147,7 +147,7 @@
           "format": "uri"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "avatarUrls": {
       "type": ["null", "object"],
@@ -156,7 +156,7 @@
           "type": ["null", "string"]
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "projectKeys": {
       "type": ["null", "array"],
@@ -182,13 +182,13 @@
           "type": ["null", "string"]
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "projectTypeKey": {
       "type": ["null", "string"]
     }
   },
-  "additionalProperties": false,
+  "additionalProperties": true,
   "definitions": {
     "simple-list-wrapper": {
       "title": "Simple List Wrapper",
@@ -214,11 +214,11 @@
                 "format": "uri"
               }
             },
-            "additionalProperties": false
+            "additionalProperties": true
           }
         }
       },
-      "additionalProperties": false,
+      "additionalProperties": true,
       "required": [
         "size"
       ]
@@ -251,7 +251,7 @@
               "format": "uri"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         },
         "displayName": {
           "type": ["null", "string"]
@@ -275,7 +275,7 @@
           "type": ["null", "string"]
         }
       },
-      "additionalProperties": false,
+      "additionalProperties": true,
       "required": [
         "active"
       ]

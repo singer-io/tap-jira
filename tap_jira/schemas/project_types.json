@@ -18,5 +18,5 @@
       "type": ["null", "string"]
     }
   },
-  "additionalProperties": false
+  "additionalProperties": true
 }

@@ -64,7 +64,7 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         },
         "displayName": {
           "type": [
@@ -85,7 +85,7 @@
           ]
         }
       },
-      "additionalProperties": false,
+      "additionalProperties": true,
       "required": [
         "active"
       ]
@@ -152,7 +152,7 @@
             ]
           }
         },
-        "additionalProperties": false
+        "additionalProperties": true
       }
     },
     "historyMetadata": {
@@ -226,13 +226,13 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     }
   },
-  "additionalProperties": false,
+  "additionalProperties": true,
   "definitions": {
     "history-metadata-participant": {
       "title": "History Metadata Participant",
@@ -257,7 +257,7 @@
           "type": ["null", "string"]
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     }
   }
 }
