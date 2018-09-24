@@ -18,6 +18,7 @@ This tap:
   - [`users`](https://docs.atlassian.com/jira/REST/cloud/#api/2/user-findUsers)
   - [`issues`](https://docs.atlassian.com/jira/REST/cloud/#api/2/search-search)
   - [`issue_comments`](https://docs.atlassian.com/jira/REST/cloud/#api/2/search-search)
+  - [`issue_transitions`](https://docs.atlassian.com/jira/REST/cloud/#api/2/search-search)  
   - [`worklogs`](https://docs.atlassian.com/jira/REST/cloud/#api/2/worklog-getWorklogsForIds)
 - Outputs the schema for each resource
 - Incrementally pulls data based on the input state
