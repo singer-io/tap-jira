@@ -42,3 +42,8 @@ class Context(object):
 
     def write_state(self):
         singer.write_state(self.state)
+
+    def retrieve_timezone(self):
+        response = self.client.send("GET", "/rest/api/2/myself")
+        response.raise_for_status()
+        return response.json()["timeZone"]
