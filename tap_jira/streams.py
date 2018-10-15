@@ -1,4 +1,5 @@
 import json
+import pytz
 import singer
 from singer import metrics
 from singer.utils import strftime
@@ -178,8 +179,9 @@ class Issues(Stream):
         updated_bookmark = [self.tap_stream_id, "updated"]
         page_num_offset = [self.tap_stream_id, "offset", "page_num"]
         last_updated = ctx.update_start_date_bookmark(updated_bookmark)
-        start_date = pendulum.parse(last_updated).date().isoformat()
-        jql = "updated >= {} order by updated asc".format(start_date)
+        timezone = ctx.retrieve_timezone()
+        start_date = pendulum.parse(last_updated).astimezone(pytz.timezone(timezone)).strftime("%Y-%m-%d %H:%M")
+        jql = "updated >= '{}' order by updated asc".format(start_date)
         params = {"fields": "*all",
                   "expand": "changelog,transitions",
                   "validateQuery": "strict",
