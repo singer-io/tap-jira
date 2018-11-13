@@ -1,7 +1,7 @@
 import json
 import pytz
 import singer
-from singer import metrics
+from singer import metrics, metadata, Transformer
 from singer.utils import strftime
 import pendulum
 from .http import Paginator
@@ -33,8 +33,13 @@ class Stream(object):
         return "<Stream(" + self.tap_stream_id + ")>"
 
     def write_page(self, page):
-        # Transform?
-        singer.write_records(self.tap_stream_id, page)
+        stream = Context.get_catalog_entry(self.tap_stream_id)
+        stream_metadata = metadata.to_map(stream.metadata)
+        extraction_time = singer.utils.now()
+        for rec in page:
+            with Transformer() as transformer:
+                rec = transformer.transform(rec, stream.schema.to_dict(), stream_metadata)
+            singer.write_record(self.tap_stream_id, rec, time_extracted=extraction_time)
         with metrics.record_counter(self.tap_stream_id) as counter:
             counter.increment(len(page))
 
