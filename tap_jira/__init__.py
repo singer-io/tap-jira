@@ -37,8 +37,6 @@ def discover(config):
     catalog = Catalog([])
     for stream in streams_.all_streams:
         schema = Schema.from_dict(load_schema(stream.tap_stream_id))
-                                  # This!
-                                  #inclusion="automatic")
 
         mdata = generate_metadata(stream, schema)
         
