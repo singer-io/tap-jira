@@ -10,7 +10,7 @@ from .context import Context
 from .http import Client
 
 LOGGER = singer.get_logger()
-REQUIRED_CONFIG_KEYS = ["start_date", "username", "password", "base_url"]
+REQUIRED_CONFIG_KEYS = ["start_date", "access_token"]
 
 
 def get_abs_path(path):
