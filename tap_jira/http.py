@@ -11,9 +11,6 @@ class RateLimitException(Exception):
     pass
 
 
-def _join(a, b):
-    return a.rstrip("/") + "/" + b.lstrip("/")
-
 # The project plan for this tap specified:
 # > our past experience has shown that issuing queries no more than once every
 # > 10ms can help avoid performance issues
@@ -22,31 +19,33 @@ TIME_BETWEEN_REQUESTS = timedelta(microseconds=10e3)
 class Client(object):
     def __init__(self, config):
         self.user_agent = config.get("user_agent")
-        self.base_url = config["base_url"]
-        self.auth = HTTPBasicAuth(config["username"], config["password"])
+
+        self.base_url = 'https://api.atlassian.com/ex/jira/{}{}'
+        self.cloud_id = config["cloud_id"]
+        self.access_token = config['access_token']
+
         self.session = requests.Session()
         self.next_request_at = datetime.now()
 
     def url(self, path):
-        # defend against if the base_url does or does not provide
-        # https://
-        base_url = self.base_url
-        base_url = re.sub('^http[s]?://', '', base_url)
-        base_url = 'https://' + base_url
-        return _join(base_url, path)
+        """The base_url for OAuth'd Jira is always the same and uses the provided cloud_id and path"""
+        return self.base_url.format(self.cloud_id, path)
 
     def _headers(self, headers):
         headers = headers.copy()
         if self.user_agent:
             headers["User-Agent"] = self.user_agent
+
+        # Add Accept and Authorization headers
+        headers['Accept'] = 'application/json'
+        headers['Authorization'] = 'Bearer {}'.format(self.access_token)
         return headers
 
     def send(self, method, path, headers={}, **kwargs):
-        request = requests.Request(
-            method, self.url(path), auth=self.auth,
-            headers=self._headers(headers),
-            **kwargs
-        )
+        request = requests.Request(method,
+                                   self.url(path),
+                                   headers=self._headers(headers),
+                                   **kwargs)
         return self.session.send(request.prepare())
 
     @backoff.on_exception(backoff.constant,
