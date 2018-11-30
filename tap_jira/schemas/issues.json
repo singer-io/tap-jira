@@ -88,33 +88,6 @@
     "fieldsToInclude": {
       "title": "Included Fields",
       "type": ["null", "object"]
-    },
-    "fields": {
-      "type": ["null", "object"],
-      "properties": {
-        "updated": {
-          "type": ["null", "string"],
-          "format": "date-time"
-        },
-        "created": {
-          "type": ["null", "string"],
-          "format": "date-time"
-        },
-        "lastViewed": {
-          "type": ["null", "string"],
-          "format": "date-time"
-        },
-        "attachment": {
-          "type": ["null", "array"],
-          "items": {
-            "$ref": "attachment"
-          }
-        }
-      },
-      "patternProperties": {
-        ".+": {}
-      },
-      "additionalProperties": true
     }
   },
   "additionalProperties": true,

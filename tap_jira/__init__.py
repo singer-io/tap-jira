@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import json
+import re
 import singer
 from singer import utils
 from singer import metadata
@@ -12,6 +13,39 @@ from .http import Client
 LOGGER = singer.get_logger()
 REQUIRED_CONFIG_KEYS = ["start_date", "access_token"]
 
+
+STRING_TYPES = set([
+    'string'
+])
+
+DATE_TYPES = set([
+    'datetime',
+    'date'
+])
+
+NUMBER_TYPES = set([
+    'number'
+])
+
+
+UNKNOWN_TYPES = set([
+    "any",
+    "array",
+    "comments-page",
+    "issuetype",
+    "option",
+    "priority",
+    "progress",
+    "project",
+    "resolution",
+    "sd-customerrequesttype",
+    "securitylevel",
+    "status",
+    "timetracking",
+    "user",
+    "votes",
+    "watches"
+])
 
 def get_abs_path(path):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
@@ -26,10 +60,61 @@ def load_schema(tap_stream_id):
     return schema
 
 
+def sanitize(name):
+    name = re.sub(r'[\s\-\/]', '_', name.lower())
+    return re.sub(r'[^a-z0-9_]', '', name)
+
+
+def generate_type(jira_schema):
+    property_schema = {}
+
+    field_type = jira_schema.get('type')
+
+    if field_type in STRING_TYPES:
+        property_schema['type'] = ["null","string"]
+    elif field_type in DATE_TYPES:
+        date_type = {"type": "string", "format": "date-time"}
+        string_type = {"type": ["string", "null"]}
+        property_schema["anyOf"] = [date_type, string_type]
+    elif field_type in NUMBER_TYPES:
+        property_schema['type'] = ["null","number"]
+    else:
+        property_schema['type'] = {}
+
+    # { "type": [ "null", inferred_type] <"format": "date-time">}
+    return property_schema
+
 def discover(config):
     catalog = Catalog([])
     for stream in streams_.all_streams:
-        schema = Schema.from_dict(load_schema(stream.tap_stream_id))
+        schema_data = load_schema(stream.tap_stream_id)
+
+        # The Issues stream gets special treatment
+        if stream.tap_stream_id == "issues":
+            # Make a request to fields endpoint
+            resp = Context.client.request("fields", "GET", "/rest/api/3/field")
+
+            # iterate on that response; generate a schema
+            for obj in resp:
+                if not obj['key'].startswith("customfield"):
+                    schema_data['properties'][obj['key']] = {}
+                    continue
+
+                sanitized_name = sanitize(obj['name'])
+                # Check to make sure the sanitized name isn't in the properties already; if it is, it needs more sanitizing
+                #if sanitized_name in schema_data['properties']
+
+                # If the object has a schema key, we can infer it
+                if obj.get('schema'):
+                    schema_data['properties'][sanitized_name] = generate_type(obj['schema'])
+                else:
+                    # MAybe add a metadata-unsupported thing like Salesforce?
+                    pass
+
+        # if stream.tap_stream_id == "issues":
+        #     import ipdb; ipdb.set_trace()
+        #     1+1
+        schema = Schema.from_dict(schema_data)
 
         mdata = generate_metadata(stream, schema)
 
@@ -96,11 +181,8 @@ def main_impl():
     args = utils.parse_args(REQUIRED_CONFIG_KEYS)
 
     # Setup Context
-    catalog = Catalog.from_dict(args.properties) \
-        if args.properties else discover(args.config)
     Context.config = args.config
     Context.state = args.state
-    Context.catalog = catalog
 
     try:
         Context.client = Client(Context.config)
@@ -111,7 +193,8 @@ def main_impl():
         if args.discover:
             discover(args.config).dump()
             print()
-        else:
+        elif args.properties:
+            Context.catalog = Catalog.from_dict(args.properties)
             sync()
     finally:
         if Context.client and Context.client.login_timer:

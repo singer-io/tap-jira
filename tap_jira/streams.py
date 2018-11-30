@@ -161,11 +161,26 @@ class Changelogs(Stream):
 CHANGELOGS = Changelogs("changelogs", ["id"], indirect_stream=True)
 
 
+def translate_keys(fields, names):
+    for key, value in fields.items():
+        # There exists a custom name mapping and its a custom field
+        if names.get(key) and key[0:11] == "customfield":
+            replacement_key = names[key]
+            fields[replacement_key] = value
+            fields.pop(key)
+    return fields # or an updated copy
+
+
 class Issues(Stream):
     def format_issues(self, issues):
         for issue in issues:
-            fields = issue["fields"]
 
+            names = issue['names']
+            fields = translate_keys(issue["fields"], names)
+
+            # Sanitize on our end or let the loaders do it
+            import ipdb; ipdb.set_trace()
+            1+1
             # This shouldn't be necessary...
             format_dt(fields, "updated")
             format_dt(fields, "created")
