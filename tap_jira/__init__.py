@@ -25,14 +25,7 @@ def load_schema(tap_stream_id):
     return schema
 
 
-def test_credentials_are_authorized(config):
-    client = Client(config)
-    client.request(streams_.ISSUES.tap_stream_id, "GET", "/rest/api/2/search",
-                   params={"maxResults": 1})
-
-
 def discover(config):
-    test_credentials_are_authorized(config)
     catalog = Catalog([])
     for stream in streams_.all_streams:
         schema = Schema.from_dict(load_schema(stream.tap_stream_id),
@@ -56,15 +49,17 @@ def sync(ctx):
     currently_syncing = ctx.state.get("currently_syncing")
     start_idx = streams_.all_stream_ids.index(currently_syncing) \
         if currently_syncing else 0
-    streams = [s for s in streams_.all_streams[start_idx:]
-               if s.tap_stream_id in ctx.selected_stream_ids]
+    selected_streams = [s for s in streams_.all_streams[start_idx:]
+                        if s.tap_stream_id in ctx.selected_stream_ids]
+
     # two loops through streams are necessary so that the schema is output
     # BEFORE syncing any streams. Otherwise, the first stream might generate
     # data for the second stream, but the second stream hasn't output its
     # schema yet
-    for stream in streams:
+    for stream in selected_streams:
         output_schema(stream)
-    for stream in streams:
+
+    for stream in selected_streams:
         # indirect_stream indicates the data for the stream comes from some
         # other stream, so we don't sync it directly.
         if stream.indirect_stream:
@@ -78,13 +73,27 @@ def sync(ctx):
 
 def main_impl():
     args = utils.parse_args(REQUIRED_CONFIG_KEYS)
-    if args.discover:
-        discover(args.config).dump()
-        print()
-    else:
-        catalog = Catalog.from_dict(args.properties) \
-            if args.properties else discover(args.config)
-        sync(Context(args.config, args.state, catalog))
+    # Setup Context
+    catalog = Catalog.from_dict(args.properties) \
+        if args.properties else discover(args.config)
+    Context.config = args.config
+    Context.state = args.state
+    Context.catalog = catalog
+
+    try:
+        Context.client = Client(Context.config)
+
+        Context.client.refresh_credentials()
+        Context.client.test_credentials_are_authorized()
+
+        if args.discover:
+            discover(args.config).dump()
+            print()
+        else:
+            sync()
+    finally:
+        if Context.client and Context.client.login_timer:
+            Context.client.login_timer.cancel()
 
 
 def main():
