@@ -1,3 +1,4 @@
+from singer import utils
 from .http import Client
 import singer
 from datetime import datetime
@@ -21,6 +22,7 @@ class Context(object):
         return self.state["bookmarks"]
 
     def bookmark(self, path):
+        # FIXME shouldn't we be parsing val here?
         bookmark = self.bookmarks
         for p in path:
             if p not in bookmark:
@@ -30,13 +32,14 @@ class Context(object):
 
     def set_bookmark(self, path, val):
         if isinstance(val, datetime):
-            val = val.isoformat()
+            val = utils.strftime(val)
         self.bookmark(path[:-1])[path[-1]] = val
 
     def update_start_date_bookmark(self, path):
         val = self.bookmark(path)
         if not val:
             val = self.config["start_date"]
+            val = utils.strptime_to_utc(val)
             self.set_bookmark(path, val)
         return val
 

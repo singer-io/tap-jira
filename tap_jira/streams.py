@@ -1,9 +1,7 @@
 import json
 import pytz
 import singer
-from singer import metrics
-from singer.utils import strftime
-import pendulum
+from singer import metrics, utils
 from .http import Paginator
 
 
@@ -12,7 +10,7 @@ def format_dt(dict_, key):
     if not str_:
         return
     dt = pendulum.parse(str_).in_timezone("UTC")
-    dict_[key] = strftime(dt)
+    dict_[key] = utils.strftime(dt)
 
 
 class Stream(object):
@@ -180,7 +178,7 @@ class Issues(Stream):
         page_num_offset = [self.tap_stream_id, "offset", "page_num"]
         last_updated = ctx.update_start_date_bookmark(updated_bookmark)
         timezone = ctx.retrieve_timezone()
-        start_date = pendulum.parse(last_updated).astimezone(pytz.timezone(timezone)).strftime("%Y-%m-%d %H:%M")
+        start_date = last_updated.astimezone(pytz.timezone(timezone)).strftime("%Y-%m-%d %H:%M")
         jql = "updated >= '{}' order by updated asc".format(start_date)
         params = {"fields": "*all",
                   "expand": "changelog,transitions",
@@ -200,7 +198,7 @@ class Issues(Stream):
             ctx.set_bookmark(page_num_offset, pager.next_page_num)
             ctx.write_state()
         ctx.set_bookmark(page_num_offset, None)
-        ctx.set_bookmark(updated_bookmark, last_updated)
+        ctx.set_bookmark(updated_bookmark, utils.strptime_to_utc(last_updated))
         ctx.write_state()
 
     def sync_sub_streams(self, page, ctx):
@@ -223,7 +221,8 @@ ISSUES = Issues("issues", ["id"])
 
 class Worklogs(Stream):
     def _fetch_ids(self, ctx, last_updated):
-        since_ts = int(pendulum.parse(last_updated).timestamp()) * 1000
+        # since_ts uses millisecond precision
+        since_ts = int(last_updated.timestamp()) * 1000
         return ctx.client.request(
             self.tap_stream_id,
             "GET",
@@ -269,7 +268,7 @@ class Worklogs(Stream):
                 raise Exception("Page's max updated ({}) <= previous page's ({})"
                                 .format(max_updated, last_updated))
             last_updated = max_updated
-            ctx.set_bookmark(updated_bookmark, last_updated)
+            ctx.set_bookmark(updated_bookmark, utils.strptime(last_updated))
             ctx.write_state()
             if last_page:
                 break
