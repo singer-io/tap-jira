@@ -160,7 +160,6 @@ class Issues(Stream):
         for issue in issues:
             fields = issue["fields"]
 
-            # This shouldn't be necessary...
             format_dt(fields, "updated")
             format_dt(fields, "created")
             format_dt(fields, "lastViewed")
