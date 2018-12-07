@@ -9,7 +9,7 @@ def format_dt(dict_, key):
     str_ = dict_.get(key)
     if not str_:
         return
-    dt = pendulum.parse(str_).in_timezone("UTC")
+    dt = utils.strptime_to_utc(str_).astimezone(pytz.utc)
     dict_[key] = utils.strftime(dt)
 
 
