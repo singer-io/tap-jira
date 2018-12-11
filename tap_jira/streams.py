@@ -1,9 +1,7 @@
 import json
 import pytz
 import singer
-from singer import metrics
-from singer.utils import strftime
-import pendulum
+from singer import metrics, utils
 from .http import Paginator
 from .context import Context
 
@@ -11,9 +9,11 @@ def format_dt(dict_, key):
     str_ = dict_.get(key)
     if not str_:
         return
-    dt = pendulum.parse(str_).in_timezone("UTC")
-    dict_[key] = strftime(dt)
+    dt = utils.strptime_to_utc(str_)
+    dict_[key] = utils.strftime(dt)
 
+
+LOGGER = singer.get_logger()
 
 class Stream(object):
     """Information about and functions for syncing streams for the Jira API.
@@ -180,9 +180,11 @@ class Issues(Stream):
     def sync(self):
         updated_bookmark = [self.tap_stream_id, "updated"]
         page_num_offset = [self.tap_stream_id, "offset", "page_num"]
+
         last_updated = Context.update_start_date_bookmark(updated_bookmark)
         timezone = Context.retrieve_timezone()
-        start_date = pendulum.parse(last_updated).astimezone(pytz.timezone(timezone)).strftime("%Y-%m-%d %H:%M")
+        start_date = last_updated.astimezone(pytz.timezone(timezone)).strftime("%Y-%m-%d %H:%M")
+
         jql = "updated >= '{}' order by updated asc".format(start_date)
         params = {"fields": "*all",
                   "expand": "changelog,transitions",
@@ -198,7 +200,8 @@ class Issues(Stream):
             # sync issues
             self.format_issues(page)
             self.write_page(page)
-            last_updated = page[-1]["fields"]["updated"]
+
+            last_updated = utils.strptime_to_utc(page[-1]["fields"]["updated"])
             Context.set_bookmark(page_num_offset, pager.next_page_num)
             Context.write_state()
         Context.set_bookmark(page_num_offset, None)
@@ -225,7 +228,8 @@ ISSUES = Issues("issues", ["id"])
 
 class Worklogs(Stream):
     def _fetch_ids(self, last_updated):
-        since_ts = int(pendulum.parse(last_updated).timestamp()) * 1000
+        # since_ts uses millisecond precision
+        since_ts = int(last_updated.timestamp()) * 1000
         return Context.client.request(
             self.tap_stream_id,
             "GET",
@@ -248,6 +252,54 @@ class Worklogs(Stream):
             format_dt(worklog, "updated")
             format_dt(worklog, "started")
 
+    def raise_if_bookmark_cannot_advance(self, worklogs):
+        # Worklogs can only be queried with a `since` timestamp and
+        # provides no way to page through the results. The `since`
+        # timestamp has <=, not <, semantics. It also caps the response at
+        # 1000 objects. Because of this, if we ever see a page of 1000
+        # worklogs that all have the same `updated` timestamp, we cannot
+        # tell whether we in fact got all the updates and so we need to
+        # raise.
+        #
+        # That said, a page of 999 worklogs that all have the same
+        # timestamp is fine. That just means that 999 worklogs were
+        # updated at the same timestamp but that we did, in fact, get them
+        # all.
+        #
+        # The behavior, then, always resyncs the latest `updated`
+        # timestamp, no matter how many results are there. If you have 500
+        # worklogs updated at T1 and 999 worklogs updated at T2 and
+        # `last_updated` is set to T1, the first trip through this will
+        # see 1000 items, 500 of which have `updated==T1` and 500 of which
+        # have `updated==T2`. Then, `last_updated` is set to T2 and due to
+        # the <= semantics, you grab the 999 T2 worklogs which passes this
+        # function because there's less than 1000 worklogs of
+        # `updated==T2`.
+        #
+        # OTOH, if you have 1 worklog with `updated==T1` and 1000 worklogs
+        # with `updated==T2`, first trip you see 1 worklog at T1 and 999
+        # at T2 which this code will think is fine, but second trip
+        # through you'll see 1000 worklogs at T2 which will fail
+        # validation (because we can't tell whether there would be more
+        # that should've been returned).
+        LOGGER.debug('Worklog page count: `%s`', len(worklogs))
+        worklog_updatedes = [utils.strptime_to_utc(w['updated'])
+                             for w in worklogs]
+        min_updated = min(worklog_updatedes)
+        max_updated = max(worklog_updatedes)
+        LOGGER.debug('Worklog min updated: `%s`', min_updated)
+        LOGGER.debug('Worklog max updated: `%s`', max_updated)
+        if len(worklogs) == 1000 and min_updated == max_updated:
+            raise(("Worklogs bookmark can't safely advance."
+                   "Every `updated` field is `{}`").format(
+                worklog_updatedes[0]))
+
+    def advance_bookmark(self, worklogs):
+        self.raise_if_bookmark_cannot_advance(worklogs)
+        new_last_updated = max(utils.strptime_to_utc(w["updated"])
+                               for w in worklogs)
+        return new_last_updated
+
     def sync(self):
         updated_bookmark = [self.tap_stream_id, "updated"]
         last_updated = Context.update_start_date_bookmark(updated_bookmark)
@@ -259,20 +311,17 @@ class Worklogs(Stream):
             worklogs = self._fetch_worklogs(ids)
             self.format_worklogs(worklogs)
             self.write_page(worklogs)
-            max_updated = max(w["updated"] for w in worklogs)
-            last_page = ids_page.get("lastPage")
-            if not last_page and (max_updated <= last_updated):
-                # Note: This route doesn't include any way to give a page
-                # number. It also only ever returns 1000 items. If there were
-                # ever a situation where there were more than 1000 worklogs
-                # updated at the same time, this baby would be f-ed. We'll be
-                # safe and just make sure we aren't getting the same page
-                # repeatedly.
-                raise Exception("Page's max updated ({}) <= previous page's ({})"
-                                .format(max_updated, last_updated))
-            last_updated = max_updated
-            Context.set_bookmark(updated_bookmark, last_updated)
+
+            new_last_updated = self.advance_bookmark(worklogs)
+            if not self.bookmark_has_advanced(last_updated, new_last_updated):
+                raise Exception("Bookmark has failed to advance (`{}`, `{}`)"
+                                .format(last_updated, new_last_updated))
+            last_updated = new_last_updated
+            Context.set_bookmark(updated_bookmark, utils.strptime_to_utc(last_updated))
             Context.write_state()
+            # lastPage is a boolean value based on
+            # https://developer.atlassian.com/cloud/jira/platform/rest/v3/?utm_source=%2Fcloud%2Fjira%2Fplatform%2Frest%2F&utm_medium=302#api-api-3-worklog-updated-get
+            last_page = ids_page.get("lastPage")
             if last_page:
                 break
 
