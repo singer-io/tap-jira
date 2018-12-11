@@ -22,7 +22,6 @@ class Context(object):
         return self.state["bookmarks"]
 
     def bookmark(self, path):
-        # FIXME shouldn't we be parsing val here?
         bookmark = self.bookmarks
         for p in path:
             if p not in bookmark:
