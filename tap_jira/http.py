@@ -1,52 +1,87 @@
 import requests
 import re
 from requests.auth import HTTPBasicAuth
+import singer
 from singer import metrics
 import backoff
 from datetime import datetime, timedelta
 import time
+import threading
+from . import streams as streams_
 
 
 class RateLimitException(Exception):
     pass
 
-
-def _join(a, b):
-    return a.rstrip("/") + "/" + b.lstrip("/")
+# Jira OAuth tokens last for 3600 seconds
+REFRESH_TOKEN_EXPIRATION_PERIOD = 3500
 
 # The project plan for this tap specified:
 # > our past experience has shown that issuing queries no more than once every
 # > 10ms can help avoid performance issues
 TIME_BETWEEN_REQUESTS = timedelta(microseconds=10e3)
 
+LOGGER = singer.get_logger()
+
 class Client(object):
     def __init__(self, config):
         self.user_agent = config.get("user_agent")
-        self.base_url = config["base_url"]
-        self.auth = HTTPBasicAuth(config["username"], config["password"])
+
+        self.base_url = 'https://api.atlassian.com/ex/jira/{}{}'
+
+        self.cloud_id = config['cloud_id']
+        self.access_token = config['access_token']
+        self.refresh_token = config['refresh_token']
+        self.oauth_client_id = config['oauth_client_id']
+        self.oauth_client_secret = config['oauth_client_secret']
+
         self.session = requests.Session()
         self.next_request_at = datetime.now()
 
+        self.login_timer = None
+
+    def refresh_credentials(self):
+        body = {"grant_type": "refresh_token",
+                "client_id": self.oauth_client_id,
+                "client_secret": self.oauth_client_secret,
+                "refresh_token": self.refresh_token}
+        try:
+            resp = self.session.post("https://auth.atlassian.com/oauth/token", data=body)
+            self.access_token = resp.json()['access_token']
+        except Exception as e:
+            error_message = str(e)
+            if resp:
+                error_message = error_message + ", Response from Jira: {}".format(resp.text)
+            raise Exception(error_message) from e
+        finally:
+            LOGGER.info("Starting new login timer")
+            self.login_timer = threading.Timer(REFRESH_TOKEN_EXPIRATION_PERIOD, self.refresh_credentials)
+            self.login_timer.start()
+
+
+    def test_credentials_are_authorized(self):
+        self.request(streams_.ISSUES.tap_stream_id, "GET", "/rest/api/2/search",
+                     params={"maxResults": 1})
+
     def url(self, path):
-        # defend against if the base_url does or does not provide
-        # https://
-        base_url = self.base_url
-        base_url = re.sub('^http[s]?://', '', base_url)
-        base_url = 'https://' + base_url
-        return _join(base_url, path)
+        """The base_url for OAuth'd Jira is always the same and uses the provided cloud_id and path"""
+        return self.base_url.format(self.cloud_id, path)
 
     def _headers(self, headers):
         headers = headers.copy()
         if self.user_agent:
             headers["User-Agent"] = self.user_agent
+
+        # Add Accept and Authorization headers
+        headers['Accept'] = 'application/json'
+        headers['Authorization'] = 'Bearer {}'.format(self.access_token)
         return headers
 
     def send(self, method, path, headers={}, **kwargs):
-        request = requests.Request(
-            method, self.url(path), auth=self.auth,
-            headers=self._headers(headers),
-            **kwargs
-        )
+        request = requests.Request(method,
+                                   self.url(path),
+                                   headers=self._headers(headers),
+                                   **kwargs)
         return self.session.send(request.prepare())
 
     @backoff.on_exception(backoff.constant,
