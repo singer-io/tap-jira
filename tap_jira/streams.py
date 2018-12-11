@@ -205,7 +205,7 @@ class Issues(Stream):
             Context.set_bookmark(page_num_offset, pager.next_page_num)
             Context.write_state()
         Context.set_bookmark(page_num_offset, None)
-        Context.set_bookmark(updated_bookmark, utils.strptime_to_utc(last_updated))
+        Context.set_bookmark(updated_bookmark, last_updated)
         Context.write_state()
 
     def sync_sub_streams(self, page):
