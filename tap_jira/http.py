@@ -48,7 +48,6 @@ class Client(object):
         try:
             resp = self.session.post("https://auth.atlassian.com/oauth/token", data=body)
             self.access_token = resp.json()['access_token']
-            LOGGER.info(resp.json()['access_token'])
         except Exception as e:
             error_message = str(e)
             if resp:
