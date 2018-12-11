@@ -47,6 +47,7 @@ class Client(object):
                 "refresh_token": self.refresh_token}
         try:
             resp = self.session.post("https://auth.atlassian.com/oauth/token", data=body)
+            resp.raise_for_status()
             self.access_token = resp.json()['access_token']
         except Exception as e:
             error_message = str(e)
