@@ -10,7 +10,7 @@ from .context import Context
 from .http import Client
 
 LOGGER = singer.get_logger()
-REQUIRED_CONFIG_KEYS = ["start_date", "username", "password", "base_url"]
+REQUIRED_CONFIG_KEYS = ["start_date", "access_token"]
 
 
 def get_abs_path(path):
@@ -26,14 +26,7 @@ def load_schema(tap_stream_id):
     return schema
 
 
-def test_credentials_are_authorized(config):
-    client = Client(config)
-    client.request(streams_.ISSUES.tap_stream_id, "GET", "/rest/api/2/search",
-                   params={"maxResults": 1})
-
-
 def discover(config):
-    test_credentials_are_authorized(config)
     catalog = Catalog([])
     for stream in streams_.all_streams:
         schema = Schema.from_dict(load_schema(stream.tap_stream_id))
@@ -83,7 +76,7 @@ def sync():
     for stream in streams_.all_streams:
         if not Context.is_selected(stream.tap_stream_id):
             continue
-        
+
         # indirect_stream indicates the data for the stream comes from some
         # other stream, so we don't sync it directly.
         if stream.indirect_stream:
@@ -97,17 +90,28 @@ def sync():
 
 def main_impl():
     args = utils.parse_args(REQUIRED_CONFIG_KEYS)
-    if args.discover:
-        discover(args.config).dump()
-        print()
-    else:
-        catalog = Catalog.from_dict(args.properties) \
-            if args.properties else discover(args.config)
-        Context.config = args.config
-        Context.state = args.state
-        Context.catalog = catalog
+
+    # Setup Context
+    catalog = Catalog.from_dict(args.properties) \
+        if args.properties else discover(args.config)
+    Context.config = args.config
+    Context.state = args.state
+    Context.catalog = catalog
+
+    try:
         Context.client = Client(Context.config)
-        sync()
+
+        Context.client.refresh_credentials()
+        Context.client.test_credentials_are_authorized()
+
+        if args.discover:
+            discover(args.config).dump()
+            print()
+        else:
+            sync()
+    finally:
+        if Context.client and Context.client.login_timer:
+            Context.client.login_timer.cancel()
 
 
 def main():
