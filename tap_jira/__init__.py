@@ -52,13 +52,9 @@ def discover(config):
 def generate_metadata(stream, schema):
     mdata = metadata.new()
     mdata = metadata.write(mdata, (), 'table-key-properties', stream.pk_fields)
-    #mdata = metadata.write(mdata, (), 'forced-replication-method', stream.replication_method)
-
-    #if stream.replication_key:
-    #    mdata = metadata.write(mdata, (), 'valid-replication-keys', [stream.replication_key])
 
     for field_name in schema.properties.keys():
-        if field_name in stream.pk_fields: #or field_name == stream.replication_key:
+        if field_name in stream.pk_fields:
             mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
         else:
             mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'available')
