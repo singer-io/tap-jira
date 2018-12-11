@@ -1,11 +1,11 @@
 import json
 import pytz
 import singer
-from singer import metrics
+from singer import metrics, metadata, Transformer
 from singer.utils import strftime
 import pendulum
 from .http import Paginator
-
+from .context import Context
 
 def format_dt(dict_, key):
     str_ = dict_.get(key)
@@ -33,7 +33,13 @@ class Stream(object):
         return "<Stream(" + self.tap_stream_id + ")>"
 
     def write_page(self, page):
-        singer.write_records(self.tap_stream_id, page)
+        stream = Context.get_catalog_entry(self.tap_stream_id)
+        stream_metadata = metadata.to_map(stream.metadata)
+        extraction_time = singer.utils.now()
+        for rec in page:
+            with Transformer() as transformer:
+                rec = transformer.transform(rec, stream.schema.to_dict(), stream_metadata)
+            singer.write_record(self.tap_stream_id, rec, time_extracted=extraction_time)
         with metrics.record_counter(self.tap_stream_id) as counter:
             counter.increment(len(page))
 
@@ -46,9 +52,9 @@ class Versions(Stream):
             format_dt(version, "userStartDate")
             format_dt(version, "userReleaseDate")
 
-    def sync(self, ctx, *, project):
+    def sync(self, project):
         path = "/rest/api/2/project/{}/version".format(project["id"])
-        pager = Paginator(ctx.client, order_by="sequence")
+        pager = Paginator(Context.client, order_by="sequence")
         for page in pager.pages(self.tap_stream_id, "GET", path):
             self.format_versions(page)
             self.write_page(page)
@@ -57,8 +63,8 @@ VERSIONS = Versions("versions", ["id"], indirect_stream=True)
 
 
 class Projects(Stream):
-    def sync(self, ctx):
-        projects = ctx.client.request(
+    def sync(self):
+        projects = Context.client.request(
             self.tap_stream_id, "GET", "/rest/api/2/project",
             params={"expand": "description,lead,url,projectKeys"})
         for project in projects:
@@ -69,9 +75,9 @@ class Projects(Stream):
             # appears.
             project.pop("versions", None)
         self.write_page(projects)
-        if VERSIONS.tap_stream_id in ctx.selected_stream_ids:
+        if Context.is_selected(VERSIONS.tap_stream_id):
             for project in projects:
-                VERSIONS.sync(ctx, project=project)
+                VERSIONS.sync(project=project)
 
 
 class Everything(Stream):
@@ -79,22 +85,22 @@ class Everything(Stream):
         super().__init__(*args, **kwargs)
         self.path = path
 
-    def sync(self, ctx):
-        page = ctx.client.request(self.tap_stream_id, "GET", self.path)
+    def sync(self):
+        page = Context.client.request(self.tap_stream_id, "GET", self.path)
         self.write_page(page)
 
 
 class ProjectTypes(Stream):
-    def sync(self, ctx):
+    def sync(self):
         path = "/rest/api/2/project/type"
-        types = ctx.client.request(self.tap_stream_id, "GET", path)
+        types = Context.client.request(self.tap_stream_id, "GET", path)
         for type_ in types:
             type_.pop("icon")
         self.write_page(types)
 
 
 class Users(Stream):
-    def _paginate(self, ctx, *, page_num):
+    def _paginate(self, page_num):
         max_results = 2
         params = {"username": "%",
                   "includeInactive": "true",
@@ -102,7 +108,7 @@ class Users(Stream):
         next_page_num = page_num
         while next_page_num is not None:
             params["startAt"] = next_page_num * max_results
-            page = ctx.client.request(self.tap_stream_id,
+            page = Context.client.request(self.tap_stream_id,
                                       "GET",
                                       "/rest/api/2/user/search",
                                       params=params)
@@ -113,16 +119,16 @@ class Users(Stream):
             if page:
                 yield page, next_page_num
 
-    def sync(self, ctx):
+    def sync(self):
         params = {"username": "%", "includeInactive": "true"}
         page_num_offset = [self.tap_stream_id, "offset", "page_num"]
-        page_num = ctx.bookmark(page_num_offset) or 0
-        for page, next_page_num in self._paginate(ctx, page_num=page_num):
+        page_num = Context.bookmark(page_num_offset) or 0
+        for page, next_page_num in self._paginate(page_num=page_num):
             self.write_page(page)
-            ctx.set_bookmark(page_num_offset, next_page_num)
-            ctx.write_state()
-        ctx.set_bookmark(page_num_offset, None)
-        ctx.write_state()
+            Context.set_bookmark(page_num_offset, next_page_num)
+            Context.write_state()
+        Context.set_bookmark(page_num_offset, None)
+        Context.write_state()
 
 
 class IssueComments(Stream):
@@ -155,10 +161,27 @@ class Changelogs(Stream):
 CHANGELOGS = Changelogs("changelogs", ["id"], indirect_stream=True)
 
 
+def translate_keys(fields, names):
+    for key, value in fields.items():
+        # There exists a custom name mapping and its a custom field
+        if names.get(key) and key[0:11] == "customfield":
+            replacement_key = names[key]
+            fields[replacement_key] = value
+            fields.pop(key)
+    return fields # or an updated copy
+
+
 class Issues(Stream):
     def format_issues(self, issues):
         for issue in issues:
-            fields = issue["fields"]
+
+            names = issue['names']
+            fields = translate_keys(issue["fields"], names)
+
+            # Sanitize on our end or let the loaders do it
+            import ipdb; ipdb.set_trace()
+            1+1
+            # This shouldn't be necessary...
             format_dt(fields, "updated")
             format_dt(fields, "created")
             format_dt(fields, "lastViewed")
@@ -175,46 +198,46 @@ class Issues(Stream):
             # so we decided to just strip the field out for now.
             issue.pop("operations", None)
 
-    def sync(self, ctx):
+    def sync(self):
         updated_bookmark = [self.tap_stream_id, "updated"]
         page_num_offset = [self.tap_stream_id, "offset", "page_num"]
-        last_updated = ctx.update_start_date_bookmark(updated_bookmark)
-        timezone = ctx.retrieve_timezone()
+        last_updated = Context.update_start_date_bookmark(updated_bookmark)
+        timezone = Context.retrieve_timezone()
         start_date = pendulum.parse(last_updated).astimezone(pytz.timezone(timezone)).strftime("%Y-%m-%d %H:%M")
         jql = "updated >= '{}' order by updated asc".format(start_date)
         params = {"fields": "*all",
                   "expand": "changelog,transitions",
                   "validateQuery": "strict",
                   "jql": jql}
-        page_num = ctx.bookmark(page_num_offset) or 0
-        pager = Paginator(ctx.client, items_key="issues", page_num=page_num)
+        page_num = Context.bookmark(page_num_offset) or 0
+        pager = Paginator(Context.client, items_key="issues", page_num=page_num)
         for page in pager.pages(self.tap_stream_id,
                                 "GET", "/rest/api/2/search",
                                 params=params):
             # sync comments and changelogs for each issue
-            self.sync_sub_streams(page, ctx)
+            self.sync_sub_streams(page)
             # sync issues
             self.format_issues(page)
             self.write_page(page)
             last_updated = page[-1]["fields"]["updated"]
-            ctx.set_bookmark(page_num_offset, pager.next_page_num)
-            ctx.write_state()
-        ctx.set_bookmark(page_num_offset, None)
-        ctx.set_bookmark(updated_bookmark, last_updated)
-        ctx.write_state()
+            Context.set_bookmark(page_num_offset, pager.next_page_num)
+            Context.write_state()
+        Context.set_bookmark(page_num_offset, None)
+        Context.set_bookmark(updated_bookmark, last_updated)
+        Context.write_state()
 
-    def sync_sub_streams(self, page, ctx):
+    def sync_sub_streams(self, page):
         for issue in page:
             comments = issue["fields"].pop("comment")["comments"]
-            if comments and (ISSUE_COMMENTS.tap_stream_id in ctx.selected_stream_ids):
+            if comments and Context.is_selected(ISSUE_COMMENTS.tap_stream_id):
                 ISSUE_COMMENTS.format_comments(issue, comments)
                 ISSUE_COMMENTS.write_page(comments)
             changelogs = issue.pop("changelog")["histories"]
-            if changelogs and (CHANGELOGS.tap_stream_id in ctx.selected_stream_ids):
+            if changelogs and Context.is_selected(CHANGELOGS.tap_stream_id):
                 CHANGELOGS.format_changelogs(issue, changelogs)
                 CHANGELOGS.write_page(changelogs)
             transitions = issue.pop("transitions")
-            if transitions and (ISSUE_TRANSITIONS.tap_stream_id in ctx.selected_stream_ids):
+            if transitions and Context.is_selected(ISSUE_TRANSITIONS.tap_stream_id):
                 ISSUE_TRANSITIONS.format_transitions(issue, transitions)
                 ISSUE_TRANSITIONS.write_page(transitions)
 
@@ -222,19 +245,19 @@ ISSUES = Issues("issues", ["id"])
 
 
 class Worklogs(Stream):
-    def _fetch_ids(self, ctx, last_updated):
+    def _fetch_ids(self, last_updated):
         since_ts = int(pendulum.parse(last_updated).timestamp()) * 1000
-        return ctx.client.request(
+        return Context.client.request(
             self.tap_stream_id,
             "GET",
             "/rest/api/2/worklog/updated",
             params={"since": since_ts},
         )
 
-    def _fetch_worklogs(self, ctx, ids):
+    def _fetch_worklogs(self, ids):
         if not ids:
             return []
-        return ctx.client.request(
+        return Context.client.request(
             self.tap_stream_id, "POST", "/rest/api/2/worklog/list",
             headers={"Content-Type": "application/json"},
             data=json.dumps({"ids": ids}),
@@ -246,15 +269,15 @@ class Worklogs(Stream):
             format_dt(worklog, "updated")
             format_dt(worklog, "started")
 
-    def sync(self, ctx):
+    def sync(self):
         updated_bookmark = [self.tap_stream_id, "updated"]
-        last_updated = ctx.update_start_date_bookmark(updated_bookmark)
+        last_updated = Context.update_start_date_bookmark(updated_bookmark)
         while True:
-            ids_page = self._fetch_ids(ctx, last_updated)
+            ids_page = self._fetch_ids(last_updated)
             if not ids_page["values"]:
                 break
             ids = [x["worklogId"] for x in ids_page["values"]]
-            worklogs = self._fetch_worklogs(ctx, ids)
+            worklogs = self._fetch_worklogs(ids)
             self.format_worklogs(worklogs)
             self.write_page(worklogs)
             max_updated = max(w["updated"] for w in worklogs)
@@ -269,8 +292,8 @@ class Worklogs(Stream):
                 raise Exception("Page's max updated ({}) <= previous page's ({})"
                                 .format(max_updated, last_updated))
             last_updated = max_updated
-            ctx.set_bookmark(updated_bookmark, last_updated)
-            ctx.write_state()
+            Context.set_bookmark(updated_bookmark, last_updated)
+            Context.write_state()
             if last_page:
                 break
 
@@ -297,9 +320,10 @@ class DependencyException(Exception):
     pass
 
 
-def validate_dependencies(ctx):
+def validate_dependencies():
     errs = []
-    selected = ctx.selected_stream_ids
+    selected = [s.tap_stream_id for s in Context.catalog.streams
+                if Context.is_selected(s.tap_stream_id)]
     msg_tmpl = ("Unable to extract {0} data. "
                 "To receive {0} data, you also need to select {1}.")
     if VERSIONS.tap_stream_id in selected and PROJECTS.tap_stream_id not in selected:

@@ -3,6 +3,7 @@ import os
 import json
 import re
 import singer
+import requests
 from singer import utils
 from singer import metadata
 from singer.catalog import Catalog, CatalogEntry, Schema
@@ -94,6 +95,57 @@ def discover(config):
             # Make a request to fields endpoint
             resp = Context.client.request("fields", "GET", "/rest/api/3/field")
 
+            issue_resp = Context.client.request("issues", "GET", "/rest/api/3/issue/GEN122DCEA-1")
+
+            fields_schemas = []
+            fields_names = []
+            fields_ids = []
+            droppable_fields_fields = set()
+            problem_resp_items = []
+            for thing in resp:
+                # Get fields of interest
+
+                # if thing['key'] == "":
+                import ipdb; ipdb.set_trace()
+                1+1
+                
+                try:
+                    fields_schemas.append(thing['schema'])
+                except KeyError:
+                    fields_schemas.append('NO_SCHEMA_FOUND')
+                    problem_resp_items.append(thing)
+                    continue
+                fields_names.append(thing.get('name','NO_NAME_FOUND'))
+                fields_ids.append(thing.get('id','NO_ID_FOUND'))
+
+                # Save all other fields
+                for trash in thing.keys():
+                    if trash not in ['id','name','schema']:
+                        droppable_fields_fields.add(trash)
+
+            issues_keys = list(issue_resp.keys())
+            issues_fields_keys = list(issue_resp['fields'].keys())
+                        
+                # if thing['id'] == 'customfield_10076':
+
+                #     bubble_up = {}
+                #     for k,v in issue_resp.items():
+                #         if k == 'fields':
+                #             for k2,v2 in issue_resp['fields'].items():
+
+                #                 if k2 == 'customfield_10076':
+                #                     bubble_up[thing['name']+'custom'] = v2
+                #                 else:
+                #                     bubble_up[k2] = v2
+                #         else:
+                #             bubble_up[k] = v
+                    
+                #     import ipdb; ipdb.set_trace()
+                #     1+1
+                
+            import ipdb; ipdb.set_trace()
+            1+1
+            
             # iterate on that response; generate a schema
             for obj in resp:
                 if not obj['key'].startswith("customfield"):
