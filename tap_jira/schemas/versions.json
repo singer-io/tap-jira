@@ -81,7 +81,7 @@
             "type": ["null", "integer"]
           }
         },
-        "additionalProperties": false
+        "additionalProperties": true
       }
     },
     "remotelinks": {
@@ -99,9 +99,9 @@
           },
           "link": {}
         },
-        "additionalProperties": false
+        "additionalProperties": true
       }
     }
   },
-  "additionalProperties": false
+  "additionalProperties": true
 }

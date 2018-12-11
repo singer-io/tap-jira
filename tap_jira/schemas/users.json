@@ -27,7 +27,7 @@
           "format": "uri"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "displayName": {
       "type": ["null", "string"]
@@ -51,7 +51,7 @@
       "type": ["null", "string"]
     }
   },
-  "additionalProperties": false,
+  "additionalProperties": true,
   "required": [
     "active"
   ],
@@ -80,11 +80,11 @@
                 "format": "uri"
               }
             },
-            "additionalProperties": false
+            "additionalProperties": true
           }
         }
       },
-      "additionalProperties": false,
+      "additionalProperties": true,
       "required": [
         "size"
       ]

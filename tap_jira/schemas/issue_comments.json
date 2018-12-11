@@ -46,7 +46,7 @@
           "type": ["null", "string"]
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "properties": {
       "type": ["null", "array"],
@@ -59,11 +59,14 @@
           },
           "value": {}
         },
-        "additionalProperties": false
+        "additionalProperties": true
       }
+    },
+    "jsdPublic": {
+      "type": ["null", "boolean"]
     }
   },
-  "additionalProperties": false,
+  "additionalProperties": true,
   "definitions": {
     "user": {
       "title": "User",
@@ -91,7 +94,7 @@
               "type": ["null", "string"]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         },
         "displayName": {
           "type": ["null", "string"]
@@ -103,11 +106,11 @@
           "type": ["null", "string"]
         }
       },
-      "additionalProperties": false,
+      "additionalProperties": true,
       "required": [
         "active"
       ]
     }
   },
-  "additionalProperties": false
+  "additionalProperties": true
 }

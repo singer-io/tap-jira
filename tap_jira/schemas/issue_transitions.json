@@ -56,10 +56,10 @@
               "type": ["null", "string"]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "hasScreen": {
       "type": ["null", "boolean"]
@@ -80,13 +80,13 @@
           "$ref": "field-meta"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "expand": {
       "type": ["null", "string"]
     }
   },
-  "additionalProperties": false,
+  "additionalProperties": true,
   "definitions": {
     "field-meta": {
       "title": "Field Meta",
@@ -122,7 +122,7 @@
         },
         "defaultValue": {}
       },
-      "additionalProperties": false,
+      "additionalProperties": true,
       "required": [
         "required"
       ]
@@ -147,7 +147,7 @@
           "type": ["null", "integer"]
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     }
   }
 }
