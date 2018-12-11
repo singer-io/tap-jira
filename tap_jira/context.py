@@ -1,51 +1,72 @@
-from singer import utils
+from singer import utils, metadata
 from .http import Client
 import singer
 from datetime import datetime
 
 
 class Context(object):
-    def __init__(self, config, state, catalog):
-        self.config = config
-        self.state = state
-        self.catalog = catalog
-        self.client = Client(config)
-        self.selected_stream_ids = set(
-            [s.tap_stream_id for s in self.catalog.streams
-             if s.is_selected()]
-        )
+    config = None
+    state = None
+    catalog = None
+    client = None
+    stream_map = {}
 
-    @property
-    def bookmarks(self):
-        if "bookmarks" not in self.state:
-            self.state["bookmarks"] = {}
-        return self.state["bookmarks"]
+    @classmethod
+    def get_catalog_entry(cls, stream_name):
+        if not cls.stream_map:
+            cls.stream_map = {s.tap_stream_id: s for s in cls.catalog.streams}
+        return cls.stream_map[stream_name]
 
-    def bookmark(self, path):
-        bookmark = self.bookmarks
+    @classmethod
+    def is_selected(cls, stream_name):
+        stream = cls.get_catalog_entry(stream_name)
+        stream_metadata = metadata.to_map(stream.metadata)
+        return metadata.get(stream_metadata, (), 'selected')
+
+    # set(
+    #     [s.tap_stream_id for s in self.catalog.streams
+    #      if s.is_selected()]
+    # )
+
+    @classmethod
+    def bookmarks(cls):
+        if "bookmarks" not in cls.state:
+            cls.state["bookmarks"] = {}
+        return cls.state["bookmarks"]
+
+    @classmethod
+    def bookmark(cls, path):
+        bookmark = cls.bookmarks()
         for p in path:
             if p not in bookmark:
                 bookmark[p] = {}
             bookmark = bookmark[p]
         return bookmark
 
-    def set_bookmark(self, path, val):
+    @classmethod
+    def set_bookmark(cls, path, val):
         if isinstance(val, datetime):
             val = utils.strftime(val)
-        self.bookmark(path[:-1])[path[-1]] = val
+        cls.bookmark(path[:-1])[path[-1]] = val
 
-    def update_start_date_bookmark(self, path):
-        val = self.bookmark(path)
+    @classmethod
+    def update_start_date_bookmark(cls, path):
+        val = cls.bookmark(path)
         if not val:
-            val = self.config["start_date"]
+            val = cls.config["start_date"]
             val = utils.strptime_to_utc(val)
-            self.set_bookmark(path, val)
+            cls.set_bookmark(path, val)
+        if isinstance(val, str):
+            val = utils.strptime_to_utc(val)
         return val
 
-    def write_state(self):
-        singer.write_state(self.state)
+    # This doesn't need to exist.
+    @classmethod
+    def write_state(cls):
+        singer.write_state(cls.state)
 
-    def retrieve_timezone(self):
-        response = self.client.send("GET", "/rest/api/2/myself")
+    @classmethod
+    def retrieve_timezone(cls):
+        response = cls.client.send("GET", "/rest/api/2/myself")
         response.raise_for_status()
         return response.json()["timeZone"]
