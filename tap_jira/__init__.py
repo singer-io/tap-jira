@@ -30,8 +30,6 @@ def discover(config):
     catalog = Catalog([])
     for stream in streams_.all_streams:
         schema = Schema.from_dict(load_schema(stream.tap_stream_id))
-                                  # This!
-                                  #inclusion="automatic")
 
         mdata = generate_metadata(stream, schema)
 
@@ -47,13 +45,9 @@ def discover(config):
 def generate_metadata(stream, schema):
     mdata = metadata.new()
     mdata = metadata.write(mdata, (), 'table-key-properties', stream.pk_fields)
-    #mdata = metadata.write(mdata, (), 'forced-replication-method', stream.replication_method)
-
-    #if stream.replication_key:
-    #    mdata = metadata.write(mdata, (), 'valid-replication-keys', [stream.replication_key])
 
     for field_name in schema.properties.keys():
-        if field_name in stream.pk_fields: #or field_name == stream.replication_key:
+        if field_name in stream.pk_fields:
             mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
         else:
             mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'available')
@@ -88,10 +82,10 @@ def sync():
         if stream.indirect_stream:
             continue
         Context.state["currently_syncing"] = stream.tap_stream_id
-        Context.write_state()
+        singer.write_state(Context.state)
         stream.sync()
     Context.state["currently_syncing"] = None
-    Context.write_state()
+    singer.write_state(Context.state)
 
 
 def main_impl():

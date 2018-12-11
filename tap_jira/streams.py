@@ -1,7 +1,7 @@
 import json
 import pytz
 import singer
-from singer import metrics, utils
+from singer import metrics, utils, metadata, Transformer
 from .http import Paginator
 from .context import Context
 
@@ -33,8 +33,13 @@ class Stream(object):
         return "<Stream(" + self.tap_stream_id + ")>"
 
     def write_page(self, page):
-        # Transform?
-        singer.write_records(self.tap_stream_id, page)
+        stream = Context.get_catalog_entry(self.tap_stream_id)
+        stream_metadata = metadata.to_map(stream.metadata)
+        extraction_time = singer.utils.now()
+        for rec in page:
+            with Transformer() as transformer:
+                rec = transformer.transform(rec, stream.schema.to_dict(), stream_metadata)
+            singer.write_record(self.tap_stream_id, rec, time_extracted=extraction_time)
         with metrics.record_counter(self.tap_stream_id) as counter:
             counter.increment(len(page))
 
@@ -121,9 +126,9 @@ class Users(Stream):
         for page, next_page_num in self._paginate(page_num=page_num):
             self.write_page(page)
             Context.set_bookmark(page_num_offset, next_page_num)
-            Context.write_state()
+            singer.write_state(Context.state)
         Context.set_bookmark(page_num_offset, None)
-        Context.write_state()
+        singer.write_state(Context.state)
 
 
 class IssueComments(Stream):
@@ -203,10 +208,10 @@ class Issues(Stream):
 
             last_updated = utils.strptime_to_utc(page[-1]["fields"]["updated"])
             Context.set_bookmark(page_num_offset, pager.next_page_num)
-            Context.write_state()
+            singer.write_state(Context.state)
         Context.set_bookmark(page_num_offset, None)
         Context.set_bookmark(updated_bookmark, last_updated)
-        Context.write_state()
+        singer.write_state(Context.state)
 
     def sync_sub_streams(self, page):
         for issue in page:
@@ -290,9 +295,9 @@ class Worklogs(Stream):
         LOGGER.debug('Worklog min updated: `%s`', min_updated)
         LOGGER.debug('Worklog max updated: `%s`', max_updated)
         if len(worklogs) == 1000 and min_updated == max_updated:
-            raise(("Worklogs bookmark can't safely advance."
-                   "Every `updated` field is `{}`").format(
-                worklog_updatedes[0]))
+            raise Exception(("Worklogs bookmark can't safely advance."
+                             "Every `updated` field is `{}`")
+                            .format(worklog_updatedes[0]))
 
     def advance_bookmark(self, worklogs):
         self.raise_if_bookmark_cannot_advance(worklogs)
@@ -318,7 +323,7 @@ class Worklogs(Stream):
                                 .format(last_updated, new_last_updated))
             last_updated = new_last_updated
             Context.set_bookmark(updated_bookmark, utils.strptime_to_utc(last_updated))
-            Context.write_state()
+            singer.write_state(Context.state)
             # lastPage is a boolean value based on
             # https://developer.atlassian.com/cloud/jira/platform/rest/v3/?utm_source=%2Fcloud%2Fjira%2Fplatform%2Frest%2F&utm_medium=302#api-api-3-worklog-updated-get
             last_page = ids_page.get("lastPage")
