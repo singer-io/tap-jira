@@ -23,11 +23,6 @@ class Context(object):
         stream_metadata = metadata.to_map(stream.metadata)
         return metadata.get(stream_metadata, (), 'selected')
 
-    # set(
-    #     [s.tap_stream_id for s in self.catalog.streams
-    #      if s.is_selected()]
-    # )
-
     @classmethod
     def bookmarks(cls):
         if "bookmarks" not in cls.state:
@@ -59,11 +54,6 @@ class Context(object):
         if isinstance(val, str):
             val = utils.strptime_to_utc(val)
         return val
-
-    # This doesn't need to exist.
-    @classmethod
-    def write_state(cls):
-        singer.write_state(cls.state)
 
     @classmethod
     def retrieve_timezone(cls):

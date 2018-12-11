@@ -126,9 +126,9 @@ class Users(Stream):
         for page, next_page_num in self._paginate(page_num=page_num):
             self.write_page(page)
             Context.set_bookmark(page_num_offset, next_page_num)
-            Context.write_state()
+            singer.write_state(Context.state)
         Context.set_bookmark(page_num_offset, None)
-        Context.write_state()
+        singer.write_state(Context.state)
 
 
 class IssueComments(Stream):
@@ -208,10 +208,10 @@ class Issues(Stream):
 
             last_updated = utils.strptime_to_utc(page[-1]["fields"]["updated"])
             Context.set_bookmark(page_num_offset, pager.next_page_num)
-            Context.write_state()
+            singer.write_state(Context.state)
         Context.set_bookmark(page_num_offset, None)
         Context.set_bookmark(updated_bookmark, last_updated)
-        Context.write_state()
+        singer.write_state(Context.state)
 
     def sync_sub_streams(self, page):
         for issue in page:
@@ -323,7 +323,7 @@ class Worklogs(Stream):
                                 .format(last_updated, new_last_updated))
             last_updated = new_last_updated
             Context.set_bookmark(updated_bookmark, utils.strptime_to_utc(last_updated))
-            Context.write_state()
+            singer.write_state(Context.state)
             # lastPage is a boolean value based on
             # https://developer.atlassian.com/cloud/jira/platform/rest/v3/?utm_source=%2Fcloud%2Fjira%2Fplatform%2Frest%2F&utm_medium=302#api-api-3-worklog-updated-get
             last_page = ids_page.get("lastPage")

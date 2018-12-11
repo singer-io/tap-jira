@@ -32,7 +32,7 @@ def discover(config):
         schema = Schema.from_dict(load_schema(stream.tap_stream_id))
 
         mdata = generate_metadata(stream, schema)
-        
+
         catalog.streams.append(CatalogEntry(
             stream=stream.tap_stream_id,
             tap_stream_id=stream.tap_stream_id,
@@ -82,10 +82,10 @@ def sync():
         if stream.indirect_stream:
             continue
         Context.state["currently_syncing"] = stream.tap_stream_id
-        Context.write_state()
+        singer.write_state(Context.state)
         stream.sync()
     Context.state["currently_syncing"] = None
-    Context.write_state()
+    singer.write_state(Context.state)
 
 
 def main_impl():
