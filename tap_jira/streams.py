@@ -318,11 +318,8 @@ class Worklogs(Stream):
             self.write_page(worklogs)
 
             new_last_updated = self.advance_bookmark(worklogs)
-            if not self.bookmark_has_advanced(last_updated, new_last_updated):
-                raise Exception("Bookmark has failed to advance (`{}`, `{}`)"
-                                .format(last_updated, new_last_updated))
             last_updated = new_last_updated
-            Context.set_bookmark(updated_bookmark, utils.strptime_to_utc(last_updated))
+            Context.set_bookmark(updated_bookmark, last_updated)
             singer.write_state(Context.state)
             # lastPage is a boolean value based on
             # https://developer.atlassian.com/cloud/jira/platform/rest/v3/?utm_source=%2Fcloud%2Fjira%2Fplatform%2Frest%2F&utm_medium=302#api-api-3-worklog-updated-get
