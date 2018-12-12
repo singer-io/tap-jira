@@ -1,5 +1,6 @@
 import requests
 import re
+from requests.exceptions import HTTPError
 from requests.auth import HTTPBasicAuth
 import singer
 from singer import metrics
@@ -8,7 +9,6 @@ from datetime import datetime, timedelta
 import time
 import threading
 from . import streams as streams_
-
 
 class RateLimitException(Exception):
     pass
@@ -29,11 +29,11 @@ class Client(object):
 
         self.base_url = 'https://api.atlassian.com/ex/jira/{}{}'
 
-        self.cloud_id = config['cloud_id']
-        self.access_token = config['access_token']
-        self.refresh_token = config['refresh_token']
-        self.oauth_client_id = config['oauth_client_id']
-        self.oauth_client_secret = config['oauth_client_secret']
+        self.cloud_id = config.get('cloud_id')
+        self.access_token = config.get('access_token')
+        self.refresh_token = config.get('refresh_token')
+        self.oauth_client_id = config.get('oauth_client_id')
+        self.oauth_client_secret = config.get('oauth_client_secret')
 
         self.session = requests.Session()
         self.next_request_at = datetime.now()
@@ -85,6 +85,15 @@ class Client(object):
                                    **kwargs)
         return self.session.send(request.prepare())
 
+    def should_retry_httperror(exception):
+        """ Retry 500-range errors. """
+        return 500 <= exception.response.status_code < 600
+
+    @backoff.on_exception(backoff.expo,
+                          HTTPError,
+                          jitter=None,
+                          max_tries=6,
+                          giveup=lambda e: not Client.should_retry_httperror(e))
     @backoff.on_exception(backoff.constant,
                           RateLimitException,
                           max_tries=10,
