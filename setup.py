@@ -12,6 +12,12 @@ setup(name="tap-jira",
           "singer-python==5.4.0",
           "requests==2.20.0",
       ],
+      extras_require={
+          'dev': [
+              'nose',
+              'ipdb'
+          ]
+      },
       entry_points="""
           [console_scripts]
           tap-jira=tap_jira:main

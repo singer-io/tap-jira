@@ -1,0 +1,18 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/python:3.5.4
+    steps:
+      - checkout
+      - run:
+          name: 'Setup virtual env'
+          command: |
+            virtualenv -p python3 ~/.virtualenvs/tap-stripe
+            source ~/.virtualenvs/tap-stripe/bin/activate
+            pip install .[dev]
+      - run:
+          name: 'pylint'
+          command: |
+            source ~/.virtualenvs/tap-stripe/bin/activate
+            make test
