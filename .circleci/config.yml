@@ -8,7 +8,7 @@ jobs:
       - run:
           name: 'Setup virtual env'
           command: |
-            pip install virtualenv --user
+            sudo pip3 install virtualenv
             virtualenv -p python3 ~/.virtualenvs/tap-stripe
             source ~/.virtualenvs/tap-stripe/bin/activate
             pip install .[dev]
