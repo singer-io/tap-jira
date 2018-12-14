@@ -2,19 +2,19 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/python:3.5.4
+      - image: 218546966473.dkr.ecr.us-east-1.amazonaws.com/circle-ci:tap-tester
     steps:
       - checkout
       - run:
           name: 'Setup virtual env'
           command: |
-            virtualenv -p python3 ~/.virtualenvs/tap-stripe
-            source ~/.virtualenvs/tap-stripe/bin/activate
+            virtualenv -p python3 ~/.virtualenvs/tap-jira
+            source ~/.virtualenvs/tap-jira/bin/activate
             pip install .[dev]
       - run:
-          name: 'pylint'
+          name: 'Unit Tests'
           command: |
-            source ~/.virtualenvs/tap-stripe/bin/activate
+            source ~/.virtualenvs/tap-jira/bin/activate
             make test
       - add_ssh_keys
       - run:
