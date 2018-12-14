@@ -59,8 +59,6 @@ class Versions(Stream):
             self.format_versions(page)
             self.write_page(page)
 
-VERSIONS = Versions("versions", ["id"], indirect_stream=True)
-
 
 class Projects(Stream):
     def sync(self):
@@ -138,17 +136,10 @@ class IssueComments(Stream):
             format_dt(comment, "updated")
             format_dt(comment, "created")
 
-ISSUE_COMMENTS = IssueComments("issue_comments", ["id"], indirect_stream=True)
-
-
 class IssueTransitions(Stream):
     def format_transitions(self, issue, transitions):
         for transition in transitions:
             transition["issueId"] = issue["id"]
-
-ISSUE_TRANSITIONS = IssueTransitions("issue_transitions", ["id"],
-                                     indirect_stream=True)
-
 
 class Changelogs(Stream):
     def format_changelogs(self, issue, changelogs):
@@ -157,8 +148,6 @@ class Changelogs(Stream):
             format_dt(changelog, "created")
             for hist in changelog.get("histories", []):
                 format_dt(hist, "created")
-
-CHANGELOGS = Changelogs("changelogs", ["id"], indirect_stream=True)
 
 
 class Issues(Stream):
@@ -227,8 +216,6 @@ class Issues(Stream):
             if transitions and Context.is_selected(ISSUE_TRANSITIONS.tap_stream_id):
                 ISSUE_TRANSITIONS.format_transitions(issue, transitions)
                 ISSUE_TRANSITIONS.write_page(transitions)
-
-ISSUES = Issues("issues", ["id"])
 
 
 class Worklogs(Stream):
@@ -327,7 +314,13 @@ class Worklogs(Stream):
             if last_page:
                 break
 
+VERSIONS = Versions("versions", ["id"], indirect_stream=True)
+ISSUES = Issues("issues", ["id"])
+ISSUE_COMMENTS = IssueComments("issue_comments", ["id"], indirect_stream=True)
+ISSUE_TRANSITIONS = IssueTransitions("issue_transitions", ["id"],
+                                     indirect_stream=True)
 PROJECTS = Projects("projects", ["id"])
+CHANGELOGS = Changelogs("changelogs", ["id"], indirect_stream=True)
 
 all_streams = [
     PROJECTS,
