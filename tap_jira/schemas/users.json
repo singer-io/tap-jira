@@ -52,9 +52,6 @@
     }
   },
   "additionalProperties": true,
-  "required": [
-    "active"
-  ],
   "definitions": {
     "simple-list-wrapper": {
       "title": "Simple List Wrapper",
@@ -84,10 +81,7 @@
           }
         }
       },
-      "additionalProperties": true,
-      "required": [
-        "size"
-      ]
+      "additionalProperties": true
     }
   }
 }

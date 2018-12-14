@@ -85,10 +85,7 @@
           ]
         }
       },
-      "additionalProperties": true,
-      "required": [
-        "active"
-      ]
+      "additionalProperties": true
     },
     "created": {
       "type": [

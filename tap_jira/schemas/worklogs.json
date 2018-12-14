@@ -111,10 +111,7 @@
           "type": ["null", "string"]
         }
       },
-      "additionalProperties": true,
-      "required": [
-        "active"
-      ]
+      "additionalProperties": true
     }
   }
 }
