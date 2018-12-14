@@ -83,10 +83,7 @@
             "type": ["null", "integer"]
           }
         },
-        "additionalProperties": true,
-        "required": [
-          "isAssigneeTypeValid"
-        ]
+        "additionalProperties": true
       }
     },
     "issueTypes": {
@@ -117,10 +114,7 @@
             "type": ["null", "integer"]
           }
         },
-        "additionalProperties": true,
-        "required": [
-          "subtask"
-        ]
+        "additionalProperties": true
       }
     },
     "url": {
@@ -218,10 +212,7 @@
           }
         }
       },
-      "additionalProperties": true,
-      "required": [
-        "size"
-      ]
+      "additionalProperties": true
     },
     "user": {
       "title": "User",
@@ -275,10 +266,7 @@
           "type": ["null", "string"]
         }
       },
-      "additionalProperties": true,
-      "required": [
-        "active"
-      ]
+      "additionalProperties": true
     }
   }
 }
