@@ -193,9 +193,12 @@ class Issues(Stream):
             self.sync_sub_streams(page)
             # sync issues
             self.format_issues(page)
+
+            # Grab last_updated before transform in write_page
+            last_updated = utils.strptime_to_utc(page[-1]["fields"]["updated"])
+
             self.write_page(page)
 
-            last_updated = utils.strptime_to_utc(page[-1]["fields"]["updated"])
             Context.set_bookmark(page_num_offset, pager.next_page_num)
             singer.write_state(Context.state)
         Context.set_bookmark(page_num_offset, None)
@@ -302,9 +305,12 @@ class Worklogs(Stream):
             ids = [x["worklogId"] for x in ids_page["values"]]
             worklogs = self._fetch_worklogs(ids)
             self.format_worklogs(worklogs)
+
+            # Grab last_updated before transform in write_page
+            new_last_updated = self.advance_bookmark(worklogs)
+
             self.write_page(worklogs)
 
-            new_last_updated = self.advance_bookmark(worklogs)
             last_updated = new_last_updated
             Context.set_bookmark(updated_bookmark, last_updated)
             singer.write_state(Context.state)
