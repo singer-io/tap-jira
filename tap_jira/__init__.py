@@ -26,9 +26,9 @@ def load_schema(tap_stream_id):
     return schema
 
 
-def discover(config):
+def discover():
     catalog = Catalog([])
-    for stream in streams_.all_streams:
+    for stream in streams_.ALL_STREAMS:
         schema = Schema.from_dict(load_schema(stream.tap_stream_id))
 
         mdata = generate_metadata(stream, schema)
@@ -62,18 +62,16 @@ def output_schema(stream):
 
 def sync():
     streams_.validate_dependencies()
-    currently_syncing = Context.state.get("currently_syncing")
-    start_idx = streams_.all_stream_ids.index(currently_syncing) \
-        if currently_syncing else 0
+
 
     # two loops through streams are necessary so that the schema is output
     # BEFORE syncing any streams. Otherwise, the first stream might generate
     # data for the second stream, but the second stream hasn't output its
     # schema yet
-    for stream in streams_.all_streams:
+    for stream in streams_.ALL_STREAMS:
         output_schema(stream)
 
-    for stream in streams_.all_streams:
+    for stream in streams_.ALL_STREAMS:
         if not Context.is_selected(stream.tap_stream_id):
             continue
 
@@ -93,7 +91,7 @@ def main_impl():
 
     # Setup Context
     catalog = Catalog.from_dict(args.properties) \
-        if args.properties else discover(args.config)
+        if args.properties else discover()
     Context.config = args.config
     Context.state = args.state
     Context.catalog = catalog
@@ -105,7 +103,7 @@ def main_impl():
         Context.client.test_credentials_are_authorized()
 
         if args.discover:
-            discover(args.config).dump()
+            discover().dump()
             print()
         else:
             sync()

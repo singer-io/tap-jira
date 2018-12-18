@@ -1,10 +1,8 @@
-from singer import utils, metadata
-from .http import Client
-import singer
 from datetime import datetime
+from singer import utils, metadata
 
 
-class Context(object):
+class Context():
     config = None
     state = None
     catalog = None
@@ -30,12 +28,12 @@ class Context(object):
         return cls.state["bookmarks"]
 
     @classmethod
-    def bookmark(cls, path):
+    def bookmark(cls, paths):
         bookmark = cls.bookmarks()
-        for p in path:
-            if p not in bookmark:
-                bookmark[p] = {}
-            bookmark = bookmark[p]
+        for path in paths:
+            if path not in bookmark:
+                bookmark[path] = {}
+            bookmark = bookmark[path]
         return bookmark
 
     @classmethod

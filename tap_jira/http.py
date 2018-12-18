@@ -1,14 +1,11 @@
-import requests
-import re
-from requests.exceptions import HTTPError
-from requests.auth import HTTPBasicAuth
-import singer
-from singer import metrics
-import backoff
 from datetime import datetime, timedelta
 import time
 import threading
-from . import streams as streams_
+from requests.exceptions import HTTPError
+import requests
+from singer import metrics
+import singer
+import backoff
 
 class RateLimitException(Exception):
     pass
@@ -23,7 +20,13 @@ TIME_BETWEEN_REQUESTS = timedelta(microseconds=10e3)
 
 LOGGER = singer.get_logger()
 
-class Client(object):
+def should_retry_httperror(exception):
+    """ Retry 500-range errors. """
+    return 500 <= exception.response.status_code < 600
+
+
+
+class Client():
     def __init__(self, config):
         self.user_agent = config.get("user_agent")
 
@@ -49,23 +52,27 @@ class Client(object):
             resp = self.session.post("https://auth.atlassian.com/oauth/token", data=body)
             resp.raise_for_status()
             self.access_token = resp.json()['access_token']
-        except Exception as e:
-            error_message = str(e)
+        except Exception as ex:
+            error_message = str(ex)
             if resp:
                 error_message = error_message + ", Response from Jira: {}".format(resp.text)
-            raise Exception(error_message) from e
+            raise Exception(error_message) from ex
         finally:
             LOGGER.info("Starting new login timer")
-            self.login_timer = threading.Timer(REFRESH_TOKEN_EXPIRATION_PERIOD, self.refresh_credentials)
+            self.login_timer = threading.Timer(REFRESH_TOKEN_EXPIRATION_PERIOD,
+                                               self.refresh_credentials)
             self.login_timer.start()
 
 
     def test_credentials_are_authorized(self):
-        self.request(streams_.ISSUES.tap_stream_id, "GET", "/rest/api/2/search",
+        # Assume that everyone has issues, so we try and hit that endpoint
+        self.request("issues", "GET", "/rest/api/2/search",
                      params={"maxResults": 1})
 
     def url(self, path):
-        """The base_url for OAuth'd Jira is always the same and uses the provided cloud_id and path"""
+        """
+        The base_url for OAuth'd Jira is always the same and uses the provided cloud_id and path
+        """
         return self.base_url.format(self.cloud_id, path)
 
     def _headers(self, headers):
@@ -85,15 +92,11 @@ class Client(object):
                                    **kwargs)
         return self.session.send(request.prepare())
 
-    def should_retry_httperror(exception):
-        """ Retry 500-range errors. """
-        return 500 <= exception.response.status_code < 600
-
     @backoff.on_exception(backoff.expo,
                           HTTPError,
                           jitter=None,
                           max_tries=6,
-                          giveup=lambda e: not Client.should_retry_httperror(e))
+                          giveup=lambda e: not should_retry_httperror(e))
     @backoff.on_exception(backoff.constant,
                           RateLimitException,
                           max_tries=10,
@@ -112,7 +115,7 @@ class Client(object):
         return response.json()
 
 
-class Paginator(object):
+class Paginator():
     def __init__(self, client, page_num=0, order_by=None, items_key="values"):
         self.client = client
         self.next_page_num = page_num
