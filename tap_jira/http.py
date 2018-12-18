@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
 import time
 import threading
+import re
 from requests.exceptions import HTTPError
+from requests.auth import HTTPBasicAuth
 import requests
 from singer import metrics
 import singer
@@ -25,71 +27,68 @@ def should_retry_httperror(exception):
     return 500 <= exception.response.status_code < 600
 
 
-
 class Client():
     def __init__(self, config):
-        self.user_agent = config.get("user_agent")
-
-        self.base_url = 'https://api.atlassian.com/ex/jira/{}{}'
-
-        self.cloud_id = config.get('cloud_id')
-        self.access_token = config.get('access_token')
-        self.refresh_token = config.get('refresh_token')
-        self.oauth_client_id = config.get('oauth_client_id')
-        self.oauth_client_secret = config.get('oauth_client_secret')
-
+        self.is_cloud = 'oauth_client_id' in config.keys()
         self.session = requests.Session()
         self.next_request_at = datetime.now()
-
+        self.user_agent = config.get("user_agent")
         self.login_timer = None
 
-    def refresh_credentials(self):
-        body = {"grant_type": "refresh_token",
-                "client_id": self.oauth_client_id,
-                "client_secret": self.oauth_client_secret,
-                "refresh_token": self.refresh_token}
-        try:
-            resp = self.session.post("https://auth.atlassian.com/oauth/token", data=body)
-            resp.raise_for_status()
-            self.access_token = resp.json()['access_token']
-        except Exception as ex:
-            error_message = str(ex)
-            if resp:
-                error_message = error_message + ", Response from Jira: {}".format(resp.text)
-            raise Exception(error_message) from ex
-        finally:
-            LOGGER.info("Starting new login timer")
-            self.login_timer = threading.Timer(REFRESH_TOKEN_EXPIRATION_PERIOD,
-                                               self.refresh_credentials)
-            self.login_timer.start()
+        if self.is_cloud:
+            self.auth = None
+            self.base_url = 'https://api.atlassian.com/ex/jira/{}{}'
+            self.cloud_id = config.get('cloud_id')
+            self.access_token = config.get('access_token')
+            self.refresh_token = config.get('refresh_token')
+            self.oauth_client_id = config.get('oauth_client_id')
+            self.oauth_client_secret = config.get('oauth_client_secret')
 
-
-    def test_credentials_are_authorized(self):
-        # Assume that everyone has issues, so we try and hit that endpoint
-        self.request("issues", "GET", "/rest/api/2/search",
-                     params={"maxResults": 1})
+            # Only appears to be needed once for any 6 hour period. If
+            # running the tap for more than 6 hours is needed this will
+            # likely need to be more complicated.
+            self.refresh_credentials()
+            self.test_credentials_are_authorized()
+        else:
+            self.base_url = config.get("base_url")
+            self.auth = HTTPBasicAuth(config.get("username"), config.get("password"))
 
     def url(self, path):
-        """
-        The base_url for OAuth'd Jira is always the same and uses the provided cloud_id and path
-        """
-        return self.base_url.format(self.cloud_id, path)
+        if self.is_cloud:
+            return self.base_url.format(self.cloud_id, path)
+
+        # defend against if the base_url does or does not provide https://
+        base_url = self.base_url
+        base_url = re.sub('^http[s]?://', '', base_url)
+        base_url = 'https://' + base_url
+        return base_url.rstrip("/") + "/" + path.lstrip("/")
 
     def _headers(self, headers):
         headers = headers.copy()
         if self.user_agent:
             headers["User-Agent"] = self.user_agent
 
-        # Add Accept and Authorization headers
-        headers['Accept'] = 'application/json'
-        headers['Authorization'] = 'Bearer {}'.format(self.access_token)
+        if self.is_cloud:
+            # Add OAuth Headers
+            headers['Accept'] = 'application/json'
+            headers['Authorization'] = 'Bearer {}'.format(self.access_token)
+
         return headers
 
     def send(self, method, path, headers={}, **kwargs):
-        request = requests.Request(method,
-                                   self.url(path),
-                                   headers=self._headers(headers),
-                                   **kwargs)
+        if self.is_cloud:
+            # OAuth Path
+            request = requests.Request(method,
+                                       self.url(path),
+                                       headers=self._headers(headers),
+                                       **kwargs)
+        else:
+            # Basic Auth Path
+            request = requests.Request(method,
+                                       self.url(path),
+                                       auth=self.auth,
+                                       headers=self._headers(headers),
+                                       **kwargs)
         return self.session.send(request.prepare())
 
     @backoff.on_exception(backoff.expo,
@@ -113,6 +112,31 @@ class Client():
             raise RateLimitException()
         response.raise_for_status()
         return response.json()
+
+    def refresh_credentials(self):
+        body = {"grant_type": "refresh_token",
+                "client_id": self.oauth_client_id,
+                "client_secret": self.oauth_client_secret,
+                "refresh_token": self.refresh_token}
+        try:
+            resp = self.session.post("https://auth.atlassian.com/oauth/token", data=body)
+            resp.raise_for_status()
+            self.access_token = resp.json()['access_token']
+        except Exception as ex:
+            error_message = str(ex)
+            if resp:
+                error_message = error_message + ", Response from Jira: {}".format(resp.text)
+            raise Exception(error_message) from ex
+        finally:
+            LOGGER.info("Starting new login timer")
+            self.login_timer = threading.Timer(REFRESH_TOKEN_EXPIRATION_PERIOD,
+                                               self.refresh_credentials)
+            self.login_timer.start()
+
+    def test_credentials_are_authorized(self):
+        # Assume that everyone has issues, so we try and hit that endpoint
+        self.request("issues", "GET", "/rest/api/2/search",
+                     params={"maxResults": 1})
 
 
 class Paginator():

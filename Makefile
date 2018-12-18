@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := test
 
-test:
+test: pylint
 	nosetests
 
 pylint:

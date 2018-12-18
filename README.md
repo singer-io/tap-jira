@@ -31,7 +31,8 @@ This tap:
 
 2. Create the config file
 
-   Create a JSON file called `config.json`. Its contents should look like:
+   Create a JSON file called `config.json`. Its contents should look like
+   (for Basic Auth):
 
    ```json
     {
@@ -42,22 +43,41 @@ This tap:
     }
     ```
 
+   or (for OAuth):
+
+   ```json
+   {
+     "oauth_client_secret": "<oauth-client-secret>",
+     "user_agent": "<user-agent>",
+     "oauth_client_id": "<oauth-client-id>",
+     "access_token": "<access-token>",
+     "cloud_id": "<cloud-id>",
+     "refresh_token": "<refresh-token>",
+     "start_date": "<i.e. 2017-12-04T19:19:32Z>"
+   }
+   ```
+
    The `start_date` specifies the date at which the tap will begin pulling data
    (for those resources that support this).
 
-   The `base_url` is the URL where your Jira installation can be found. For
-   example, it might look like: `https://mycompany.atlassian.net`.
+   For Basic Auth, the `base_url` is the URL where your Jira installation
+   can be found. For example, it might look like:
+   `https://mycompany.atlassian.net`.
 
 4. Run the Tap in Discovery Mode
 
-    tap-jira -c config.json -d
+   ```
+   tap-jira -c config.json -d
+   ```
 
    See the Singer docs on discovery mode
    [here](https://github.com/singer-io/getting-started/blob/master/BEST_PRACTICES.md#discover-mode-and-connection-checks).
 
 5. Run the Tap in Sync Mode
 
-    tap-jira -c config.json -p catalog-file.json
+   ```
+   tap-jira -c config.json -p catalog-file.json
+   ```
 
 ## Test Data
 

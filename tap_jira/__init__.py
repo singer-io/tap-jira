@@ -10,7 +10,26 @@ from .context import Context
 from .http import Client
 
 LOGGER = singer.get_logger()
-REQUIRED_CONFIG_KEYS = ["start_date", "access_token"]
+REQUIRED_CONFIG_KEYS_CLOUD = ["start_date",
+                              "user_agent",
+                              "cloud_id",
+                              "access_token",
+                              "refresh_token",
+                              "oauth_client_id",
+                              "oauth_client_secret"]
+REQUIRED_CONFIG_KEYS_HOSTED = ["start_date",
+                               "username",
+                               "password",
+                               "base_url",
+                               "user_agent"]
+
+
+def get_args():
+    unchecked_args = utils.parse_args([])
+    if 'username' in unchecked_args.config.keys():
+        return utils.parse_args(REQUIRED_CONFIG_KEYS_HOSTED)
+
+    return utils.parse_args(REQUIRED_CONFIG_KEYS_CLOUD)
 
 
 def get_abs_path(path):
@@ -87,7 +106,7 @@ def sync():
 
 
 def main_impl():
-    args = utils.parse_args(REQUIRED_CONFIG_KEYS)
+    args = get_args()
 
     # Setup Context
     catalog = Catalog.from_dict(args.properties) \
@@ -96,12 +115,9 @@ def main_impl():
     Context.state = args.state
     Context.catalog = catalog
 
+    Context.client = Client(Context.config)
+
     try:
-        Context.client = Client(Context.config)
-
-        Context.client.refresh_credentials()
-        Context.client.test_credentials_are_authorized()
-
         if args.discover:
             discover().dump()
             print()
@@ -110,7 +126,6 @@ def main_impl():
     finally:
         if Context.client and Context.client.login_timer:
             Context.client.login_timer.cancel()
-
 
 def main():
     try:

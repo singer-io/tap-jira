@@ -15,7 +15,7 @@ jobs:
           name: 'Unit Tests'
           command: |
             source ~/.virtualenvs/tap-jira/bin/activate
-            make test
+            make
       - add_ssh_keys
       - run:
           name: 'Integration Tests'
