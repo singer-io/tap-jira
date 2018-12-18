@@ -245,14 +245,6 @@ class Users(Stream):
         singer.write_state(Context.state)
 
 
-class IssueComments(Stream):
-    pass
-
-class IssueTransitions(Stream):
-    pass
-
-class Changelogs(Stream):
-    pass
 
 class Issues(Stream):
 
@@ -339,11 +331,11 @@ class Worklogs(Stream):
 
 VERSIONS = Versions("versions", ["id"], indirect_stream=True)
 ISSUES = Issues("issues", ["id"])
-ISSUE_COMMENTS = IssueComments("issue_comments", ["id"], indirect_stream=True)
-ISSUE_TRANSITIONS = IssueTransitions("issue_transitions", ["id"],
+ISSUE_COMMENTS = Stream("issue_comments", ["id"], indirect_stream=True)
+ISSUE_TRANSITIONS = Stream("issue_transitions", ["id"],
                                      indirect_stream=True)
 PROJECTS = Projects("projects", ["id"])
-CHANGELOGS = Changelogs("changelogs", ["id"], indirect_stream=True)
+CHANGELOGS = Stream("changelogs", ["id"], indirect_stream=True)
 
 ALL_STREAMS = [
     PROJECTS,
