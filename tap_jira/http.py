@@ -27,13 +27,14 @@ def should_retry_httperror(exception):
 
 
 class Client():
-    def __init__(self,config, jira_type):
+    def __init__(self,config):
         self.user_agent = config.get("user_agent")
         self.base_url = config["base_url"]
         self.auth = HTTPBasicAuth(config["username"], config["password"])
         self.session = requests.Session()
         self.next_request_at = datetime.now()
-        self.is_Cloud = jira_type == 'CLOUD'
+        self.is_Cloud = 'oauth_client_id' in config.keys()
+        self.login_timer = None
 
         if self.is_Cloud:
             self.auth = None
@@ -43,7 +44,6 @@ class Client():
             self.refresh_token = config.get('refresh_token')
             self.oauth_client_id = config.get('oauth_client_id')
             self.oauth_client_secret = config.get('oauth_client_secret')
-            self.login_timer = None
 
             self.refresh_credentials()
             self.test_credentials_are_authorized()
