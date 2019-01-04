@@ -28,12 +28,10 @@ def should_retry_httperror(exception):
 
 class Client():
     def __init__(self,config):
-        self.user_agent = config.get("user_agent")
-        self.base_url = config["base_url"]
-        self.auth = HTTPBasicAuth(config["username"], config["password"])
+        self.is_Cloud = 'oauth_client_id' in config.keys()
         self.session = requests.Session()
         self.next_request_at = datetime.now()
-        self.is_Cloud = 'oauth_client_id' in config.keys()
+        self.user_agent = config.get("user_agent")
         self.login_timer = None
 
         if self.is_Cloud:
@@ -47,6 +45,9 @@ class Client():
 
             self.refresh_credentials()
             self.test_credentials_are_authorized()
+        else:
+            self.base_url = config["base_url"]
+            self.auth = HTTPBasicAuth(config["username"], config["password"])
 
 
     def url(self,path):
