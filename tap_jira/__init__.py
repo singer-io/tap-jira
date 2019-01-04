@@ -2,6 +2,7 @@
 import os
 import json
 import singer
+import sys
 from singer import utils
 from singer import metadata
 from singer.catalog import Catalog, CatalogEntry, Schema
@@ -10,7 +11,31 @@ from .context import Context
 from .http import Client
 
 LOGGER = singer.get_logger()
-REQUIRED_CONFIG_KEYS = ["start_date", "access_token"]
+REQUIRED_CONFIG_KEYS_CLOUD = ["start_date", "access_token"]
+REQUIRED_CONFIG_KEYS_HOSTED = ["start_date", "username", "password", "base_url"]
+
+
+def determine_jira_type():
+    config_file_index = sys.argv.index('--config') + 1
+    config_file_name = sys.argv[config_file_index]
+
+    with open(config_file_name) as config_file:
+        config_dict = json.load(config_file)
+
+    if set(REQUIRED_CONFIG_KEYS_CLOUD).issubset(config_dict.keys()):
+        return 'CLOUD'
+    elif set(REQUIRED_CONFIG_KEYS_HOSTED).issubset(config_dict.keys()):
+        return 'HOSTED'
+    else:
+        raise ValueError('Required config keys not found in Config file')
+
+
+def get_args():
+    jira_type = determine_jira_type()
+    if jira_type == 'CLOUD':
+        return utils.parse_args(REQUIRED_CONFIG_KEYS_CLOUD)
+    elif jira_type == 'HOSTED':
+        return utils.parse_args(REQUIRED_CONFIG_KEYS_HOSTED)
 
 
 def get_abs_path(path):
@@ -87,7 +112,7 @@ def sync():
 
 
 def main_impl():
-    args = utils.parse_args(REQUIRED_CONFIG_KEYS)
+    args = get_args()
 
     # Setup Context
     catalog = Catalog.from_dict(args.properties) \
