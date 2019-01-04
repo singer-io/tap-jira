@@ -27,41 +27,66 @@ def should_retry_httperror(exception):
 
 
 class Client():
-    def __init__(self,config):
+    def __init__(self,config, jira_type):
         self.user_agent = config.get("user_agent")
         self.base_url = config["base_url"]
         self.auth = HTTPBasicAuth(config["username"], config["password"])
         self.session = requests.Session()
         self.next_request_at = datetime.now()
+        self.is_Cloud = jira_type == 'CLOUD'
+
+        if self.is_Cloud:
+            self.auth = None
+            self.base_url = 'https://api.atlassian.com/ex/jira/{}{}'
+            self.cloud_id = config.get('cloud_id')
+            self.access_token = config.get('access_token')
+            self.refresh_token = config.get('refresh_token')
+            self.oauth_client_id = config.get('oauth_client_id')
+            self.oauth_client_secret = config.get('oauth_client_secret')
+            self.login_timer = None
+
+            self.refresh_credentials()
+            self.test_credentials_are_authorized()
 
 
     def url(self,path):
-        # defend against if the base_url does or does not provide https://
-        base_url = self.base_url
-        base_url = re.sub('^http[s]?://', '', base_url)
-        base_url = 'https://' + base_url
-        return base_url.rstrip("/") + "/" + path.lstrip("/")
+        if self.is_Cloud:
+            return self.base_url.format(self.cloud_id, path)
+        else:
+            # defend against if the base_url does or does not provide https://
+            base_url = self.base_url
+            base_url = re.sub('^http[s]?://', '', base_url)
+            base_url = 'https://' + base_url
+            return base_url.rstrip("/") + "/" + path.lstrip("/")
 
 
     def _headers(self,headers):
         headers = headers.copy()
-         if self.user_agent:
+        if self.user_agent:
              headers["User-Agent"] = self.user_agent
-        return headers
+
+        if not self.is_Cloud:
+            return headers
+        else:
+            # Add Accept and Authorization headers
+            headers['Accept'] = 'application/json'
+            headers['Authorization'] = 'Bearer {}'.format(self.access_token)
+            return headers
+
 
 
     def send(self, method, path, headers={}, **kwargs):
-        if self.auth:
+        if self.is_Cloud:
+            # OAuth Path
+            request = requests.Request(method,
+                                       self.url(path),
+                                       headers=self._headers(headers),
+                                       **kwargs)
+        else:
             # Basic Auth Path
             request = requests.Request(method,
                                        self.url(path),
                                        auth=self.auth,
-                                       headers=self._headers(headers),
-                                       **kwargs)
-        else:
-            # OAuth Path
-            request = requests.Request(method,
-                                       self.url(path),
                                        headers=self._headers(headers),
                                        **kwargs)
         return self.session.send(request.prepare())
@@ -90,20 +115,6 @@ class Client():
         return response.json()
 
 
-class Cloud_Client(Client):
-    def __init__(self, config):
-        super().__init__()
-
-        self.auth = None
-        self.base_url = 'https://api.atlassian.com/ex/jira/{}{}'
-        self.cloud_id = config.get('cloud_id')
-        self.access_token = config.get('access_token')
-        self.refresh_token = config.get('refresh_token')
-        self.oauth_client_id = config.get('oauth_client_id')
-        self.oauth_client_secret = config.get('oauth_client_secret')
-        self.login_timer = None
-
-
     def refresh_credentials(self):
         body = {"grant_type": "refresh_token",
                 "client_id": self.oauth_client_id,
@@ -129,22 +140,6 @@ class Cloud_Client(Client):
         # Assume that everyone has issues, so we try and hit that endpoint
         self.request("issues", "GET", "/rest/api/2/search",
                      params={"maxResults": 1})
-
-
-    def url(self, path):
-        """
-        The base_url for OAuth'd Jira is always the same and uses the provided cloud_id and path
-        """
-        return self.base_url.format(self.cloud_id, path)
-
-
-    def _headers(self, headers):
-        headers = super()._headers(headers)
-
-        # Add Accept and Authorization headers
-        headers['Accept'] = 'application/json'
-        headers['Authorization'] = 'Bearer {}'.format(self.access_token)
-        return headers
 
 
 class Paginator():
