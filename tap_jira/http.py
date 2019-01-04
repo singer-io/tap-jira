@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import time
 import threading
 from requests.exceptions import HTTPError
+from requests.auth import HTTPBasicAuth
 import requests
 from singer import metrics
 import singer
