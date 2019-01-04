@@ -51,7 +51,7 @@ class Client():
 
 
     def send(self, method, path, headers={}, **kwargs):
-        if auth is not None:
+        if self.auth:
             # Basic Auth Path
             request = requests.Request(method,
                                        self.url(path),
