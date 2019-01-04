@@ -30,8 +30,7 @@ def determine_jira_type():
         raise ValueError('Required config keys not found in Config file')
 
 
-def get_args():
-    jira_type = determine_jira_type()
+def get_args(jira_type):
     if jira_type == 'CLOUD':
         return utils.parse_args(REQUIRED_CONFIG_KEYS_CLOUD)
     elif jira_type == 'HOSTED':
@@ -112,7 +111,9 @@ def sync():
 
 
 def main_impl():
-    args = get_args()
+    jira_type = determine_jira_type()
+
+    args = get_args(jira_type)
 
     # Setup Context
     catalog = Catalog.from_dict(args.properties) \
@@ -121,21 +122,30 @@ def main_impl():
     Context.state = args.state
     Context.catalog = catalog
 
-    try:
+    if jira_type == 'CLOUD':
+        Context.client = Cloud_Client(Context.config)
+
+        try:
+            Context.client.refresh_credentials()
+            Context.client.test_credentials_are_authorized()
+
+            if args.discover:
+                discover().dump()
+                print()
+            else:
+                sync()
+            finally:
+                if Context.client and Context.client.login_timer:
+                    Context.client.login_timer.cancel()
+    else:
         Context.client = Client(Context.config)
 
-        Context.client.refresh_credentials()
-        Context.client.test_credentials_are_authorized()
-
-        if args.discover:
-            discover().dump()
-            print()
-        else:
-            sync()
-    finally:
-        if Context.client and Context.client.login_timer:
-            Context.client.login_timer.cancel()
-
+        try:
+            if args.discover:
+                discover().dump()
+                print()
+            else:
+                sync()
 
 def main():
     try:
