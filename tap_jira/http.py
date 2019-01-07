@@ -12,7 +12,8 @@ import backoff
 class RateLimitException(Exception):
     pass
 
-# Jira OAuth tokens last for 3600 seconds
+# Jira OAuth tokens last for 3600 seconds. We set it to 3500 to try to
+# come in under the limit.
 REFRESH_TOKEN_EXPIRATION_PERIOD = 3500
 
 # The project plan for this tap specified:

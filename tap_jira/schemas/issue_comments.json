@@ -1,113 +1,185 @@
 {
   "title": "Comment",
-  "type": ["null", "object"],
+  "type": [
+    "null",
+    "object"
+  ],
   "properties": {
     "self": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "id": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "issueId": {
-      "type": ["null","string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "author": {
       "$ref": "user"
     },
     "body": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "renderedBody": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "updateAuthor": {
       "$ref": "user"
     },
     "created": {
-      "type": ["null", "string"],
+      "type": [
+        "null",
+        "string"
+      ],
       "format": "date-time"
     },
     "updated": {
-      "type": ["null", "string"],
+      "type": [
+        "null",
+        "string"
+      ],
       "format": "date-time"
     },
     "visibility": {
       "title": "Visibility",
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "properties": {
         "type": {
-          "type": ["null", "string"],
+          "type": [
+            "null",
+            "string"
+          ],
           "enum": [
             "group",
             "role"
           ]
         },
         "value": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         }
-      },
-      "additionalProperties": true
+      }
     },
     "properties": {
-      "type": ["null", "array"],
+      "type": [
+        "null",
+        "array"
+      ],
       "items": {
         "title": "Entity Property",
-        "type": ["null", "object"],
+        "type": [
+          "null",
+          "object"
+        ],
         "properties": {
           "key": {
-            "type": ["null", "string"]
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "value": {}
-        },
-        "additionalProperties": true
+        }
       }
     },
     "jsdPublic": {
-      "type": ["null", "boolean"]
+      "type": [
+        "null",
+        "boolean"
+      ]
     }
   },
-  "additionalProperties": true,
   "definitions": {
     "user": {
       "title": "User",
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "properties": {
         "self": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "name": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "key": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "accountId": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "emailAddress": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "avatarUrls": {
-          "type": ["null", "object"],
+          "type": [
+            "null",
+            "object"
+          ],
           "patternProperties": {
             ".+": {
-              "type": ["null", "string"]
+              "type": [
+                "null",
+                "string"
+              ]
             }
-          },
-          "additionalProperties": true
+          }
         },
         "displayName": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "active": {
-          "type": ["null", "boolean"]
+          "type": [
+            "null",
+            "boolean"
+          ]
         },
         "timeZone": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         }
-      },
-      "additionalProperties": true
+      }
     }
-  },
-  "additionalProperties": true
+  }
 }

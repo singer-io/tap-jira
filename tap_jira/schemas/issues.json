@@ -1,111 +1,168 @@
 {
   "title": "Issue",
-  "type": ["null", "object"],
+  "type": [
+    "null",
+    "object"
+  ],
   "properties": {
     "expand": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "id": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "self": {
-      "type": ["null", "string"],
+      "type": [
+        "null",
+        "string"
+      ],
       "format": "uri"
     },
     "key": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "renderedFields": {
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "patternProperties": {
         ".+": {}
-      },
-      "additionalProperties": true
+      }
     },
     "properties": {
       "title": "Properties",
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "properties": {
         "properties": {
-          "type": ["null", "object"],
+          "type": [
+            "null",
+            "object"
+          ],
           "patternProperties": {
             ".+": {
-              "type": ["null", "string"]
+              "type": [
+                "null",
+                "string"
+              ]
             }
-          },
-          "additionalProperties": true
+          }
         }
-      },
-      "additionalProperties": true
+      }
     },
     "names": {
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "patternProperties": {
         ".+": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         }
-      },
-      "additionalProperties": true
+      }
     },
     "schema": {
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "patternProperties": {
         ".+": {
           "$ref": "json-type"
         }
-      },
-      "additionalProperties": true
+      }
     },
     "editmeta": {
       "title": "Edit Meta",
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "properties": {
         "fields": {
-          "type": ["null", "object"],
+          "type": [
+            "null",
+            "object"
+          ],
           "patternProperties": {
             ".+": {
               "$ref": "field-meta"
             }
-          },
-          "additionalProperties": true
+          }
         }
-      },
-      "additionalProperties": true
+      }
     },
     "versionedRepresentations": {
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "patternProperties": {
         ".+": {
-          "type": ["null", "object"],
+          "type": [
+            "null",
+            "object"
+          ],
           "patternProperties": {
             ".+": {}
-          },
-          "additionalProperties": true
+          }
         }
-      },
-      "additionalProperties": true
+      }
     },
     "fieldsToInclude": {
       "title": "Included Fields",
-      "type": ["null", "object"]
+      "type": [
+        "null",
+        "object"
+      ]
     },
     "fields": {
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "properties": {
         "updated": {
-          "type": ["null", "string"],
+          "type": [
+            "null",
+            "string"
+          ],
           "format": "date-time"
         },
         "created": {
-          "type": ["null", "string"],
+          "type": [
+            "null",
+            "string"
+          ],
           "format": "date-time"
         },
         "lastViewed": {
-          "type": ["null", "string"],
+          "type": [
+            "null",
+            "string"
+          ],
           "format": "date-time"
         },
         "attachment": {
-          "type": ["null", "array"],
+          "type": [
+            "null",
+            "array"
+          ],
           "items": {
             "$ref": "attachment"
           }
@@ -113,100 +170,164 @@
       },
       "patternProperties": {
         ".+": {}
-      },
-      "additionalProperties": true
+      }
     }
   },
-  "additionalProperties": true,
   "definitions": {
     "field-meta": {
       "title": "Field Meta",
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "properties": {
         "required": {
-          "type": ["null", "boolean"]
+          "type": [
+            "null",
+            "boolean"
+          ]
         },
         "schema": {
           "$ref": "json-type"
         },
         "name": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "key": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "autoCompleteUrl": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "hasDefaultValue": {
-          "type": ["null", "boolean"]
+          "type": [
+            "null",
+            "boolean"
+          ]
         },
         "operations": {
-          "type": ["null", "array"],
+          "type": [
+            "null",
+            "array"
+          ],
           "items": {
-            "type": ["null", "string"]
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "allowedValues": {
-          "type": ["null", "array"],
+          "type": [
+            "null",
+            "array"
+          ],
           "items": {}
         },
         "defaultValue": {}
       },
-      "additionalProperties": true,
       "required": [
         "required"
       ]
     },
     "json-type": {
       "title": "Json Type",
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "properties": {
         "type": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "items": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "system": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "custom": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "customId": {
-          "type": ["null", "integer"]
+          "type": [
+            "null",
+            "integer"
+          ]
         }
-      },
-      "additionalProperties": true
+      }
     },
     "simple-link": {
       "title": "Simple Link",
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "properties": {
         "id": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "styleClass": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "iconClass": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "label": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "title": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "href": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "weight": {
-          "type": ["null", "integer"]
+          "type": [
+            "null",
+            "integer"
+          ]
         }
-      },
-      "additionalProperties": true
+      }
     },
     "attachment": {
       "properties": {
@@ -306,7 +427,6 @@
                   ]
                 }
               },
-              "additionalProperties": true,
               "type": [
                 "null",
                 "object"
@@ -325,7 +445,6 @@
               ]
             }
           },
-          "additionalProperties": true,
           "type": [
             "null",
             "object"
@@ -350,12 +469,10 @@
           ]
         }
       },
-      "additionalProperties": true,
       "type": [
         "null",
         "object"
       ]
     }
-  },
-  "additionalProperties": true
+  }
 }
