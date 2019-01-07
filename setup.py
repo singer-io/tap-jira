@@ -9,7 +9,7 @@ setup(name="tap-jira",
       classifiers=["Programming Language :: Python :: 3 :: Only"],
       py_modules=["tap_jira"],
       install_requires=[
-          "singer-python==5.4.0",
+          "singer-python==5.4.1",
           "requests==2.20.0",
       ],
       extras_require={
