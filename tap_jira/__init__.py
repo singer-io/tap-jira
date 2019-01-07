@@ -2,7 +2,6 @@
 import os
 import json
 import singer
-import sys
 from singer import utils
 from singer import metadata
 from singer.catalog import Catalog, CatalogEntry, Schema
