@@ -47,8 +47,8 @@ class Client():
             self.refresh_credentials()
             self.test_credentials_are_authorized()
         else:
-            self.base_url = config["base_url"]
-            self.auth = HTTPBasicAuth(config["username"], config["password"])
+            self.base_url = config.get("base_url")
+            self.auth = HTTPBasicAuth(config.get("username"), config.get("password"))
 
 
     def url(self,path):

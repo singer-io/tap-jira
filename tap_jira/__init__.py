@@ -16,7 +16,7 @@ REQUIRED_CONFIG_KEYS_HOSTED = ["start_date", "username", "password", "base_url"]
 
 def get_args():
     unchecked_args = utils.parse_args([])
-    if 'username' in unchecked_args.config:
+    if 'username' in unchecked_args.config.keys():
         return utils.parse_args(REQUIRED_CONFIG_KEYS_HOSTED)
     else:
         return utils.parse_args(REQUIRED_CONFIG_KEYS_CLOUD)
