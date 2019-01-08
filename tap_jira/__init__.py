@@ -3,13 +3,33 @@ import os
 import json
 import singer
 from singer import utils
+from singer import metadata
 from singer.catalog import Catalog, CatalogEntry, Schema
 from . import streams as streams_
 from .context import Context
 from .http import Client
 
 LOGGER = singer.get_logger()
-REQUIRED_CONFIG_KEYS = ["start_date", "username", "password", "base_url"]
+REQUIRED_CONFIG_KEYS_CLOUD = ["start_date",
+                              "user_agent",
+                              "cloud_id",
+                              "access_token",
+                              "refresh_token",
+                              "oauth_client_id",
+                              "oauth_client_secret"]
+REQUIRED_CONFIG_KEYS_HOSTED = ["start_date",
+                               "username",
+                               "password",
+                               "base_url",
+                               "user_agent"]
+
+
+def get_args():
+    unchecked_args = utils.parse_args([])
+    if 'username' in unchecked_args.config.keys():
+        return utils.parse_args(REQUIRED_CONFIG_KEYS_HOSTED)
+
+    return utils.parse_args(REQUIRED_CONFIG_KEYS_CLOUD)
 
 
 def get_abs_path(path):
@@ -25,25 +45,33 @@ def load_schema(tap_stream_id):
     return schema
 
 
-def test_credentials_are_authorized(config):
-    client = Client(config)
-    client.request(streams_.ISSUES.tap_stream_id, "GET", "/rest/api/2/search",
-                   params={"maxResults": 1})
-
-
-def discover(config):
-    test_credentials_are_authorized(config)
+def discover():
     catalog = Catalog([])
-    for stream in streams_.all_streams:
-        schema = Schema.from_dict(load_schema(stream.tap_stream_id),
-                                  inclusion="automatic")
+    for stream in streams_.ALL_STREAMS:
+        schema = Schema.from_dict(load_schema(stream.tap_stream_id))
+
+        mdata = generate_metadata(stream, schema)
+
         catalog.streams.append(CatalogEntry(
             stream=stream.tap_stream_id,
             tap_stream_id=stream.tap_stream_id,
             key_properties=stream.pk_fields,
             schema=schema,
-        ))
+            metadata=mdata))
     return catalog
+
+
+def generate_metadata(stream, schema):
+    mdata = metadata.new()
+    mdata = metadata.write(mdata, (), 'table-key-properties', stream.pk_fields)
+
+    for field_name in schema.properties.keys():
+        if field_name in stream.pk_fields:
+            mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
+        else:
+            mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'available')
+
+    return metadata.to_list(mdata)
 
 
 def output_schema(stream):
@@ -51,41 +79,53 @@ def output_schema(stream):
     singer.write_schema(stream.tap_stream_id, schema, stream.pk_fields)
 
 
-def sync(ctx):
-    streams_.validate_dependencies(ctx)
-    currently_syncing = ctx.state.get("currently_syncing")
-    start_idx = streams_.all_stream_ids.index(currently_syncing) \
-        if currently_syncing else 0
-    streams = [s for s in streams_.all_streams[start_idx:]
-               if s.tap_stream_id in ctx.selected_stream_ids]
+def sync():
+    streams_.validate_dependencies()
+
+
     # two loops through streams are necessary so that the schema is output
     # BEFORE syncing any streams. Otherwise, the first stream might generate
     # data for the second stream, but the second stream hasn't output its
     # schema yet
-    for stream in streams:
+    for stream in streams_.ALL_STREAMS:
         output_schema(stream)
-    for stream in streams:
+
+    for stream in streams_.ALL_STREAMS:
+        if not Context.is_selected(stream.tap_stream_id):
+            continue
+
         # indirect_stream indicates the data for the stream comes from some
         # other stream, so we don't sync it directly.
         if stream.indirect_stream:
             continue
-        ctx.state["currently_syncing"] = stream.tap_stream_id
-        ctx.write_state()
-        stream.sync(ctx)
-    ctx.state["currently_syncing"] = None
-    ctx.write_state()
+        Context.state["currently_syncing"] = stream.tap_stream_id
+        singer.write_state(Context.state)
+        stream.sync()
+    Context.state["currently_syncing"] = None
+    singer.write_state(Context.state)
 
 
 def main_impl():
-    args = utils.parse_args(REQUIRED_CONFIG_KEYS)
-    if args.discover:
-        discover(args.config).dump()
-        print()
-    else:
-        catalog = Catalog.from_dict(args.properties) \
-            if args.properties else discover(args.config)
-        sync(Context(args.config, args.state, catalog))
+    args = get_args()
 
+    # Setup Context
+    catalog = Catalog.from_dict(args.properties) \
+        if args.properties else discover()
+    Context.config = args.config
+    Context.state = args.state
+    Context.catalog = catalog
+
+    Context.client = Client(Context.config)
+
+    try:
+        if args.discover:
+            discover().dump()
+            print()
+        else:
+            sync()
+    finally:
+        if Context.client and Context.client.login_timer:
+            Context.client.login_timer.cancel()
 
 def main():
     try:

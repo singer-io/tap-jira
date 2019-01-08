@@ -63,8 +63,7 @@
                 "string"
               ]
             }
-          },
-          "additionalProperties": true
+          }
         },
         "displayName": {
           "type": [
@@ -84,11 +83,7 @@
             "string"
           ]
         }
-      },
-      "additionalProperties": true,
-      "required": [
-        "active"
-      ]
+      }
     },
     "created": {
       "type": [
@@ -151,8 +146,7 @@
               "string"
             ]
           }
-        },
-        "additionalProperties": true
+        }
       }
     },
     "historyMetadata": {
@@ -225,39 +219,56 @@
                 "string"
               ]
             }
-          },
-          "additionalProperties": true
+          }
         }
-      },
-      "additionalProperties": true
+      }
     }
   },
-  "additionalProperties": true,
   "definitions": {
     "history-metadata-participant": {
       "title": "History Metadata Participant",
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "properties": {
         "id": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "displayName": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "displayNameKey": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "type": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "avatarUrl": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "url": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         }
-      },
-      "additionalProperties": true
+      }
     }
   }
 }

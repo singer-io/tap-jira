@@ -1,56 +1,101 @@
 {
   "title": "Project",
-  "type": ["null", "object"],
+  "type": [
+    "null",
+    "object"
+  ],
   "properties": {
     "simplified": {
-      "type": ["null", "boolean"]
+      "type": [
+        "null",
+        "boolean"
+      ]
     },
     "expand": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "self": {
-      "type": ["null", "string"],
+      "type": [
+        "null",
+        "string"
+      ],
       "format": "uri"
     },
     "id": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "key": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "description": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "lead": {
       "$ref": "user"
     },
     "components": {
-      "type": ["null", "array"],
+      "type": [
+        "null",
+        "array"
+      ],
       "items": {
         "title": "Component",
-        "type": ["null", "object"],
+        "type": [
+          "null",
+          "object"
+        ],
         "properties": {
           "self": {
-            "type": ["null", "string"],
+            "type": [
+              "null",
+              "string"
+            ],
             "format": "uri"
           },
           "id": {
-            "type": ["null", "string"]
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "name": {
-            "type": ["null", "string"]
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "description": {
-            "type": ["null", "string"]
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "lead": {
             "$ref": "user"
           },
           "leadUserName": {
-            "type": ["null", "string"]
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "assigneeType": {
-            "type": ["null", "string"],
+            "type": [
+              "null",
+              "string"
+            ],
             "enum": [
               "PROJECT_DEFAULT",
               "COMPONENT_LEAD",
@@ -62,7 +107,10 @@
             "$ref": "user"
           },
           "realAssigneeType": {
-            "type": ["null", "string"],
+            "type": [
+              "null",
+              "string"
+            ],
             "enum": [
               "PROJECT_DEFAULT",
               "COMPONENT_LEAD",
@@ -74,196 +122,319 @@
             "$ref": "user"
           },
           "isAssigneeTypeValid": {
-            "type": ["null", "boolean"]
+            "type": [
+              "null",
+              "boolean"
+            ]
           },
           "project": {
-            "type": ["null", "string"]
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "projectId": {
-            "type": ["null", "integer"]
+            "type": [
+              "null",
+              "integer"
+            ]
           }
-        },
-        "additionalProperties": true,
-        "required": [
-          "isAssigneeTypeValid"
-        ]
+        }
       }
     },
     "issueTypes": {
-      "type": ["null", "array"],
+      "type": [
+        "null",
+        "array"
+      ],
       "items": {
         "title": "Issue Type",
-        "type": ["null", "object"],
+        "type": [
+          "null",
+          "object"
+        ],
         "properties": {
           "self": {
-            "type": ["null", "string"]
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "id": {
-            "type": ["null", "string"]
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "description": {
-            "type": ["null", "string"]
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "iconUrl": {
-            "type": ["null", "string"]
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "name": {
-            "type": ["null", "string"]
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "subtask": {
-            "type": ["null", "boolean"]
+            "type": [
+              "null",
+              "boolean"
+            ]
           },
           "avatarId": {
-            "type": ["null", "integer"]
+            "type": [
+              "null",
+              "integer"
+            ]
           }
-        },
-        "additionalProperties": true,
-        "required": [
-          "subtask"
-        ]
+        }
       }
     },
     "url": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "email": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "assigneeType": {
-      "type": ["null", "string"],
+      "type": [
+        "null",
+        "string"
+      ],
       "enum": [
         "PROJECT_LEAD",
         "UNASSIGNED"
       ]
     },
     "name": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     },
     "roles": {
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "patternProperties": {
         ".+": {
-          "type": ["null", "string"],
+          "type": [
+            "null",
+            "string"
+          ],
           "format": "uri"
         }
-      },
-      "additionalProperties": true
+      }
     },
     "avatarUrls": {
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "patternProperties": {
         ".+": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         }
-      },
-      "additionalProperties": true
+      }
     },
     "projectKeys": {
-      "type": ["null", "array"],
+      "type": [
+        "null",
+        "array"
+      ],
       "items": {
-        "type": ["null", "string"]
+        "type": [
+          "null",
+          "string"
+        ]
       }
     },
     "projectCategory": {
       "title": "Project Category",
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "properties": {
         "self": {
-          "type": ["null", "string"],
+          "type": [
+            "null",
+            "string"
+          ],
           "format": "uri"
         },
         "id": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "name": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "description": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         }
-      },
-      "additionalProperties": true
+      }
     },
     "projectTypeKey": {
-      "type": ["null", "string"]
+      "type": [
+        "null",
+        "string"
+      ]
     }
   },
-  "additionalProperties": true,
   "definitions": {
     "simple-list-wrapper": {
       "title": "Simple List Wrapper",
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "properties": {
         "size": {
-          "type": ["null", "integer"]
+          "type": [
+            "null",
+            "integer"
+          ]
         },
         "max-results": {
-          "type": ["null", "integer"]
+          "type": [
+            "null",
+            "integer"
+          ]
         },
         "items": {
-          "type": ["null", "array"],
+          "type": [
+            "null",
+            "array"
+          ],
           "items": {
             "title": "Group",
-            "type": ["null", "object"],
+            "type": [
+              "null",
+              "object"
+            ],
             "properties": {
               "name": {
-                "type": ["null", "string"]
+                "type": [
+                  "null",
+                  "string"
+                ]
               },
               "self": {
-                "type": ["null", "string"],
+                "type": [
+                  "null",
+                  "string"
+                ],
                 "format": "uri"
               }
-            },
-            "additionalProperties": true
+            }
           }
         }
-      },
-      "additionalProperties": true,
-      "required": [
-        "size"
-      ]
+      }
     },
     "user": {
       "title": "User",
-      "type": ["null", "object"],
+      "type": [
+        "null",
+        "object"
+      ],
       "properties": {
         "self": {
-          "type": ["null", "string"],
+          "type": [
+            "null",
+            "string"
+          ],
           "format": "uri"
         },
         "key": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "accountId": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "name": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "emailAddress": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "avatarUrls": {
-          "type": ["null", "object"],
+          "type": [
+            "null",
+            "object"
+          ],
           "patternProperties": {
             ".+": {
-              "type": ["null", "string"],
+              "type": [
+                "null",
+                "string"
+              ],
               "format": "uri"
             }
-          },
-          "additionalProperties": true
+          }
         },
         "displayName": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "active": {
-          "type": ["null", "boolean"]
+          "type": [
+            "null",
+            "boolean"
+          ]
         },
         "timeZone": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "locale": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         },
         "groups": {
           "$ref": "simple-list-wrapper"
@@ -272,13 +443,12 @@
           "$ref": "simple-list-wrapper"
         },
         "expand": {
-          "type": ["null", "string"]
+          "type": [
+            "null",
+            "string"
+          ]
         }
-      },
-      "additionalProperties": true,
-      "required": [
-        "active"
-      ]
+      }
     }
   }
 }
