@@ -173,14 +173,14 @@ class Paginator():
             # `Users` is an example of a stream that does not nest its
             # results.
             if 'maxResults' in response:
-                maxResults = response['maxResults']
+                max_results = response['maxResults']
             else:
-                maxResults = params['maxResults']
+                max_results = params['maxResults']
 
-            if len(page) < maxResults:
+            if len(page) < max_results:
                 self.next_page_num = None
             else:
-                self.next_page_num += maxResults
+                self.next_page_num += max_results
 
             if page:
                 yield page
