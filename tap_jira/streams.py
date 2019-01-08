@@ -152,31 +152,19 @@ class ProjectTypes(Stream):
 
 
 class Users(Stream):
-    def _paginate(self, page_num):
+    def sync(self):
         max_results = 2
         params = {"username": "%",
                   "includeInactive": "true",
                   "maxResults": max_results}
-        next_page_num = page_num
-        while next_page_num is not None:
-            params["startAt"] = next_page_num * max_results
-            page = Context.client.request(self.tap_stream_id,
-                                          "GET",
-                                          "/rest/api/2/user/search",
-                                          params=params)
-            if len(page) < max_results:
-                next_page_num = None
-            else:
-                next_page_num += 1
-            if page:
-                yield page, next_page_num
-
-    def sync(self):
         page_num_offset = [self.tap_stream_id, "offset", "page_num"]
         page_num = Context.bookmark(page_num_offset) or 0
-        for page, next_page_num in self._paginate(page_num=page_num):
+        pager = Paginator(Context.client, items_key=None, page_num=page_num)
+        for page in pager.pages(self.tap_stream_id, "GET",
+                                "/rest/api/2/user/search",
+                                params=params):
             self.write_page(page)
-            Context.set_bookmark(page_num_offset, next_page_num)
+            Context.set_bookmark(page_num_offset, pager.next_page_num)
             singer.write_state(Context.state)
         Context.set_bookmark(page_num_offset, None)
         singer.write_state(Context.state)

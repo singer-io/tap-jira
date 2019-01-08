@@ -163,10 +163,24 @@ class Paginator():
             if self.order_by:
                 params["orderBy"] = self.order_by
             response = self.client.request(*args, params=params, **kwargs)
-            page = response[self.items_key]
-            if len(page) < response["maxResults"]:
+            if self.items_key:
+                page = response[self.items_key]
+            else:
+                page = response
+
+            # Accounts for responses that don't nest their results in a
+            # key by falling back to the params `maxResults` setting.
+            # `Users` is an example of a stream that does not nest its
+            # results.
+            if 'maxResults' in response:
+                maxResults = response['maxResults']
+            else:
+                maxResults = params['maxResults']
+
+            if len(page) < maxResults:
                 self.next_page_num = None
             else:
-                self.next_page_num += response["maxResults"]
+                self.next_page_num += maxResults
+
             if page:
                 yield page
