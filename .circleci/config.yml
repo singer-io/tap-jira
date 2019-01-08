@@ -10,7 +10,7 @@ jobs:
           command: |
             virtualenv -p python3 ~/.virtualenvs/tap-jira
             source ~/.virtualenvs/tap-jira/bin/activate
-            pip install .[dev]
+            pip install -e .[dev]
       - run:
           name: 'Unit Tests'
           command: |

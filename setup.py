@@ -14,6 +14,7 @@ setup(name="tap-jira",
       ],
       extras_require={
           'dev': [
+              'pylint',
               'nose',
               'ipdb'
           ]
