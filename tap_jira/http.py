@@ -37,6 +37,7 @@ class Client():
         self.login_timer = None
 
         if self.is_cloud:
+            LOGGER.info("Using OAuth based API authentication")
             self.auth = None
             self.base_url = 'https://api.atlassian.com/ex/jira/{}{}'
             self.cloud_id = config.get('cloud_id')
@@ -51,6 +52,7 @@ class Client():
             self.refresh_credentials()
             self.test_credentials_are_authorized()
         else:
+            LOGGER.info("Using Basic Auth API authentication")
             self.base_url = config.get("base_url")
             self.auth = HTTPBasicAuth(config.get("username"), config.get("password"))
 
