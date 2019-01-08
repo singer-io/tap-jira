@@ -133,6 +133,8 @@ class Projects(Stream):
 
 
 class Everything(Stream):
+    """This class exists to retrieve API objects that return their entire
+    resultset in a single request."""
     def __init__(self, *args, path, **kwargs):
         super().__init__(*args, **kwargs)
         self.path = path
