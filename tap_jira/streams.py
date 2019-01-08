@@ -6,71 +6,6 @@ from .http import Paginator
 from .context import Context
 
 
-def format_dt(dict_, key):
-    str_ = dict_.get(key)
-    if not str_:
-        return
-    utc_time = utils.strptime_to_utc(str_)
-    dict_[key] = utils.strftime(utc_time)
-
-
-def format_versions(versions):
-    for version in versions:
-        format_dt(version, "releaseDate")
-        format_dt(version, "startDate")
-        format_dt(version, "userStartDate")
-        format_dt(version, "userReleaseDate")
-
-
-def format_worklogs(worklogs):
-    for worklog in worklogs:
-        format_dt(worklog, "created")
-        format_dt(worklog, "updated")
-        format_dt(worklog, "started")
-
-
-def format_issues(issues):
-    for issue in issues:
-        fields = issue["fields"]
-
-        format_dt(fields, "updated")
-        format_dt(fields, "created")
-        format_dt(fields, "lastViewed")
-        for att in fields.get("attachment", []):
-            format_dt(att, "created")
-        fields.pop("worklog", None)
-        # The JSON schema for the search endpoint indicates an "operations"
-        # field can be present. This field is self-referential, making it
-        # difficult to deal with - we would have to flatten the operations
-        # and just have each operation include the IDs of other operations
-        # it references. However the operations field has something to do
-        # with the UI within Jira - I believe the operations are parts of
-        # the "menu" bar for each issue. This is of questionable utility,
-        # so we decided to just strip the field out for now.
-        issue.pop("operations", None)
-
-
-def format_changelogs(issue, changelogs):
-    for changelog in changelogs:
-        changelog["issueId"] = issue["id"]
-        format_dt(changelog, "created")
-        for hist in changelog.get("histories", []):
-            format_dt(hist, "created")
-
-
-def format_comments(issue, comments):
-    for comment in comments:
-        comment["issueId"] = issue["id"]
-        format_dt(comment, "updated")
-        format_dt(comment, "created")
-
-
-def format_transitions(issue, transitions):
-    for transition in transitions:
-        transition["issueId"] = issue["id"]
-
-
-
 def raise_if_bookmark_cannot_advance(worklogs):
     # Worklogs can only be queried with a `since` timestamp and
     # provides no way to page through the results. The `since`
@@ -118,15 +53,18 @@ def sync_sub_streams(page):
     for issue in page:
         comments = issue["fields"].pop("comment")["comments"]
         if comments and Context.is_selected(ISSUE_COMMENTS.tap_stream_id):
-            format_comments(issue, comments)
+            for comment in comments:
+                comment["issueId"] = issue["id"]
             ISSUE_COMMENTS.write_page(comments)
         changelogs = issue.pop("changelog")["histories"]
         if changelogs and Context.is_selected(CHANGELOGS.tap_stream_id):
-            format_changelogs(issue, changelogs)
+            for changelog in changelogs:
+                changelog["issueId"] = issue["id"]
             CHANGELOGS.write_page(changelogs)
         transitions = issue.pop("transitions")
         if transitions and Context.is_selected(ISSUE_TRANSITIONS.tap_stream_id):
-            format_transitions(issue, transitions)
+            for transition in transitions:
+                transition["issueId"] = issue["id"]
             ISSUE_TRANSITIONS.write_page(transitions)
 
 
@@ -173,7 +111,6 @@ class Versions(Stream):
         path = "/rest/api/2/project/{}/version".format(project["id"])
         pager = Paginator(Context.client, order_by="sequence")
         for page in pager.pages(self.tap_stream_id, "GET", path):
-            format_versions(page)
             self.write_page(page)
 
 
@@ -268,8 +205,17 @@ class Issues(Stream):
                                 params=params):
             # sync comments and changelogs for each issue
             sync_sub_streams(page)
-            # sync issues
-            format_issues(page)
+            for issue in page:
+                issue['fields'].pop('worklog', None)
+                # The JSON schema for the search endpoint indicates an "operations"
+                # field can be present. This field is self-referential, making it
+                # difficult to deal with - we would have to flatten the operations
+                # and just have each operation include the IDs of other operations
+                # it references. However the operations field has something to do
+                # with the UI within Jira - I believe the operations are parts of
+                # the "menu" bar for each issue. This is of questionable utility,
+                # so we decided to just strip the field out for now.
+                issue['fields'].pop('operations', None)
 
             # Grab last_updated before transform in write_page
             last_updated = utils.strptime_to_utc(page[-1]["fields"]["updated"])
@@ -313,7 +259,6 @@ class Worklogs(Stream):
                 break
             ids = [x["worklogId"] for x in ids_page["values"]]
             worklogs = self._fetch_worklogs(ids)
-            format_worklogs(worklogs)
 
             # Grab last_updated before transform in write_page
             new_last_updated = advance_bookmark(worklogs)
