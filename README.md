@@ -79,16 +79,6 @@ This tap:
    tap-jira -c config.json -p catalog-file.json
    ```
 
-## Test Data
-
-This repo provides a script for creating some data in JIRA. Use `./create.py
---help` for details. Examples:
-
-```
-./create.py --config config.json project
-./create.py --config config.json --num-issues 10 issue
-```
-
 ---
 
 Copyright &copy; 2017 Stitch
