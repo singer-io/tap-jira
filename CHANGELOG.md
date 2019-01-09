@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.3
+  * Refactoring
+
 ## 1.0.2
   * Refactor the base class `Stream` to remove the child class `Everything`
 
