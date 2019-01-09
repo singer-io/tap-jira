@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2
+  * Refactor the base class `Stream` to remove the child class `Everything`
+
+## 1.0.1
+  * Add support for Basic Auth and Oauth
+
 ## 0.3.3
   * Update version of `requests` to `2.20.0` in response to CVE 2018-18074
 
