@@ -77,6 +77,7 @@ def advance_bookmark(worklogs):
 
 LOGGER = singer.get_logger()
 
+
 class Stream():
     """Information about and functions for syncing streams for the Jira API.
 
@@ -86,13 +87,18 @@ class Stream():
     :var pk_fields: A list of primary key fields
     :var indirect_stream: If True, this indicates the stream cannot be synced
     directly, but instead has its data generated via a separate stream."""
-    def __init__(self, tap_stream_id, pk_fields, indirect_stream=False):
+    def __init__(self, tap_stream_id, pk_fields, indirect_stream=False, path=None):
         self.tap_stream_id = tap_stream_id
         self.pk_fields = pk_fields
         self.indirect_stream = indirect_stream
+        self.path = path
 
     def __repr__(self):
         return "<Stream(" + self.tap_stream_id + ")>"
+
+    def sync(self):
+        page = Context.client.request(self.tap_stream_id, "GET", self.path)
+        self.write_page(page)
 
     def write_page(self, page):
         stream = Context.get_catalog_entry(self.tap_stream_id)
@@ -132,18 +138,6 @@ class Projects(Stream):
                 VERSIONS.sync(project=project)
 
 
-class Everything(Stream):
-    """This class exists to retrieve API objects that return their entire
-    resultset in a single request."""
-    def __init__(self, *args, path, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.path = path
-
-    def sync(self):
-        page = Context.client.request(self.tap_stream_id, "GET", self.path)
-        self.write_page(page)
-
-
 class ProjectTypes(Stream):
     def sync(self):
         path = "/rest/api/2/project/type"
@@ -170,7 +164,6 @@ class Users(Stream):
             singer.write_state(Context.state)
         Context.set_bookmark(page_num_offset, None)
         singer.write_state(Context.state)
-
 
 
 class Issues(Stream):
@@ -239,7 +232,6 @@ class Worklogs(Stream):
             data=json.dumps({"ids": ids}),
         )
 
-
     def sync(self):
         updated_bookmark = [self.tap_stream_id, "updated"]
         last_updated = Context.update_start_date_bookmark(updated_bookmark)
@@ -264,6 +256,7 @@ class Worklogs(Stream):
             if last_page:
                 break
 
+
 VERSIONS = Versions("versions", ["id"], indirect_stream=True)
 ISSUES = Issues("issues", ["id"])
 ISSUE_COMMENTS = Stream("issue_comments", ["id"], indirect_stream=True)
@@ -276,9 +269,9 @@ ALL_STREAMS = [
     PROJECTS,
     VERSIONS,
     ProjectTypes("project_types", ["key"]),
-    Everything("project_categories", ["id"], path="/rest/api/2/projectCategory"),
-    Everything("resolutions", ["id"], path="/rest/api/2/resolution"),
-    Everything("roles", ["id"], path="/rest/api/2/role"),
+    Stream("project_categories", ["id"], path="/rest/api/2/projectCategory"),
+    Stream("resolutions", ["id"], path="/rest/api/2/resolution"),
+    Stream("roles", ["id"], path="/rest/api/2/role"),
     Users("users", ["key"]),
     ISSUES,
     ISSUE_COMMENTS,
