@@ -90,6 +90,7 @@ class Stream():
     def __init__(self, tap_stream_id, pk_fields, indirect_stream=False, path=None):
         self.tap_stream_id = tap_stream_id
         self.pk_fields = pk_fields
+        # Only used to skip streams in the main sync function
         self.indirect_stream = indirect_stream
         self.path = path
 
@@ -112,14 +113,6 @@ class Stream():
             counter.increment(len(page))
 
 
-class Versions(Stream):
-    def sync(self, project):
-        path = "/rest/api/2/project/{}/version".format(project["id"])
-        pager = Paginator(Context.client, order_by="sequence")
-        for page in pager.pages(self.tap_stream_id, "GET", path):
-            self.write_page(page)
-
-
 class Projects(Stream):
     def sync(self):
         projects = Context.client.request(
@@ -135,7 +128,10 @@ class Projects(Stream):
         self.write_page(projects)
         if Context.is_selected(VERSIONS.tap_stream_id):
             for project in projects:
-                VERSIONS.sync(project=project)
+                path = "/rest/api/2/project/{}/version".format(project["id"])
+                pager = Paginator(Context.client, order_by="sequence")
+                for page in pager.pages(VERSIONS.tap_stream_id, "GET", path):
+                    VERSIONS.write_page(page)
 
 
 class ProjectTypes(Stream):
@@ -257,7 +253,7 @@ class Worklogs(Stream):
                 break
 
 
-VERSIONS = Versions("versions", ["id"], indirect_stream=True)
+VERSIONS = Stream("versions", ["id"], indirect_stream=True)
 ISSUES = Issues("issues", ["id"])
 ISSUE_COMMENTS = Stream("issue_comments", ["id"], indirect_stream=True)
 ISSUE_TRANSITIONS = Stream("issue_transitions", ["id"],
