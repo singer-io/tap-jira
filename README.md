@@ -71,7 +71,7 @@ This tap:
    ```
 
    See the Singer docs on discovery mode
-   [here](https://github.com/singer-io/getting-started/blob/master/BEST_PRACTICES.md#discover-mode-and-connection-checks).
+   [here](https://github.com/singer-io/getting-started/blob/master/docs/DISCOVERY_MODE.md#discovery-mode).
 
 5. Run the Tap in Sync Mode
 
