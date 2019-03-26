@@ -8,13 +8,13 @@ jobs:
       - run:
           name: 'Setup virtual env'
           command: |
-            virtualenv -p python3 ~/.virtualenvs/tap-jira
-            source ~/.virtualenvs/tap-jira/bin/activate
+            virtualenv -p python3 /usr/local/share/virtualenvs/tap-jira
+            source /usr/local/share/virtualenvs/tap-jira/bin/activate
             pip install -e .[dev]
       - run:
           name: 'Unit Tests'
           command: |
-            source ~/.virtualenvs/tap-jira/bin/activate
+            source /usr/local/share/virtualenvs/tap-jira/bin/activate
             make
       - add_ssh_keys
       - run:
@@ -22,7 +22,7 @@ jobs:
           command: |
             aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/sandbox dev_env.sh
             source dev_env.sh
-            source ~/.virtualenvs/tap-tester/bin/activate
+            source /usr/local/share/virtualenvs/tap-tester/bin/activate
             run-a-test --tap=tap-jira \
                        --target=target-stitch \
                        --orchestrator=stitch-orchestrator \
