@@ -146,14 +146,13 @@ class ProjectTypes(Stream):
 class Users(Stream):
     def sync(self):
         max_results = 2
-        params = {"username": "%",
-                  "includeInactive": "true",
+        params = {"groupname": "jira-software-users",
                   "maxResults": max_results}
         page_num_offset = [self.tap_stream_id, "offset", "page_num"]
         page_num = Context.bookmark(page_num_offset) or 0
-        pager = Paginator(Context.client, items_key=None, page_num=page_num)
+        pager = Paginator(Context.client, items_key='values', page_num=page_num)
         for page in pager.pages(self.tap_stream_id, "GET",
-                                "/rest/api/2/user/search",
+                                "/rest/api/2/group/member",
                                 params=params):
             self.write_page(page)
             Context.set_bookmark(page_num_offset, pager.next_page_num)

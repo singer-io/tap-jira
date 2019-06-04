@@ -170,8 +170,6 @@ class Paginator():
 
             # Accounts for responses that don't nest their results in a
             # key by falling back to the params `maxResults` setting.
-            # `Users` is an example of a stream that does not nest its
-            # results.
             if 'maxResults' in response:
                 max_results = response['maxResults']
             else:
