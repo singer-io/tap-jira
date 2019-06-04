@@ -8,8 +8,9 @@ jobs:
       - run:
           name: 'Setup virtual env'
           command: |
-            virtualenv -p python3 /usr/local/share/virtualenvs/tap-jira
+            python3 -mvenv /usr/local/share/virtualenvs/tap-jira
             source /usr/local/share/virtualenvs/tap-jira/bin/activate
+            pip install -U 'pip<19.2' setuptools
             pip install -e .[dev]
       - run:
           name: 'Unit Tests'
