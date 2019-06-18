@@ -1,7 +1,8 @@
 import json
 import pytz
-import singer
 import requests
+import singer
+
 from singer import metrics, utils, metadata, Transformer
 from .http import Paginator
 from .context import Context
