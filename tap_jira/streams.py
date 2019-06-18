@@ -1,6 +1,8 @@
 import json
 import pytz
+import requests
 import singer
+
 from singer import metrics, utils, metadata, Transformer
 from .http import Paginator
 from .context import Context
@@ -146,19 +148,30 @@ class ProjectTypes(Stream):
 class Users(Stream):
     def sync(self):
         max_results = 2
-        params = {"groupname": "jira-software-users",
-                  "maxResults": max_results}
-        page_num_offset = [self.tap_stream_id, "offset", "page_num"]
-        page_num = Context.bookmark(page_num_offset) or 0
-        pager = Paginator(Context.client, items_key='values', page_num=page_num)
-        for page in pager.pages(self.tap_stream_id, "GET",
-                                "/rest/api/2/group/member",
-                                params=params):
-            self.write_page(page)
-            Context.set_bookmark(page_num_offset, pager.next_page_num)
-            singer.write_state(Context.state)
-        Context.set_bookmark(page_num_offset, None)
-        singer.write_state(Context.state)
+
+        if Context.config.get("groups"):
+            groups = Context.config.get("groups").split(",")
+        else:
+            groups = ["jira-administrators",
+                      "jira-software-users",
+                      "jira-core-users",
+                      "jira-users",
+                      "users"]
+
+        for group in groups:
+            try:
+                params = {"groupname": group,
+                          "maxResults": max_results}
+                pager = Paginator(Context.client, items_key='values')
+                for page in pager.pages(self.tap_stream_id, "GET",
+                                        "/rest/api/2/group/member",
+                                        params=params):
+                    self.write_page(page)
+            except requests.exceptions.HTTPError as http_error:
+                if http_error.response.status_code == 404:
+                    LOGGER.info("Could not find group \"%s\", skipping", group)
+                else:
+                    raise http_error
 
 
 class Issues(Stream):
