@@ -7,6 +7,7 @@ from singer import metrics, utils, metadata, Transformer
 from .http import Paginator
 from .context import Context
 
+
 def raise_if_bookmark_cannot_advance(worklogs):
     # Worklogs can only be queried with a `since` timestamp and
     # provides no way to page through the results. The `since`
