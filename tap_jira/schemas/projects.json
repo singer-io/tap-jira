@@ -307,6 +307,39 @@
         "null",
         "string"
       ]
+    },
+    "entityId": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "uuid": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "properties": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "patternProperties": {
+        ".+": {}
+      }
+    },
+    "isPrivate": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "style": {
+      "type": [
+        "null",
+        "string"
+      ]
     }
   },
   "definitions": {
