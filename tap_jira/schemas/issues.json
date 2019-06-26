@@ -388,6 +388,12 @@
                 "string"
               ]
             },
+            "accountType": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
             "active": {
               "type": [
                 "null",
