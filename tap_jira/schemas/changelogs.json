@@ -145,6 +145,18 @@
               "null",
               "string"
             ]
+          },
+          "tmpFromAccountId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tmpToAccountId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       }
