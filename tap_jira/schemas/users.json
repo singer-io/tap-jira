@@ -75,68 +75,11 @@
         "string"
       ]
     },
-    "groups": {
-      "$ref": "simple-list-wrapper"
-    },
-    "applicationRoles": {
-      "$ref": "simple-list-wrapper"
-    },
     "expand": {
       "type": [
         "null",
         "string"
       ]
-    }
-  },
-  "definitions": {
-    "simple-list-wrapper": {
-      "title": "Simple List Wrapper",
-      "type": [
-        "null",
-        "object"
-      ],
-      "properties": {
-        "size": {
-          "type": [
-            "null",
-            "integer"
-          ]
-        },
-        "max-results": {
-          "type": [
-            "null",
-            "integer"
-          ]
-        },
-        "items": {
-          "type": [
-            "null",
-            "array"
-          ],
-          "items": {
-            "title": "Group",
-            "type": [
-              "null",
-              "object"
-            ],
-            "properties": {
-              "name": {
-                "type": [
-                  "null",
-                  "string"
-                ]
-              },
-              "self": {
-                "type": [
-                  "null",
-                  "string"
-                ],
-                "format": "uri"
-              }
-            }
-          }
-        }
-      }
     }
   }
 }
