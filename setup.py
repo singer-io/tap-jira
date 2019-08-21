@@ -2,7 +2,7 @@
 from setuptools import setup, find_packages
 
 setup(name="tap-jira",
-      version="1.0.5",
+      version="1.0.6",
       description="Singer.io tap for extracting data from the Jira API",
       author="Stitch",
       url="http://singer.io",

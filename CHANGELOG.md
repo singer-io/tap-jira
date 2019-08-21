@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.6
+  * Update `users` schema to match the results of `/group/member` endpoint [#41](https://github.com/singer-io/tap-jira/pull/41)
+
 ## 1.0.3
   * Refactoring
 
