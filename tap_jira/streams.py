@@ -161,7 +161,8 @@ class Users(Stream):
         for group in groups:
             try:
                 params = {"groupname": group,
-                          "maxResults": max_results}
+                          "maxResults": max_results,
+                          "includeInactiveUsers": True}
                 pager = Paginator(Context.client, items_key='values')
                 for page in pager.pages(self.tap_stream_id, "GET",
                                         "/rest/api/2/group/member",
