@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.8
+  * Add additional error types to retry logic and ensure correct functions get retried [#44](https://github.com/singer-io/tap-jira/pull/44)
+
 ## 1.0.7
   * Update `users` query to include inactive users [#42](https://github.com/singer-io/tap-jira/pull/42)
 
