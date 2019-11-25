@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import time
 import threading
 import re
-from requests.exceptions import ConnectionError, HTTPError
+from requests.exceptions import HTTPError
 from requests.auth import HTTPBasicAuth
 import requests
 from singer import metrics
@@ -26,7 +26,7 @@ LOGGER = singer.get_logger()
 def should_retry_httperror(exception):
     """ Retry 500-range errors. """
     # An ConnectionError is thrown without a response
-    if exception.response == None:
+    if exception.response is None:
         return True
 
     return 500 <= exception.response.status_code < 600
@@ -83,7 +83,7 @@ class Client():
         return headers
 
     @backoff.on_exception(backoff.expo,
-                          (ConnectionError, HTTPError),
+                          (requests.exceptions.ConnectionError, HTTPError),
                           jitter=None,
                           max_tries=6,
                           giveup=lambda e: not should_retry_httperror(e))
