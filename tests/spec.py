@@ -73,6 +73,10 @@ class TapSpec():
             self.PRIMARY_KEYS: {"key"},
         }
 
+        account_id_pk = {
+            self.PRIMARY_KEYS: {"accountId"},
+        }
+
         return {
             "projects": id_pk,
             "project_types": key_pk,
@@ -80,7 +84,7 @@ class TapSpec():
             "versions": id_pk,
             "resolutions": id_pk,
             "roles": id_pk,
-            "users": key_pk,
+            "users": account_id_pk,
             "issues": id_pk,
             "issue_comments": id_pk,
             "issue_transitions": id_pk,
