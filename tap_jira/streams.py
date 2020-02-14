@@ -281,7 +281,7 @@ ALL_STREAMS = [
     Stream("project_categories", ["id"], path="/rest/api/2/projectCategory"),
     Stream("resolutions", ["id"], path="/rest/api/2/resolution"),
     Stream("roles", ["id"], path="/rest/api/2/role"),
-    Users("users", ["key"]),
+    Users("users", ["accountId"]),
     ISSUES,
     ISSUE_COMMENTS,
     CHANGELOGS,
