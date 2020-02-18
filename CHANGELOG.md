@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.0
+  * Change primary key of `users` stream to from `key` to `accountId` [#46](https://github.com/singer-io/tap-jira/pull/46)
+
 ## 1.0.8
   * Add additional error types to retry logic and ensure correct functions get retried [#44](https://github.com/singer-io/tap-jira/pull/44)
 
