@@ -104,3 +104,7 @@ state.json
 catalog.json
 
 todo.org
+
+# IDEs
+.idea
+.vscode
