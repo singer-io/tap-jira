@@ -165,43 +165,39 @@ class Client:
         if orderBy:
             page_params["orderBy"] = orderBy
 
-        counter = metrics.record_counter(endpoint=endpoint)
-        resource = self.request(tap_stream_id, "GET",
-                                endpoint, params=page_params)
+        with metrics.record_counter(endpoint=endpoint) as counter:
+            resource = self.request(tap_stream_id, "GET",
+                                    endpoint, params=page_params)
 
-        resource = resource if resource else dict()
-        page = resource.get(items_key, [])
+            resource = resource if resource else dict()
+            page = resource.get(items_key, [])
 
-        total = resource.get("total")
-        # 'isLast' is the optional key added to responses
-        # in Jira Agile 6.7.6. So far not used in basic Jira API.
-        is_last = resource.get("isLast", True)
-        start_at_from_response = resource.get("startAt", 0)
-        max_results_from_response = resource.get("maxResults", 1)
+            total = resource.get("total")
+            start_at_from_response = resource.get("startAt", 0)
+            max_results_from_response = resource.get("maxResults", 1)
 
-        cursor = startAt
-        page_size = maxResults
-        if not maxResults:
-            page_size = max_results_from_response or len(page)
-            cursor = (startAt or start_at_from_response or 0) + page_size
+            cursor = startAt
+            page_size = maxResults
+            if not maxResults:
+                page_size = max_results_from_response or len(page)
+                cursor = (startAt or start_at_from_response or 0) + page_size
 
-        counter.increment(len(page))
-        yield page, cursor
+            counter.increment(len(page))
+            yield page, cursor
 
-        while (
-                not is_last
-                and (total is None or cursor < total)
-                and len(page) == page_size
-        ):
-            page_params["startAt"] = cursor
-            page_params["maxResults"] = page_size
-            resource = self.request(
-                tap_stream_id, "GET", endpoint, params=page_params)
-            if resource:
-                page = resource.get(items_key)
-                cursor += page_size
-                counter.increment(len(page))
-                yield page, cursor
-            else:
-                # if resource is an empty dictionary we assume no-results
-                break
+            while (
+                    (total is None or cursor < total)
+                    and len(page) == page_size
+            ):
+                page_params["startAt"] = cursor
+                page_params["maxResults"] = page_size
+                resource = self.request(
+                    tap_stream_id, "GET", endpoint, params=page_params)
+                if resource:
+                    page = resource.get(items_key)
+                    cursor += page_size
+                    counter.increment(len(page))
+                    yield page, cursor
+                else:
+                    # if resource is an empty dictionary we assume no-results
+                    break
