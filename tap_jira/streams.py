@@ -242,7 +242,7 @@ class Issues(Stream):
                 startAt=page_num,
                 params=params
         ):
-            # New page contains all issues for a page 
+            # New page contains all issues for a page
             # with renamed custom fields
             new_page = [self.rename_fields(r, field_names) for r in page]
             yield new_page, cursor
@@ -254,7 +254,8 @@ class IssueComments(Stream):
 
     def sync(self, client, config, state, **kwargs):
         record = kwargs.get('record', {})
-        comments = record["fields"].pop("comment")["comments"]
+        comments = record.get('fields', {}).pop(
+            'Comment', {}).get('comments', [])
         for comment in comments:
             comment["issueId"] = record["id"]
 
@@ -267,7 +268,7 @@ class IssueTransitions(Stream):
 
     def sync(self, client, config, state, **kwargs):
         record = kwargs.get('record', {})
-        transitions = record.pop("transitions")
+        transitions = record.pop("transitions", [])
         for transition in transitions:
             transition["issueId"] = record["id"]
 
@@ -280,7 +281,7 @@ class IssueChangelogs(Stream):
 
     def sync(self, client, config, state, **kwargs):
         record = kwargs.get('record', {})
-        changelogs = record.pop("changelog")["histories"]
+        changelogs = record.pop("changelog", {}).get('histories', [])
         for changelog in changelogs:
             changelog["issueId"] = record["id"]
 
