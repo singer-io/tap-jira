@@ -16,9 +16,7 @@ class DependencyException(Exception):
 def is_selected(stream, catalog):
     stream_cls = stream()
     catalog_entry = catalog.get_stream(stream_cls.tap_stream_id)
-    if catalog_entry:
-        return catalog_entry.is_selected()
-    return False
+    return True if (catalog_entry and catalog_entry.is_selected()) else False
 
 
 def check_substream(stream, catalog, errs=[]):
