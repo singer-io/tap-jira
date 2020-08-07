@@ -28,7 +28,7 @@ def _sync_stream(client, stream, transformer,
     stream_schema = stream_catalog.schema.to_dict()
     stream_metadata = metadata.to_map(stream_catalog.metadata)
 
-    LOGGER.info('Starting sync for stream: %s', tap_stream_id)
+    LOGGER.debug('Starting sync for stream: %s', tap_stream_id)
     state = singer.set_currently_syncing(state, tap_stream_id)
     singer.write_state(state)
 
