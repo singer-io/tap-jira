@@ -1,0 +1,36 @@
+{
+  "title": "Sprint",
+  "type": ["null", "object"],
+  "properties": {
+    "id": {
+      "type": ["null", "integer"]
+    },
+    "boardId": {
+      "type": ["null", "integer"]
+    },
+    "self": {
+      "type": ["null", "string"]
+    },
+    "state": {
+      "type": ["null", "string"]
+    },
+    "name": {
+      "type": ["null", "string"]
+    },
+    "startDate": {
+      "type": ["null", "string"]
+    },
+    "endDate": {
+      "type": ["null", "string"]
+    },
+    "completeDate": {
+      "type": ["null", "string"]
+    },
+    "originBoardId": {
+      "type": ["null", "integer"]
+    },
+    "goal": {
+      "type": ["null", "string"]
+    }
+  }
+}

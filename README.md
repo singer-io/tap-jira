@@ -9,6 +9,11 @@ This tap:
 - Pulls raw data from the [JIRA Cloud REST
   API](https://docs.atlassian.com/jira/REST/cloud/#api/2/)
 - Extracts the following resources:
+  - [`boards`](https://developer.atlassian.com/cloud/jira/software/rest/api-group-other-operations/#api-agile-1-0-board-get)
+  - [`issue_board`](https://developer.atlassian.com/cloud/jira/software/rest/api-group-board/#api-agile-1-0-board-boardid-issue-get)
+  - [`project_board`](https://developer.atlassian.com/cloud/jira/software/rest/api-group-board/#api-agile-1-0-board-boardid-project-get)
+  - [`epics`](https://developer.atlassian.com/cloud/jira/software/rest/api-group-board/#api-agile-1-0-board-boardid-epic-get)
+  - [`sprints`]()
   - [`projects`](https://docs.atlassian.com/jira/REST/cloud/#api/2/project-getAllProjects)
   - [`versions`](https://docs.atlassian.com/jira/REST/cloud/#api/2/project-getProjectVersionsPaginated)
   - [`project_types`](https://docs.atlassian.com/jira/REST/cloud/#api/2/project/type-getAllProjectTypes)
@@ -39,7 +44,8 @@ This tap:
         "start_date": "2010-01-01",
         "username": "your-jira-username",
         "password": "your-jira-password",
-        "base_url": "https://your-jira-domain"
+        "base_url": "https://your-jira-domain",
+        "user_agent": "<user-agent>"
     }
     ```
 

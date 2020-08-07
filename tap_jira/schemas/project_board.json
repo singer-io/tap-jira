@@ -1,0 +1,52 @@
+{
+  "title": "Project Board",
+  "type": ["null", "object"],
+  "properties": {
+    "self": {
+      "type": ["null", "string"]
+    },
+    "id": {
+      "type": ["null", "integer"]
+    },
+    "key": {
+      "type": ["null", "string"]
+    },
+    "name": {
+      "type": ["null", "string"]
+    },
+    "boardId": {
+      "type": ["null", "integer"]
+    },
+    "projectTypeKey": {
+      "type": ["null", "string"]
+    },
+    "avatarUrls": {
+      "type": ["null", "object"],
+        "patternProperties": {
+            ".+": {
+              "type": ["null", "string"]
+            }
+          }
+    },
+    "projectCategory": {
+      "type": ["null", "object"],
+      "properties": {
+        "self": {
+          "type": ["null", "string"]
+        },
+        "id": {
+          "type": ["null", "string"]
+        },
+        "name": {
+          "type": ["null", "string"]
+        },
+        "description": {
+          "type": ["null", "string"]
+        }
+      }
+    },
+    "simplified": {
+      "type": ["null", "boolean"]
+    }
+  }
+}
