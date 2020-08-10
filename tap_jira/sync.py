@@ -57,9 +57,13 @@ def _sync_stream(client, stream, transformer,
             for record in page:
                 transformed_record = transformer.transform(
                     record, stream_schema, stream_metadata)
+
+                time_extracted = singer.utils.now()
                 singer.write_record(
                     tap_stream_id,
-                    transformed_record)
+                    transformed_record,
+                    time_extracted=time_extracted
+                )
 
                 if record[replication_key] > max_record_value:
                     max_record_value = transformed_record[replication_key]
@@ -87,11 +91,16 @@ def _sync_stream(client, stream, transformer,
                 page_num=page_num
         ):
             for record in page:
+                transformed_record = transformer.transform(
+                    record, stream_schema, stream_metadata)
+
+                time_extracted = singer.utils.now()
                 singer.write_record(
                     tap_stream_id,
-                    transformer.transform(
-                        record, stream_schema, stream_metadata,
-                    ))
+                    transformed_record,
+                    time_extracted=time_extracted
+                )
+
                 if substreams:
                     for substream in substreams.values():
                         _sync_stream(client, substream, transformer, config, state, catalog,
