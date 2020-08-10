@@ -180,7 +180,7 @@ class Client:
             page_size = maxResults
             if not maxResults:
                 page_size = max_results_from_response or len(page)
-                cursor = (startAt or start_at_from_response or 0) + page_size
+                cursor = (startAt or start_at_from_response) + page_size
 
             counter.increment(len(page))
             yield page, cursor
