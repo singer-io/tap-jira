@@ -24,9 +24,10 @@ class Stream:
 
     def __repr__(self):
         return "<Stream(" + self.tap_stream_id + ")>"
-    
+
     def update_replication_method(self, method):
-        if method: self.replication_method = method
+        if method:
+            self.replication_method = method
 
     def sync(self, client, config, state, **kwargs) -> (any, int):
         if self.paginate:
@@ -69,7 +70,7 @@ class IssueBoard(Stream):
                 items_key="issues",
                 startAt=offset,
                 params=self.params
-                ):
+        ):
             for entry in page:
                 entry['boardId'] = record['id']
             yield page, cursor
