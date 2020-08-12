@@ -26,9 +26,9 @@ class TestLocalizedRequests(unittest.TestCase):
 
         issues = streams.Issues()
 
-        page_num = 1
+        offset = 1
         start_date = "2017-12-04T19:19:32Z"
-        issues.sync(cli, self.config, {}, start_date=start_date, page_num=page_num)
+        issues.sync(cli, self.config, {}, start_date=start_date, offset=offset)
 
         user_tz = pytz.timezone(self.tzname)
         expected_start_date = (datetime(2017, 12, 4, 19, 19, tzinfo=pytz.UTC)

@@ -1,6 +1,7 @@
 import os
 import singer
 from singer import utils
+from functools import reduce
 
 LOGGER = singer.get_logger()
 
@@ -17,6 +18,23 @@ def is_selected(stream, catalog):
     stream_cls = stream()
     catalog_entry = catalog.get_stream(stream_cls.tap_stream_id)
     return True if (catalog_entry and catalog_entry.is_selected()) else False
+
+
+def split_stream(stream):
+    substreams = {}
+    if isinstance(stream, dict):
+        if 'substreams' in stream.keys():
+            substreams = stream['substreams']
+        stream = stream['cls']
+
+    return stream, substreams
+
+
+def deep_get(dictionary, keys, default=None):
+    return reduce(lambda d, key: d.get(key, default)
+                  if isinstance(d, dict)
+                  else default, keys.split("."),
+                  dictionary)
 
 
 def check_substream(stream, catalog, errs=[]):

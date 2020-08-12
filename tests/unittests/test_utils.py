@@ -23,6 +23,22 @@ class TestFlattenStreams(unittest.TestCase):
         self.assertEquals(len(flattened.keys()), 1)
 
 
+class TestDeepGet(unittest.TestCase):
+    dummy_dict = {
+        'main': {
+            'sub': 'value'
+        }
+    }
+
+    def test_get_first_level(self):
+        val = utils.deep_get(self.dummy_dict, 'main')
+        self.assertEquals(val, self.dummy_dict['main'])
+
+    def test_get_levels(self):
+        val = utils.deep_get(self.dummy_dict, 'main.sub')
+        self.assertEquals(val, 'value')
+
+
 class TestRaiseIfBookmarkCannotAdvance(unittest.TestCase):
     dummy_worklog = {
         "updated": "2020-07-24T06:28:45.782+0000"

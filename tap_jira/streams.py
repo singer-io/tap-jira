@@ -19,11 +19,14 @@ class Stream:
     substream = False
     tap_stream_id = None
     key_properties = None
-    replication_key = "updated"
+    replication_key = "fields.updated"
     replication_method = "FULL_TABLE"
 
     def __repr__(self):
         return "<Stream(" + self.tap_stream_id + ")>"
+    
+    def update_replication_method(self, method):
+        if method: self.replication_method = method
 
     def sync(self, client, config, state, **kwargs) -> (any, int):
         if self.paginate:
@@ -43,15 +46,30 @@ class Boards(Stream):
 class IssueBoard(Stream):
     endpoint = "/rest/agile/1.0/board/{}/issue"
     paginate = True
-    params = {"expand": "sprint,epic,project"}
+    params = {"expand": "sprint,epic,project,created,updated"}
     tap_stream_id = "issue_board"
     key_properties = ["id"]
 
     def sync(self, client, config, state, **kwargs):
         record = kwargs.get('record', {})
         fendpoint = self.endpoint.format(record['id'])
+
+        offset = kwargs.get('offset')
+        start_date = kwargs.get('start_date')
+        start_date = utils.strptime_to_utc(start_date)
+        timezone = retrieve_timezone(self.tap_stream_id, client)
+        start_date = start_date.astimezone(
+            pytz.timezone(timezone)).strftime("%Y-%m-%d %H:%M")
+
+        self.params['jql'] = "updated >= '{}' order by updated asc".format(
+            start_date)
+
         for page, cursor in client.fetch_pages(
-                self.tap_stream_id, fendpoint, items_key="issues"):
+                self.tap_stream_id, fendpoint,
+                items_key="issues",
+                startAt=offset,
+                params=self.params
+                ):
             for entry in page:
                 entry['boardId'] = record['id']
             yield page, cursor
@@ -211,7 +229,7 @@ class Issues(Stream):
             name = field["name"].translate(translator)
             # snake case field names
             name = name.replace(" ", "_")
-            result[key] = name
+            result[key] = name.lower()
         return result
 
     def rename_fields(self, record, mapper):
@@ -221,7 +239,7 @@ class Issues(Stream):
         return record
 
     def sync(self, client, config, state, **kwargs):
-        page_num = kwargs.get('page_num')
+        offset = kwargs.get('offset')
         start_date = kwargs.get('start_date')
         start_date = utils.strptime_to_utc(start_date)
         timezone = retrieve_timezone(self.tap_stream_id, client)
@@ -239,7 +257,7 @@ class Issues(Stream):
                 self.tap_stream_id,
                 self.endpoint,
                 items_key="issues",
-                startAt=page_num,
+                startAt=offset,
                 params=params
         ):
             # New page contains all issues for a page
@@ -255,7 +273,7 @@ class IssueComments(Stream):
     def sync(self, client, config, state, **kwargs):
         record = kwargs.get('record', {})
         comments = record.get('fields', {}).pop(
-            'Comment', {}).get('comments', [])
+            'comment', {}).get('comments', [])
         for comment in comments:
             comment["issueId"] = record["id"]
 
