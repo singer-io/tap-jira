@@ -24,6 +24,10 @@ def get_schemas():
         with open(schema_path) as file:
             schema = json.load(file)
 
+        refs = schema.pop("definitions", {})
+        if refs:
+            singer.resolve_schema_references(schema, refs)
+
         meta = metadata.get_standard_metadata(
             schema=schema,
             key_properties=stream_object.key_properties,
