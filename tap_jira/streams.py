@@ -5,7 +5,7 @@ import requests
 import singer
 from singer import utils
 
-from .utils import retrieve_timezone, advance_bookmark
+from .utils import advance_bookmark
 
 
 LOGGER = singer.get_logger()
@@ -58,7 +58,7 @@ class IssueBoard(Stream):
         offset = kwargs.get('offset')
         start_date = kwargs.get('start_date')
         start_date = utils.strptime_to_utc(start_date)
-        timezone = retrieve_timezone(self.tap_stream_id, client)
+        timezone = config.get('timezone', 'UTC')
         start_date = start_date.astimezone(
             pytz.timezone(timezone)).strftime("%Y-%m-%d %H:%M")
 
@@ -183,7 +183,7 @@ class Roles(Stream):
 class Users(Stream):
     endpoint = "/rest/api/2/group/member"
     tap_stream_id = "users"
-    key_properties = ["id"]
+    key_properties = ["accountId"]
     groups = ["jira-administrators",
               "jira-software-users",
               "jira-core-users",
@@ -243,7 +243,7 @@ class Issues(Stream):
         offset = kwargs.get('offset')
         start_date = kwargs.get('start_date')
         start_date = utils.strptime_to_utc(start_date)
-        timezone = retrieve_timezone(self.tap_stream_id, client)
+        timezone = config.get('timezone', 'UTC')
         start_date = start_date.astimezone(
             pytz.timezone(timezone)).strftime("%Y-%m-%d %H:%M")
 

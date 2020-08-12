@@ -133,11 +133,6 @@ def advance_bookmark(worklogs):
     return new_last_updated
 
 
-def retrieve_timezone(tap_stream_id, client):
-    response = client.get(tap_stream_id, "/rest/api/2/myself")
-    return response["timeZone"]
-
-
 def get_abs_path(path):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
 

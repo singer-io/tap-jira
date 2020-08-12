@@ -17,9 +17,7 @@ class TestLocalizedRequests(unittest.TestCase):
         }
 
     @patch.object(client.Client, 'fetch_pages')
-    @patch.object(utils, 'retrieve_timezone')
-    def test_issues_local_timezone_in_request(self, tz_mock, cli_mock):
-        tz_mock.return_value = 'Europe/Volgograd'
+    def test_issues_local_timezone_in_request(self, cli_mock):
         cli_mock.return_value = []
 
         cli = client.Client(self.config)
@@ -34,7 +32,7 @@ class TestLocalizedRequests(unittest.TestCase):
         expected_start_date = (datetime(2017, 12, 4, 19, 19, tzinfo=pytz.UTC)
                                .astimezone(user_tz)
                                .strftime("%Y-%m-%d %H:%M"))
-        
+
         params = {"fields": "*all",
                   "expand": "changelog,transitions",
                   "validateQuery": "strict",
