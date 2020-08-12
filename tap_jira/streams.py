@@ -16,7 +16,6 @@ class Stream:
     paginate = False
     params = None
 
-    substream = False
     tap_stream_id = None
     key_properties = None
     replication_key = "fields.updated"
@@ -31,10 +30,10 @@ class Stream:
 
     def sync(self, client, config, state, **kwargs) -> (any, int):
         if self.paginate:
-            return client.fetch_pages(
+            yield from client.fetch_pages(
                 self.tap_stream_id, self.endpoint, params=self.params)
-
-        yield client.get(self.tap_stream_id, self.endpoint, params=self.params), 0
+        else:
+            yield client.get(self.tap_stream_id, self.endpoint, params=self.params), 0
 
 
 class Boards(Stream):
@@ -94,7 +93,6 @@ class ProjectBoard(Stream):
 class Epics(Stream):
     endpoint = "/rest/agile/1.0/board/{}/epic"
     paginate = True
-    substream = True
     tap_stream_id = "epics"
     key_properties = ["id"]
 
@@ -110,7 +108,6 @@ class Epics(Stream):
 class Sprints(Stream):
     endpoint = "/rest/agile/1.0/board/{}/sprint"
     paginate = True
-    substream = True
     tap_stream_id = "sprints"
     key_properties = ["id"]
 
@@ -139,6 +136,13 @@ class Projects(Stream):
     tap_stream_id = "projects"
     key_properties = ["id"]
 
+    def sync(self, client, config, state, **kwargs):
+        projects = client.get(self.tap_stream_id, self.endpoint)
+        for project in projects:
+            project.pop("versions", None)
+
+        yield projects, 0
+
 
 class ProjectTypes(Stream):
     endpoint = "/rest/api/2/project/type"
@@ -148,7 +152,7 @@ class ProjectTypes(Stream):
     def sync(self, client, config, state, **kwargs):
         types = client.get(self.tap_stream_id, self.endpoint)
         for typ in types:
-            typ.pop("icon")
+            typ.pop("icon", None)
 
         yield types, 0
 
@@ -161,11 +165,14 @@ class ProjectCategories(Stream):
 
 class Versions(Stream):
     endpoint = "/rest/api/2/project/{}/version"
-    paginate = True
-    substream = True
     params = {"orderBy": "sequence"}
     tap_stream_id = "versions"
     key_properties = ["id"]
+
+    def sync(self, client, config, state, **kwargs):
+        record = kwargs.get('record', {})
+        fendpoint = self.endpoint.format(record['id'])
+        yield from client.fetch_pages(self.tap_stream_id, fendpoint)
 
 
 class Resolutions(Stream):
@@ -311,6 +318,7 @@ class Worklogs(Stream):
     endpoint = "/rest/api/2/worklog/list"
     tap_stream_id = "worklogs"
     key_properties = ["id"]
+    replication_key = "updated"
 
     def _fetch_ids(self, client, last_updated):
         # since_ts uses millisecond precision
@@ -372,10 +380,14 @@ STREAMS = {
             'issue_changelogs': IssueChangelogs,
         }
     },
-    'projects': Projects,
+    'projects': {
+        'cls': Projects,
+        'substreams': {
+            'versions': Versions
+        }
+    },
     'project_types': ProjectTypes,
     'project_categories': ProjectCategories,
-    'versions': Versions,
     'roles': Roles,
     'users': Users,
     'resolutions': Resolutions,
