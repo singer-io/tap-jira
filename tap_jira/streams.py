@@ -34,7 +34,7 @@ class Stream:
             return client.fetch_pages(
                 self.tap_stream_id, self.endpoint, params=self.params)
 
-        return client.get(self.tap_stream_id, self.endpoint, params=self.params), 0
+        yield client.get(self.tap_stream_id, self.endpoint, params=self.params), 0
 
 
 class Boards(Stream):
