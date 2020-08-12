@@ -41,11 +41,12 @@ This tap:
 
    ```json
     {
-        "start_date": "2010-01-01",
-        "username": "your-jira-username",
-        "password": "your-jira-password",
-        "base_url": "https://your-jira-domain",
-        "user_agent": "<user-agent>"
+         "start_date": "<i.e. 2017-12-04T19:19:32Z>",
+        "username": "<your-jira-username>",
+        "password": "<your-jira-password>",
+        "base_url": "<https://your-jira-domain>",
+        "user_agent": "<user-agent>",
+        "timezone": "<i.e. America/New_York>"
     }
     ```
 
@@ -59,7 +60,8 @@ This tap:
      "access_token": "<access-token>",
      "cloud_id": "<cloud-id>",
      "refresh_token": "<refresh-token>",
-     "start_date": "<i.e. 2017-12-04T19:19:32Z>"
+     "start_date": "<i.e. 2017-12-04T19:19:32Z>",
+     "timezone": "<i.e. America/New_York>"
    }
    ```
 
@@ -69,6 +71,9 @@ This tap:
    For Basic Auth, the `base_url` is the URL where your Jira installation
    can be found. For example, it might look like:
    `https://mycompany.atlassian.net`.
+
+   `timezone` adjusts dates and timestamps used to incrementally load JIRA data 
+   to the timezone specified. It defaults to `UTC`.
 
 4. Run the Tap in Discovery Mode
 
