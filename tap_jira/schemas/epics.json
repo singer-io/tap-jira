@@ -1,0 +1,32 @@
+{
+  "title": "Epic",
+  "type": ["null", "object"],
+  "properties": {
+    "id": {
+      "type": ["null", "integer"]
+    },
+    "boardId": {
+      "type": ["null", "integer"]
+    },
+    "self": {
+      "type": ["null", "string"]
+    },
+    "name": {
+      "type": ["null", "string"]
+    },
+    "summary": {
+      "type": ["null", "string"]
+    },
+    "color": {
+      "type": ["null", "object"],
+      "properties": {
+        "key": {
+          "type": ["null", "string"]
+        }
+      }
+    },
+    "done": {
+      "type": ["null", "boolean"]
+    }
+  }
+}

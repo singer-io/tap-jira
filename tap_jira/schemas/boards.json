@@ -1,18 +1,17 @@
 {
-  "title": "Project Category",
-  "type": ["null", "object"],
+  "title": "Board",
+  "type": "object",
   "properties": {
-    "self": {
-      "type": ["null", "string"],
-      "format": "uri"
-    },
     "id": {
+      "type": ["null", "integer"]
+    },
+    "self": {
       "type": ["null", "string"]
     },
     "name": {
       "type": ["null", "string"]
     },
-    "description": {
+    "type": {
       "type": ["null", "string"]
     }
   }

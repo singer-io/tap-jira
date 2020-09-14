@@ -1,0 +1,67 @@
+{
+  "title": "Issue Board",
+  "type": ["null", "object"],
+  "properties": {
+    "expand": {
+      "type": ["null", "string"]
+    },
+    "id": {
+      "type": ["null", "integer"]
+    },
+    "self": {
+      "type": ["null", "string"]
+    },
+    "key": {
+      "type": ["null", "string"]
+    },
+    "boardId": {
+      "type": ["null", "integer"]
+    },
+    "fields": {
+      "type": "object",
+      "properties": {
+        "sprint": {
+          "type": ["null", "object"],
+          "properties": {
+            "id": {
+              "type": ["null", "number"]
+            },
+            "self": {
+              "type": ["null", "string"]
+            }
+          }
+        },
+        "project": {
+          "type": ["null", "object"],
+          "properties": {
+            "self": {
+              "type": ["null", "string"]
+            },
+            "id": {
+              "type": ["null", "string"]
+            }
+          }
+        },
+        "epic": {
+          "type": ["null", "object"],
+          "properties": {
+            "id": {
+              "type": ["null", "number"]
+            },
+            "self": {
+              "type": ["null", "string"]
+            }
+          }
+        },
+        "created": {
+          "type": ["null", "string"],
+          "format": "date-time"
+        },
+        "updated": {
+          "type": ["null", "string"],
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}

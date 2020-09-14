@@ -1,264 +1,378 @@
 import json
+import string
 import pytz
 import requests
 import singer
+from singer import utils
 
-from singer import metrics, utils, metadata, Transformer
-from .http import Paginator
-from .context import Context
-
-
-def raise_if_bookmark_cannot_advance(worklogs):
-    # Worklogs can only be queried with a `since` timestamp and
-    # provides no way to page through the results. The `since`
-    # timestamp has <=, not <, semantics. It also caps the response at
-    # 1000 objects. Because of this, if we ever see a page of 1000
-    # worklogs that all have the same `updated` timestamp, we cannot
-    # tell whether we in fact got all the updates and so we need to
-    # raise.
-    #
-    # That said, a page of 999 worklogs that all have the same
-    # timestamp is fine. That just means that 999 worklogs were
-    # updated at the same timestamp but that we did, in fact, get them
-    # all.
-    #
-    # The behavior, then, always resyncs the latest `updated`
-    # timestamp, no matter how many results are there. If you have 500
-    # worklogs updated at T1 and 999 worklogs updated at T2 and
-    # `last_updated` is set to T1, the first trip through this will
-    # see 1000 items, 500 of which have `updated==T1` and 500 of which
-    # have `updated==T2`. Then, `last_updated` is set to T2 and due to
-    # the <= semantics, you grab the 999 T2 worklogs which passes this
-    # function because there's less than 1000 worklogs of
-    # `updated==T2`.
-    #
-    # OTOH, if you have 1 worklog with `updated==T1` and 1000 worklogs
-    # with `updated==T2`, first trip you see 1 worklog at T1 and 999
-    # at T2 which this code will think is fine, but second trip
-    # through you'll see 1000 worklogs at T2 which will fail
-    # validation (because we can't tell whether there would be more
-    # that should've been returned).
-    LOGGER.debug('Worklog page count: `%s`', len(worklogs))
-    worklog_updatedes = [utils.strptime_to_utc(w['updated'])
-                         for w in worklogs]
-    min_updated = min(worklog_updatedes)
-    max_updated = max(worklog_updatedes)
-    LOGGER.debug('Worklog min updated: `%s`', min_updated)
-    LOGGER.debug('Worklog max updated: `%s`', max_updated)
-    if len(worklogs) == 1000 and min_updated == max_updated:
-        raise Exception(("Worklogs bookmark can't safely advance."
-                         "Every `updated` field is `{}`")
-                        .format(worklog_updatedes[0]))
-
-
-def sync_sub_streams(page):
-    for issue in page:
-        comments = issue["fields"].pop("comment")["comments"]
-        if comments and Context.is_selected(ISSUE_COMMENTS.tap_stream_id):
-            for comment in comments:
-                comment["issueId"] = issue["id"]
-            ISSUE_COMMENTS.write_page(comments)
-        changelogs = issue.pop("changelog")["histories"]
-        if changelogs and Context.is_selected(CHANGELOGS.tap_stream_id):
-            for changelog in changelogs:
-                changelog["issueId"] = issue["id"]
-            CHANGELOGS.write_page(changelogs)
-        transitions = issue.pop("transitions")
-        if transitions and Context.is_selected(ISSUE_TRANSITIONS.tap_stream_id):
-            for transition in transitions:
-                transition["issueId"] = issue["id"]
-            ISSUE_TRANSITIONS.write_page(transitions)
-
-
-def advance_bookmark(worklogs):
-    raise_if_bookmark_cannot_advance(worklogs)
-    new_last_updated = max(utils.strptime_to_utc(w["updated"])
-                           for w in worklogs)
-    return new_last_updated
+from .utils import advance_bookmark, deep_get
 
 
 LOGGER = singer.get_logger()
 
 
-class Stream():
-    """Information about and functions for syncing streams for the Jira API.
+class Stream:
+    endpoint = None
+    paginate = False
+    params = None
 
-    Important class properties:
-
-    :var tap_stream_id:
-    :var pk_fields: A list of primary key fields
-    :var indirect_stream: If True, this indicates the stream cannot be synced
-    directly, but instead has its data generated via a separate stream."""
-    def __init__(self, tap_stream_id, pk_fields, indirect_stream=False, path=None):
-        self.tap_stream_id = tap_stream_id
-        self.pk_fields = pk_fields
-        # Only used to skip streams in the main sync function
-        self.indirect_stream = indirect_stream
-        self.path = path
+    tap_stream_id = None
+    key_properties = None
+    replication_key = "fields.updated"
+    replication_method = "FULL_TABLE"
 
     def __repr__(self):
         return "<Stream(" + self.tap_stream_id + ")>"
 
-    def sync(self):
-        page = Context.client.request(self.tap_stream_id, "GET", self.path)
-        self.write_page(page)
+    def update_replication_method(self, method):
+        if method:
+            self.replication_method = method
 
-    def write_page(self, page):
-        stream = Context.get_catalog_entry(self.tap_stream_id)
-        stream_metadata = metadata.to_map(stream.metadata)
-        extraction_time = singer.utils.now()
-        for rec in page:
-            with Transformer() as transformer:
-                rec = transformer.transform(rec, stream.schema.to_dict(), stream_metadata)
-            singer.write_record(self.tap_stream_id, rec, time_extracted=extraction_time)
-        with metrics.record_counter(self.tap_stream_id) as counter:
-            counter.increment(len(page))
+    def sync(self, client, config, state, **kwargs) -> (any, int):
+        if self.paginate:
+            yield from client.fetch_pages(
+                self.tap_stream_id, self.endpoint, params=self.params)
+        else:
+            yield client.get(self.tap_stream_id, self.endpoint, params=self.params), 0
+
+
+class Boards(Stream):
+    endpoint = "/rest/agile/1.0/board"
+    paginate = True
+    tap_stream_id = "boards"
+    key_properties = ["id"]
+
+
+class IssueBoard(Stream):
+    endpoint = "/rest/agile/1.0/board/{}/issue"
+    paginate = True
+    params = {"expand": "sprint,epic,project,created,updated"}
+    tap_stream_id = "issue_board"
+    key_properties = ["id"]
+
+    def sync(self, client, config, state, **kwargs):
+        record = kwargs.get('record', {})
+        fendpoint = self.endpoint.format(record['id'])
+
+        # custom state handling to keep track of board issues
+        bookmark_id = str(record['id'])
+        bookmark = singer.get_bookmark(
+            state, self.tap_stream_id, bookmark_id, {})
+
+        offset = 0
+        start_dt = bookmark.get(self.replication_key, config['start_date'])
+        start_dt = utils.strptime_to_utc(start_dt)
+
+        timezone = config.get('timezone', 'UTC')
+        start_date = start_dt.astimezone(
+            pytz.timezone(timezone)).strftime("%Y-%m-%d %H:%M")
+
+        self.params['jql'] = "updated >= '{}' order by updated asc".format(
+            start_date)
+
+        max_updated = start_dt
+        for page, cursor in client.fetch_pages(
+                self.tap_stream_id, fendpoint,
+                items_key="issues",
+                startAt=offset,
+                params=self.params
+        ):
+            for entry in page:
+                entry['boardId'] = record['id']
+                updated_at = deep_get(entry, self.replication_key)
+                updated_at = utils.strptime_to_utc(updated_at)
+                if updated_at and updated_at > max_updated:
+                    max_updated = updated_at
+
+            state = singer.write_bookmark(state, self.tap_stream_id, bookmark_id, {
+                self.replication_key: max_updated.strftime(
+                    utils.DATETIME_PARSE)
+            })
+
+            singer.write_state(state)
+            yield page, cursor
+
+
+class ProjectBoard(Stream):
+    endpoint = "/rest/agile/1.0/board/{}/project"
+    paginate = True
+    tap_stream_id = "project_board"
+    key_properties = ["id"]
+
+    def sync(self, client, config, state, **kwargs):
+        record = kwargs.get('record', {})
+        fendpoint = self.endpoint.format(record['id'])
+        for page, cursor in client.fetch_pages(self.tap_stream_id, fendpoint):
+            for entry in page:
+                entry['boardId'] = record['id']
+            yield page, cursor
+
+
+class Epics(Stream):
+    endpoint = "/rest/agile/1.0/board/{}/epic"
+    paginate = True
+    tap_stream_id = "epics"
+    key_properties = ["id"]
+
+    def sync(self, client, config, state, **kwargs):
+        record = kwargs.get('record', {})
+        fendpoint = self.endpoint.format(record['id'])
+        for page, cursor in client.fetch_pages(self.tap_stream_id, fendpoint):
+            for entry in page:
+                entry['boardId'] = record['id']
+            yield page, cursor
+
+
+class Sprints(Stream):
+    endpoint = "/rest/agile/1.0/board/{}/sprint"
+    paginate = True
+    tap_stream_id = "sprints"
+    key_properties = ["id"]
+
+    def sync(self, client, config, state, **kwargs):
+        record = kwargs.get('record', {})
+        fendpoint = self.endpoint.format(record['id'])
+        try:
+            for page, cursor in client.fetch_pages(
+                    self.tap_stream_id, fendpoint):
+                for entry in page:
+                    entry['boardId'] = record['id']
+                yield page, cursor
+        # Not every board supports sprints
+        except requests.exceptions.HTTPError as http_error:
+            if http_error.response.status_code == 400:
+                LOGGER.info(
+                    "Could not find sprint for board \"%s\", skipping", record['id'])
+                yield [], 0
+            else:
+                raise http_error
 
 
 class Projects(Stream):
-    def sync(self):
-        projects = Context.client.request(
-            self.tap_stream_id, "GET", "/rest/api/2/project",
-            params={"expand": "description,lead,url,projectKeys"})
+    endpoint = "/rest/api/2/project"
+    params = {"expand": "description,lead,url,projectKeys"}
+    tap_stream_id = "projects"
+    key_properties = ["id"]
+
+    def sync(self, client, config, state, **kwargs):
+        projects = client.get(self.tap_stream_id, self.endpoint)
         for project in projects:
-            # The Jira documentation suggests that a "versions" key may appear
-            # in the project, but from my testing that hasn't been the case
-            # (even when projects do have versions). Since we are already
-            # syncing versions separately, pop this key just in case it
-            # appears.
             project.pop("versions", None)
-        self.write_page(projects)
-        if Context.is_selected(VERSIONS.tap_stream_id):
-            for project in projects:
-                path = "/rest/api/2/project/{}/version".format(project["id"])
-                pager = Paginator(Context.client, order_by="sequence")
-                for page in pager.pages(VERSIONS.tap_stream_id, "GET", path):
-                    VERSIONS.write_page(page)
+
+        yield projects, 0
 
 
 class ProjectTypes(Stream):
-    def sync(self):
-        path = "/rest/api/2/project/type"
-        types = Context.client.request(self.tap_stream_id, "GET", path)
-        for type_ in types:
-            type_.pop("icon")
-        self.write_page(types)
+    endpoint = "/rest/api/2/project/type"
+    tap_stream_id = "project_types"
+    key_properties = ["key"]
+
+    def sync(self, client, config, state, **kwargs):
+        types = client.get(self.tap_stream_id, self.endpoint)
+        for typ in types:
+            typ.pop("icon", None)
+
+        yield types, 0
+
+
+class ProjectCategories(Stream):
+    endpoint = "/rest/api/2/projectCategory"
+    tap_stream_id = "project_categories"
+    key_properties = ["id"]
+
+
+class Versions(Stream):
+    endpoint = "/rest/api/2/project/{}/version"
+    params = {"orderBy": "sequence"}
+    tap_stream_id = "versions"
+    key_properties = ["id"]
+
+    def sync(self, client, config, state, **kwargs):
+        record = kwargs.get('record', {})
+        fendpoint = self.endpoint.format(record['id'])
+        yield from client.fetch_pages(self.tap_stream_id, fendpoint)
+
+
+class Resolutions(Stream):
+    endpoint = "/rest/api/2/resolution"
+    tap_stream_id = "resolutions"
+    key_properties = ["id"]
+
+
+class Roles(Stream):
+    endpoint = "/rest/api/2/role"
+    tap_stream_id = "roles"
+    key_properties = ["id"]
 
 
 class Users(Stream):
-    def sync(self):
-        max_results = 2
+    endpoint = "/rest/api/2/group/member"
+    tap_stream_id = "users"
+    key_properties = ["accountId"]
+    groups = ["jira-administrators",
+              "jira-software-users",
+              "jira-core-users",
+              "jira-users",
+              "uses"]
 
-        if Context.config.get("groups"):
-            groups = Context.config.get("groups").split(",")
-        else:
-            groups = ["jira-administrators",
-                      "jira-software-users",
-                      "jira-core-users",
-                      "jira-users",
-                      "users"]
+    def sync(self, client, config, state, **kwargs):
+        groups = config.get("groups")
+        if not groups:
+            groups = self.groups
 
         for group in groups:
+            params = {
+                "groupname": group,
+                "maxRersults": 2,
+                "includeInactiveUsers": True
+            }
             try:
-                params = {"groupname": group,
-                          "maxResults": max_results,
-                          "includeInactiveUsers": True}
-                pager = Paginator(Context.client, items_key='values')
-                for page in pager.pages(self.tap_stream_id, "GET",
-                                        "/rest/api/2/group/member",
-                                        params=params):
-                    self.write_page(page)
+                for page, cursor in client.fetch_pages(
+                        self.tap_stream_id, self.endpoint, params=params):
+                    yield page, cursor
             except requests.exceptions.HTTPError as http_error:
                 if http_error.response.status_code == 404:
                     LOGGER.info("Could not find group \"%s\", skipping", group)
+                    yield [], 0
                 else:
                     raise http_error
 
 
 class Issues(Stream):
+    endpoint = "/rest/api/2/search"
+    paginate = True
+    tap_stream_id = "issues"
+    key_properties = ["id"]
 
-    def sync(self):
-        updated_bookmark = [self.tap_stream_id, "updated"]
-        page_num_offset = [self.tap_stream_id, "offset", "page_num"]
+    def get_issue_field_map(self, client):
+        result = {}
+        endpoint = "/rest/api/3/field"
+        fields = client.get(self.tap_stream_id, endpoint)
+        translator = str.maketrans('', '', string.punctuation)
+        for field in fields:
+            key = field["id"]
+            # strip punctuations from custom field names
+            name = field["name"].translate(translator)
+            # snake case field names
+            name = name.replace(" ", "_")
+            result[key] = name.lower()
+        return result
 
-        last_updated = Context.update_start_date_bookmark(updated_bookmark)
-        timezone = Context.retrieve_timezone()
-        start_date = last_updated.astimezone(pytz.timezone(timezone)).strftime("%Y-%m-%d %H:%M")
+    def rename_fields(self, record, mapper):
+        fields = record['fields'].copy()
+        renamed_fields = {mapper.get(k, k): v for k, v in fields.items()}
+        record['fields'] = renamed_fields
+        return record
+
+    def sync(self, client, config, state, **kwargs):
+        offset = kwargs.get('offset')
+        start_date = kwargs.get('start_date')
+        start_date = utils.strptime_to_utc(start_date)
+        timezone = config.get('timezone', 'UTC')
+        start_date = start_date.astimezone(
+            pytz.timezone(timezone)).strftime("%Y-%m-%d %H:%M")
 
         jql = "updated >= '{}' order by updated asc".format(start_date)
         params = {"fields": "*all",
                   "expand": "changelog,transitions",
                   "validateQuery": "strict",
                   "jql": jql}
-        page_num = Context.bookmark(page_num_offset) or 0
-        pager = Paginator(Context.client, items_key="issues", page_num=page_num)
-        for page in pager.pages(self.tap_stream_id,
-                                "GET", "/rest/api/2/search",
-                                params=params):
-            # sync comments and changelogs for each issue
-            sync_sub_streams(page)
-            for issue in page:
-                issue['fields'].pop('worklog', None)
-                # The JSON schema for the search endpoint indicates an "operations"
-                # field can be present. This field is self-referential, making it
-                # difficult to deal with - we would have to flatten the operations
-                # and just have each operation include the IDs of other operations
-                # it references. However the operations field has something to do
-                # with the UI within Jira - I believe the operations are parts of
-                # the "menu" bar for each issue. This is of questionable utility,
-                # so we decided to just strip the field out for now.
-                issue['fields'].pop('operations', None)
 
-            # Grab last_updated before transform in write_page
-            last_updated = utils.strptime_to_utc(page[-1]["fields"]["updated"])
+        field_names = self.get_issue_field_map(client)
+        for page, cursor in client.fetch_pages(
+                self.tap_stream_id,
+                self.endpoint,
+                items_key="issues",
+                startAt=offset,
+                params=params
+        ):
+            # New page contains all issues for a page
+            # with renamed custom fields
+            new_page = [self.rename_fields(r, field_names) for r in page]
+            yield new_page, cursor
 
-            self.write_page(page)
 
-            Context.set_bookmark(page_num_offset, pager.next_page_num)
-            singer.write_state(Context.state)
-        Context.set_bookmark(page_num_offset, None)
-        Context.set_bookmark(updated_bookmark, last_updated)
-        singer.write_state(Context.state)
+class IssueComments(Stream):
+    tap_stream_id = "issue_comments"
+    key_properties = ["id"]
+
+    def sync(self, client, config, state, **kwargs):
+        record = kwargs.get('record', {})
+        comments = record.get('fields', {}).pop(
+            'comment', {}).get('comments', [])
+        for comment in comments:
+            comment["issueId"] = record["id"]
+
+        yield comments, 0
+
+
+class IssueTransitions(Stream):
+    tap_stream_id = "issue_transitions"
+    key_properties = ["id"]
+
+    def sync(self, client, config, state, **kwargs):
+        record = kwargs.get('record', {})
+        transitions = record.pop("transitions", [])
+        for transition in transitions:
+            transition["issueId"] = record["id"]
+
+        yield transitions, 0
+
+
+class IssueChangelogs(Stream):
+    tap_stream_id = "issue_changelogs"
+    key_properties = ["id"]
+
+    def sync(self, client, config, state, **kwargs):
+        record = kwargs.get('record', {})
+        changelogs = record.pop("changelog", {}).get('histories', [])
+        for changelog in changelogs:
+            changelog["issueId"] = record["id"]
+
+        yield changelogs, 0
 
 
 class Worklogs(Stream):
-    def _fetch_ids(self, last_updated):
+    endpoint = "/rest/api/2/worklog/list"
+    tap_stream_id = "worklogs"
+    key_properties = ["id"]
+    replication_key = "updated"
+
+    def _fetch_ids(self, client, last_updated):
         # since_ts uses millisecond precision
         since_ts = int(last_updated.timestamp()) * 1000
-        return Context.client.request(
-            self.tap_stream_id,
-            "GET",
-            "/rest/api/2/worklog/updated",
-            params={"since": since_ts},
-        )
+        endpoint = "/rest/api/2/worklog/updated"
+        return client.get(self.tap_stream_id, endpoint,
+                          params={"since": since_ts})
 
-    def _fetch_worklogs(self, ids):
+    def _fetch_worklogs(self, client, ids):
         if not ids:
             return []
-        return Context.client.request(
+        return client.request(
             self.tap_stream_id, "POST", "/rest/api/2/worklog/list",
             headers={"Content-Type": "application/json"},
             data=json.dumps({"ids": ids}),
         )
 
-    def sync(self):
-        updated_bookmark = [self.tap_stream_id, "updated"]
-        last_updated = Context.update_start_date_bookmark(updated_bookmark)
+    def sync(self, client, config, state, **kwargs):
+        last_updated = kwargs.get('start_date')
+        last_updated = utils.strptime_to_utc(last_updated)
+
         while True:
-            ids_page = self._fetch_ids(last_updated)
+            ids_page = self._fetch_ids(client, last_updated)
             if not ids_page["values"]:
                 break
             ids = [x["worklogId"] for x in ids_page["values"]]
-            worklogs = self._fetch_worklogs(ids)
+            worklogs = self._fetch_worklogs(client, ids)
 
             # Grab last_updated before transform in write_page
-            new_last_updated = advance_bookmark(worklogs)
+            last_updated = advance_bookmark(worklogs)
+            state = singer.write_bookmark(
+                state, self.tap_stream_id, self.replication_key, utils.strftime(last_updated))
+            singer.write_state(state)
 
-            self.write_page(worklogs)
+            yield worklogs, 0
 
-            last_updated = new_last_updated
-            Context.set_bookmark(updated_bookmark, last_updated)
-            singer.write_state(Context.state)
             # lastPage is a boolean value based on
             # https://developer.atlassian.com/cloud/jira/platform/rest/v3/?utm_source=%2Fcloud%2Fjira%2Fplatform%2Frest%2F&utm_medium=302#api-api-3-worklog-updated-get
             last_page = ids_page.get("lastPage")
@@ -266,50 +380,34 @@ class Worklogs(Stream):
                 break
 
 
-VERSIONS = Stream("versions", ["id"], indirect_stream=True)
-ISSUES = Issues("issues", ["id"])
-ISSUE_COMMENTS = Stream("issue_comments", ["id"], indirect_stream=True)
-ISSUE_TRANSITIONS = Stream("issue_transitions", ["id"],
-                           indirect_stream=True)
-PROJECTS = Projects("projects", ["id"])
-CHANGELOGS = Stream("changelogs", ["id"], indirect_stream=True)
-
-ALL_STREAMS = [
-    PROJECTS,
-    VERSIONS,
-    ProjectTypes("project_types", ["key"]),
-    Stream("project_categories", ["id"], path="/rest/api/2/projectCategory"),
-    Stream("resolutions", ["id"], path="/rest/api/2/resolution"),
-    Stream("roles", ["id"], path="/rest/api/2/role"),
-    Users("users", ["accountId"]),
-    ISSUES,
-    ISSUE_COMMENTS,
-    CHANGELOGS,
-    ISSUE_TRANSITIONS,
-    Worklogs("worklogs", ["id"]),
-]
-
-ALL_STREAM_IDS = [s.tap_stream_id for s in ALL_STREAMS]
-
-
-class DependencyException(Exception):
-    pass
-
-
-def validate_dependencies():
-    errs = []
-    selected = [s.tap_stream_id for s in Context.catalog.streams
-                if Context.is_selected(s.tap_stream_id)]
-    msg_tmpl = ("Unable to extract {0} data. "
-                "To receive {0} data, you also need to select {1}.")
-    if VERSIONS.tap_stream_id in selected and PROJECTS.tap_stream_id not in selected:
-        errs.append(msg_tmpl.format("Versions", "Projects"))
-    if ISSUES.tap_stream_id not in selected:
-        if CHANGELOGS.tap_stream_id in selected:
-            errs.append(msg_tmpl.format("Changelog", "Issues"))
-        if ISSUE_COMMENTS.tap_stream_id in selected:
-            errs.append(msg_tmpl.format("Issue Comments", "Issues"))
-        if ISSUE_TRANSITIONS.tap_stream_id in selected:
-            errs.append(msg_tmpl.format("Issue Transitions", "Issues"))
-    if errs:
-        raise DependencyException(" ".join(errs))
+STREAMS = {
+    'boards': {
+        'cls': Boards,
+        'substreams': {
+            'issue_board': IssueBoard,
+            'project_board': ProjectBoard,
+            'epics': Epics,
+            'sprints': Sprints
+        }
+    },
+    'issues': {
+        'cls': Issues,
+        'substreams': {
+            'issue_comments': IssueComments,
+            'issue_transitions': IssueTransitions,
+            'issue_changelogs': IssueChangelogs,
+        }
+    },
+    'projects': {
+        'cls': Projects,
+        'substreams': {
+            'versions': Versions
+        }
+    },
+    'project_types': ProjectTypes,
+    'project_categories': ProjectCategories,
+    'roles': Roles,
+    'users': Users,
+    'resolutions': Resolutions,
+    'worklogs': Worklogs
+}

@@ -1,30 +1,42 @@
 import unittest
 import pytz
-from tap_jira.context import Context
-from unittest.mock import Mock, MagicMock
-from tap_jira.streams import Issues
-from tap_jira.http import Paginator
+from tap_jira import streams, utils, client
+from mock import patch
 from datetime import datetime
+
 
 class TestLocalizedRequests(unittest.TestCase):
     def setUp(self):
         self.tzname = 'Europe/Volgograd'
-        Context.update_start_date_bookmark = Mock(return_value=datetime(2018,12,12,1,2,3, tzinfo=pytz.UTC))
-        Context.retrieve_timezone = Mock(return_value=self.tzname)
-        Context.bookmark = Mock()
-        Context.set_bookmark = Mock()
-        Paginator.pages = Mock(return_value=[])
 
-    def test_issues_local_timezone_in_request(self):
-        issues = Issues('issues', ['pk_fields'])
-        issues.sync()
+        self.config = {
+            'user_agent': 'tap-jira',
+            'base_url': 'http://jira.com',
+            'username': 'test',
+            'password': 'test',
+        }
+
+    @patch.object(client.Client, 'fetch_pages')
+    def test_issues_local_timezone_in_request(self, cli_mock):
+        cli_mock.return_value = []
+
+        cli = client.Client(self.config)
+
+        issues = streams.Issues()
+
+        offset = 1
+        start_date = "2017-12-04T19:19:32Z"
+        issues.sync(cli, self.config, {}, start_date=start_date, offset=offset)
 
         user_tz = pytz.timezone(self.tzname)
-        expected_start_date = (datetime(2018, 12, 12, 1, 2, tzinfo=pytz.UTC)
+        expected_start_date = (datetime(2017, 12, 4, 19, 19, tzinfo=pytz.UTC)
                                .astimezone(user_tz)
                                .strftime("%Y-%m-%d %H:%M"))
+
         params = {"fields": "*all",
                   "expand": "changelog,transitions",
                   "validateQuery": "strict",
                   "jql": "updated >= '{}' order by updated asc".format(expected_start_date)}
-        Paginator.pages.assert_called_once_with('issues','GET','/rest/api/2/search',params=params)
+
+        self.assertTrue(cli_mock.called_once_with(
+            'issues', 'GET', '/rest/api/2/search', params=params))

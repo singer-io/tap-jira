@@ -9,8 +9,10 @@ from singer import metrics
 import singer
 import backoff
 
+
 class RateLimitException(Exception):
     pass
+
 
 # Jira OAuth tokens last for 3600 seconds. We set it to 3500 to try to
 # come in under the limit.
@@ -23,6 +25,7 @@ TIME_BETWEEN_REQUESTS = timedelta(microseconds=10e3)
 
 LOGGER = singer.get_logger()
 
+
 def should_retry_httperror(exception):
     """ Retry 500-range errors. """
     # An ConnectionError is thrown without a response
@@ -32,7 +35,7 @@ def should_retry_httperror(exception):
     return 500 <= exception.response.status_code < 600
 
 
-class Client():
+class Client:
     def __init__(self, config):
         self.is_cloud = 'oauth_client_id' in config.keys()
         self.session = requests.Session()
@@ -58,7 +61,8 @@ class Client():
         else:
             LOGGER.info("Using Basic Auth API authentication")
             self.base_url = config.get("base_url")
-            self.auth = HTTPBasicAuth(config.get("username"), config.get("password"))
+            self.auth = HTTPBasicAuth(config.get(
+                "username"), config.get("password"))
 
     def url(self, path):
         if self.is_cloud:
@@ -126,13 +130,15 @@ class Client():
                 "client_secret": self.oauth_client_secret,
                 "refresh_token": self.refresh_token}
         try:
-            resp = self.session.post("https://auth.atlassian.com/oauth/token", data=body)
+            resp = self.session.post(
+                "https://auth.atlassian.com/oauth/token", data=body)
             resp.raise_for_status()
             self.access_token = resp.json()['access_token']
         except Exception as ex:
             error_message = str(ex)
             if resp:
-                error_message = error_message + ", Response from Jira: {}".format(resp.text)
+                error_message = error_message + \
+                    ", Response from Jira: {}".format(resp.text)
             raise Exception(error_message) from ex
         finally:
             LOGGER.info("Starting new login timer")
@@ -142,47 +148,56 @@ class Client():
 
     def test_credentials_are_authorized(self):
         # Assume that everyone has issues, so we try and hit that endpoint
-        self.request("issues", "GET", "/rest/api/2/search",
-                     params={"maxResults": 1})
+        return self.request("issues", "GET", "/rest/api/2/search",
+                            params={"maxResults": 1})
 
+    def get(self, tap_stream_id, endpoint, params=None):
+        return self.request(tap_stream_id, "GET",
+                            endpoint, params=params)
 
-class Paginator():
-    def __init__(self, client, page_num=0, order_by=None, items_key="values"):
-        self.client = client
-        self.next_page_num = page_num
-        self.order_by = order_by
-        self.items_key = items_key
+    def fetch_pages(self, tap_stream_id, endpoint, items_key="values",
+                    startAt=0, maxResults=50, orderBy=None, params=None):
+        page_params = params.copy() if params else dict()
+        if startAt:
+            page_params["startAt"] = startAt
+        if maxResults:
+            page_params["maxResults"] = maxResults
+        if orderBy:
+            page_params["orderBy"] = orderBy
 
-    def pages(self, *args, **kwargs):
-        """Returns a generator which yields pages of data. When a given page is
-        yielded, the next_page_num property can be used to know what the index
-        of the next page is (useful for bookmarking).
+        with metrics.record_counter(endpoint=endpoint) as counter:
+            resource = self.request(tap_stream_id, "GET",
+                                    endpoint, params=page_params)
 
-        :param args: Passed to Client.request
-        :param kwargs: Passed to Client.request
-        """
-        params = kwargs.pop("params", {}).copy()
-        while self.next_page_num is not None:
-            params["startAt"] = self.next_page_num
-            if self.order_by:
-                params["orderBy"] = self.order_by
-            response = self.client.request(*args, params=params, **kwargs)
-            if self.items_key:
-                page = response[self.items_key]
-            else:
-                page = response
+            resource = resource if resource else dict()
+            page = resource.get(items_key, [])
 
-            # Accounts for responses that don't nest their results in a
-            # key by falling back to the params `maxResults` setting.
-            if 'maxResults' in response:
-                max_results = response['maxResults']
-            else:
-                max_results = params['maxResults']
+            total = resource.get("total")
+            start_at_from_response = resource.get("startAt", 0)
+            max_results_from_response = resource.get("maxResults", 1)
 
-            if len(page) < max_results:
-                self.next_page_num = None
-            else:
-                self.next_page_num += max_results
+            cursor = startAt
+            page_size = maxResults
+            if not maxResults:
+                page_size = max_results_from_response or len(page)
+                cursor = (startAt or start_at_from_response) + page_size
 
-            if page:
-                yield page
+            counter.increment(len(page))
+            yield page, cursor
+
+            while (
+                    (total is None or cursor < total)
+                    and len(page) == page_size
+            ):
+                page_params["startAt"] = cursor
+                page_params["maxResults"] = page_size
+                resource = self.request(
+                    tap_stream_id, "GET", endpoint, params=page_params)
+                if resource:
+                    page = resource.get(items_key)
+                    cursor += page_size
+                    counter.increment(len(page))
+                    yield page, cursor
+                else:
+                    # if resource is an empty dictionary we assume no-results
+                    break
