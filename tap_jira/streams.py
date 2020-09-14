@@ -5,7 +5,7 @@ import requests
 import singer
 from singer import utils
 
-from .utils import advance_bookmark
+from .utils import advance_bookmark, deep_get
 
 
 LOGGER = singer.get_logger()
@@ -54,16 +54,23 @@ class IssueBoard(Stream):
         record = kwargs.get('record', {})
         fendpoint = self.endpoint.format(record['id'])
 
-        offset = kwargs.get('offset')
-        start_date = kwargs.get('start_date')
-        start_date = utils.strptime_to_utc(start_date)
+        # custom state handling to keep track of board issues
+        bookmark_id = str(record['id'])
+        bookmark = singer.get_bookmark(
+            state, self.tap_stream_id, bookmark_id, {})
+
+        offset = 0
+        start_dt = bookmark.get(self.replication_key, config['start_date'])
+        start_dt = utils.strptime_to_utc(start_dt)
+
         timezone = config.get('timezone', 'UTC')
-        start_date = start_date.astimezone(
+        start_date = start_dt.astimezone(
             pytz.timezone(timezone)).strftime("%Y-%m-%d %H:%M")
 
         self.params['jql'] = "updated >= '{}' order by updated asc".format(
             start_date)
 
+        max_updated = start_dt
         for page, cursor in client.fetch_pages(
                 self.tap_stream_id, fendpoint,
                 items_key="issues",
@@ -72,6 +79,17 @@ class IssueBoard(Stream):
         ):
             for entry in page:
                 entry['boardId'] = record['id']
+                updated_at = deep_get(entry, self.replication_key)
+                updated_at = utils.strptime_to_utc(updated_at)
+                if updated_at and updated_at > max_updated:
+                    max_updated = updated_at
+
+            state = singer.write_bookmark(state, self.tap_stream_id, bookmark_id, {
+                self.replication_key: max_updated.strftime(
+                    utils.DATETIME_PARSE)
+            })
+
+            singer.write_state(state)
             yield page, cursor
 
 
