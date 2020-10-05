@@ -39,7 +39,8 @@ This tap:
         "start_date": "2010-01-01",
         "username": "your-jira-username",
         "password": "your-jira-password",
-        "base_url": "https://your-jira-domain"
+        "base_url": "https://your-jira-domain",
+        "user_agent": "<user-agent>"
     }
     ```
 
