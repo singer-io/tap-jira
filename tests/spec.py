@@ -36,7 +36,7 @@ class TapSpec():
         """Configuration properties required for the tap."""
         properties_env = self.CONFIGURATION_ENVIRONMENT['properties']
         return_value = {
-            'start_date': '2017-07-01 00:00:00',
+            'start_date': '2017-07-01T00:00:00Z',
             'username': os.getenv(properties_env["username"]),
             'base_url': os.getenv(properties_env["base_url"])
         }
