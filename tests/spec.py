@@ -10,7 +10,7 @@ class TapSpec():
     INCREMENTAL = "INCREMENTAL"
     FULL = "FULL_TABLE"
     API_LIMIT = "max-row-limit"
-    START_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+    START_DATE_FORMAT = "%Y-%m-%dT00:00:00Z"
 
     CONFIGURATION_ENVIRONMENT = {
         "properties": {
