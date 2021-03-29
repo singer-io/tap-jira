@@ -73,19 +73,24 @@ class TapSpec():
             self.PRIMARY_KEYS: {"key"},
         }
 
-        account_id_pk = {
-            self.PRIMARY_KEYS: {"accountId"},
-        }
-
         return {
             "projects": id_pk,
             "project_types": key_pk,
             "project_categories": id_pk,
-            "versions": id_pk,
+            "versions": {
+                self.PRIMARY_KEYS: {"id"},
+                self.API_LIMIT: 50 # maxResults comes back as this
+            },
             "resolutions": id_pk,
             "roles": id_pk,
-            "users": account_id_pk,
-            "issues": id_pk,
+            "users": {
+                self.PRIMARY_KEYS: {"accountId"},
+                self.API_LIMIT: 50 # maxResults comes back as this
+            },
+            "issues": {
+                self.PRIMARY_KEYS: {"id"},
+                self.API_LIMIT: 50 # maxResults comes back as this
+            },
             "issue_comments": id_pk,
             "issue_transitions": id_pk,
             "changelogs": id_pk,

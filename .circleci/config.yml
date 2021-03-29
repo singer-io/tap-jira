@@ -16,9 +16,10 @@ jobs:
             pip install -U 'pip<19.2' 'setuptools<51.0.0'
             pip install -e .[dev]
       - run:
-          name: 'Unit Tests'
+          name: 'Pylint + Unit Tests'
           command: |
             source /usr/local/share/virtualenvs/tap-jira/bin/activate
+            # Default make command is test, which declares a dependency on pylint make command
             make
       - add_ssh_keys
       - run:
