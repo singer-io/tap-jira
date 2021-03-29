@@ -44,9 +44,6 @@ class TapSpec():
         if original:
             return return_value
 
-        # This test needs the new connections start date to be larger than the default
-        assert self.start_date > return_value["start_date"]
-
         return_value["start_date"] = self.start_date
         return return_value
 
@@ -89,7 +86,7 @@ class TapSpec():
             "roles": id_pk,
             "users": {
                 self.PRIMARY_KEYS: {"accountId"},
-                self.API_LIMIT: 50 # maxResults comes back as this
+                self.API_LIMIT: 2 # maxResults comes back as this
             },
             "issues": {
                 self.PRIMARY_KEYS: {"id"},

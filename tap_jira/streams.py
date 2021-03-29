@@ -134,6 +134,12 @@ class Projects(Stream):
                 pager = Paginator(Context.client, order_by="sequence")
                 for page in pager.pages(VERSIONS.tap_stream_id, "GET", path):
                     VERSIONS.write_page(page)
+        if Context.is_selected(COMPONENTS.tap_stream_id):
+            for project in projects:
+                path = "/rest/api/2/project/{}/component".format(project["id"])
+                pager = Paginator(Context.client, order_by="sequence")
+                for page in pager.pages(COMPONENTS.tap_stream_id, "GET", path):
+                    COMPONENTS.write_page(page)
 
 
 class ProjectTypes(Stream):
@@ -267,6 +273,7 @@ class Worklogs(Stream):
 
 
 VERSIONS = Stream("versions", ["id"], indirect_stream=True)
+COMPONENTS = Stream("components", ["id"], indirect_stream=True)
 ISSUES = Issues("issues", ["id"])
 ISSUE_COMMENTS = Stream("issue_comments", ["id"], indirect_stream=True)
 ISSUE_TRANSITIONS = Stream("issue_transitions", ["id"],
@@ -277,6 +284,7 @@ CHANGELOGS = Stream("changelogs", ["id"], indirect_stream=True)
 ALL_STREAMS = [
     PROJECTS,
     VERSIONS,
+    COMPONENTS,
     ProjectTypes("project_types", ["key"]),
     Stream("project_categories", ["id"], path="/rest/api/2/projectCategory"),
     Stream("resolutions", ["id"], path="/rest/api/2/resolution"),
@@ -304,6 +312,8 @@ def validate_dependencies():
                 "To receive {0} data, you also need to select {1}.")
     if VERSIONS.tap_stream_id in selected and PROJECTS.tap_stream_id not in selected:
         errs.append(msg_tmpl.format("Versions", "Projects"))
+    if COMPONENTS.tap_stream_id in selected and PROJECTS.tap_stream_id not in selected:
+        errs.append(msg_tmpl.format("Components", "Projects"))
     if ISSUES.tap_stream_id not in selected:
         if CHANGELOGS.tap_stream_id in selected:
             errs.append(msg_tmpl.format("Changelog", "Issues"))
