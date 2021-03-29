@@ -81,6 +81,10 @@ class TapSpec():
                 self.PRIMARY_KEYS: {"id"},
                 self.API_LIMIT: 50 # maxResults comes back as this
             },
+            "components": {
+                self.PRIMARY_KEYS: {"id"},
+                self.API_LIMIT: 50 # maxResults comes back as this
+            },
             "resolutions": id_pk,
             "roles": id_pk,
             "users": {
