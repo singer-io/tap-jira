@@ -30,7 +30,8 @@ print("Dropping files that are not of the form 'test_<feature>.py'.")
 test_files_in_dir = [fn for fn in files_in_dir if fn.startswith('test_') and fn.endswith('.py')]
 
 print("Dropping test_client.py from test files.")
-test_files_in_dir.remove('test_client.py')
+if 'test_client.py' in test_files_in_dir:
+    test_files_in_dir.remove('test_client.py')
 
 print("Files found: {}".format(test_files_in_dir))
 
