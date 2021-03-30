@@ -41,7 +41,7 @@ class MinimumSelectionTest(BaseTapTest):
                 # MORE THAN 1 PAGE OF DATA IN THE TEST ACCOUNT
                 self.assertGreater(
                     record_count_by_stream.get(stream, -1),
-                    self.expected_metadata().get(stream, {}).get(self.API_LIMIT, 0),
+                    self.expected_metadata().get(stream, {}).get(self.API_LIMIT),
                     msg="The number of records is not over the stream max limit")
 
                 # verify that only the automatic fields are sent to the target

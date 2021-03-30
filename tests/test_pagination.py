@@ -38,7 +38,7 @@ class PaginationTest(BaseTapTest):
                 # verify that we can paginate with all fields selected
                 self.assertGreater(
                     record_count_by_stream.get(stream, -1),
-                    self.expected_metadata().get(stream, {}).get(self.API_LIMIT, 0),
+                    self.expected_metadata().get(stream, {}).get(self.API_LIMIT),
                     msg="The number of records is not over the stream max limit")
 
                 # verify that the automatic fields are sent to the target
