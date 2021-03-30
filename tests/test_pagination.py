@@ -27,14 +27,20 @@ class PaginationTest(BaseTapTest):
         found_catalogs = menagerie.get_catalogs(conn_id)
         self.select_all_streams_and_fields(conn_id, found_catalogs, select_all_fields=True)
 
+        if 'components' in self.expected_streams():
+            stream = 'components'
+            self.create_test_data(
+                stream,
+                self.expected_metadata().get(stream, {}).get(self.API_LIMIT))
+
         # Run a sync job using orchestrator
         record_count_by_stream = self.run_sync(conn_id)
 
         actual_fields_by_stream = runner.examine_target_output_for_fields()
 
+
         for stream in self.expected_streams():
             with self.subTest(stream=stream):
-
                 # verify that we can paginate with all fields selected
                 self.assertGreater(
                     record_count_by_stream.get(stream, -1),
