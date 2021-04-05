@@ -1,8 +1,8 @@
-from datetime import datetime, timedelta
 import json
 import time
 import threading
 import re
+from datetime import datetime, timedelta
 from requests.exceptions import HTTPError
 from requests.auth import HTTPBasicAuth
 import requests
@@ -52,7 +52,7 @@ class TestClient():
             self.oauth_client_id = config.get('oauth_client_id')
             self.oauth_client_secret = config.get('oauth_client_secret')
 
-7            # Only appears to be needed once for any 6 hour period. If
+            # Only appears to be needed once for any 6 hour period. If
             # running the tap for more than 6 hours is needed this will
             # likely need to be more complicated.
             self.refresh_credentials()
