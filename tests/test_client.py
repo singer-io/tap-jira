@@ -3,6 +3,7 @@ import json
 import time
 import threading
 import re
+import uuid
 from datetime import datetime, timedelta
 from abc import ABC, abstractmethod
 from requests.exceptions import HTTPError
@@ -128,9 +129,9 @@ class TestClient():
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as http_error:
-            if http_error.response.status_code == 404:
-                LOGGER.error("Error status code is 404, error message respons text was %s", http_error.response.text)
-
+            LOGGER.error("Received HTTPError with status code %s, error message response text %s",
+                         http_error.response.status_code,
+                         http_error.response.text)
             raise
 
         return response.json()
@@ -240,28 +241,21 @@ class TestUsers(TestStream):
 
     def get_all(self):
         max_results = 2
-        groups = ["jira-administrators",
-                  "jira-software-users",
-                  "jira-core-users",
-                  "jira-users",
-                  "users"]
+        groups = [
+            "jira-administrators",
+            "jira-software-users",
+        ]
         all_users = list()
         for group in groups:
-            try:
-                params = {"groupname": group,
-                          "maxResults": max_results,
-                          "includeInactiveUsers": True}
-                pager = Paginator(self._client, items_key='values')
-                for page in pager.pages(self.tap_stream_id, "GET",
-                                        "/rest/api/2/group/member",
-                                        params=params):
-                    for user in page:
-                        all_users.append(user)
-            except requests.exceptions.HTTPError as http_error:
-                if http_error.response.status_code == 404:
-                    LOGGER.info("Could not find group \"%s\", skipping", group)
-                else:
-                    raise http_error
+            params = {"groupname": group,
+                        "maxResults": max_results,
+                        "includeInactiveUsers": True}
+            pager = Paginator(self._client, items_key='values')
+            for page in pager.pages(self.tap_stream_id, "GET",
+                                    "/rest/api/2/group/member",
+                                    params=params):
+                for user in page:
+                    all_users.append(user)
 
         return all_users
 
@@ -274,14 +268,15 @@ class TestComponents(TestStream):
 
         if min_ensure_exists - count + 1 > 0:
             LOGGER.info("Need to create %s more records for stream %s, doing so now", min_ensure_exists - count + 1, self.tap_stream_id)
-            for i in range(0, min_ensure_exists - count + 1):
+            for _ in range(0, min_ensure_exists - count + 1):
+                random_uuid = uuid.uuid4()
                 self._client.request(
                     self.tap_stream_id, "POST", "/rest/api/2/component",
                     headers={"Content-Type": "application/json"},
                     data=json.dumps({
                         "isAssigneeTypeValid": False,
-                        "name": "Component {}".format(i),
-                        "description": "This is Jira component {}".format(i),
+                        "name": "Component {}".format(random_uuid),
+                        "description": "This is Jira component {}".format(random_uuid),
                         "project": self.get_test_project()['key'],
                         "leadAccountId": self.get_test_user()['accountId'],
                     }),
