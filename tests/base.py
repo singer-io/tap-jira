@@ -4,9 +4,6 @@ Run discovery for as a prerequisite for most tests
 """
 import unittest
 import os
-import json
-import functools
-import requests
 from datetime import datetime as dt
 from datetime import timezone as tz
 
@@ -14,7 +11,7 @@ import singer
 from tap_tester import connections, menagerie, runner
 
 from spec import TapSpec
-from test_client import TestClient, Paginator
+from test_client import TestClient, ALL_TEST_STREAMS
 
 LOGGER = singer.get_logger()
 
@@ -273,85 +270,9 @@ class BaseTapTest(TapSpec, unittest.TestCase):
             **self.get_credentials(),
         })
 
-
-    def create_test_data(self, stream, api_limit):
-        if stream != 'components':
-            raise NotImplementedError("create_test_data only implemented for components stream")
-
-        count = self.stream_record_count(stream)
-        LOGGER.info("Found %s records for stream %s", count, stream)
-
-        if api_limit - count + 1 > 0:
-            # TODO: Move into TestClient.Stream class
-            # Each Stream class should implement CRUD operations
-            # Instead of having a giant create method of stream
-            LOGGER.info("Need to create %s more records for stream %s, doing so now", api_limit - count + 1, stream)
-            for i in range(0, api_limit - count + 1):
-                self.client.request(
-                    stream, "POST", "/rest/api/2/component",
-                    headers={"Content-Type": "application/json"},
-                    data=json.dumps({
-                        "isAssigneeTypeValid": False,
-                        "name": "Component {}".format(i),
-                        "description": "This is Jira component {}".format(i),
-                        "project": self.get_projects()[0]['key'],
-                        "leadAccountId": self.get_users()[0]['accountId'],
-                    }),
-                )
-
-    def stream_record_count(self, stream):
-        if stream != 'components':
-            raise NotImplementedError("create_test_data only implemented for components stream")
-
-
-        record_count = 0
-
-        project = self.get_projects()[0]
-        path = "/rest/api/2/project/{}/component".format(project["id"])
-        pager = Paginator(self.client)
-        for page in pager.pages("components", "GET", path):
-            for _ in page:
-                record_count += 1
-
-        return record_count
-
-    # Cache means it saves the result of this call forever
-    # It assumes project data does not change
-    @functools.lru_cache
-    def get_projects(self):
-        return self.client.request(
-            "projects", "GET", "/rest/api/2/project",
-            params={"expand": "description,lead,url,projectKeys"})
-
-
-    # Cache means it saves the result of this call forever
-    # It assumes user data does not change
-    @functools.lru_cache
-    def get_users(self):
-        max_results = 2
-        groups = ["jira-administrators",
-                  "jira-software-users",
-                  "jira-core-users",
-                  "jira-users",
-                  "users"]
-        stream = "users"
-
-        all_users = list()
-        for group in groups:
-            try:
-                params = {"groupname": group,
-                          "maxResults": max_results,
-                          "includeInactiveUsers": True}
-                pager = Paginator(self.client, items_key='values')
-                for page in pager.pages(stream, "GET",
-                                        "/rest/api/2/group/member",
-                                        params=params):
-                    for user in page:
-                        all_users.append(user)
-            except requests.exceptions.HTTPError as http_error:
-                if http_error.response.status_code == 404:
-                    LOGGER.info("Could not find group \"%s\", skipping", group)
-                else:
-                    raise http_error
-
-        return all_users
+    def create_test_data(self):
+        for stream in self.expected_streams():
+            # TODO: Once more streams have data creation implemented add them here
+            if stream == 'components':
+                api_limit = self.expected_metadata().get(stream, {}).get(self.API_LIMIT)
+                ALL_TEST_STREAMS[stream](self.client).create_test_data(api_limit)

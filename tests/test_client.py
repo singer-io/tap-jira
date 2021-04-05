@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import json
 import time
 import threading
 import re
@@ -8,6 +9,7 @@ import requests
 from singer import metrics
 import singer
 import backoff
+from abc import ABC, abstractmethod
 
 class RateLimitException(Exception):
     pass
@@ -50,7 +52,7 @@ class TestClient():
             self.oauth_client_id = config.get('oauth_client_id')
             self.oauth_client_secret = config.get('oauth_client_secret')
 
-            # Only appears to be needed once for any 6 hour period. If
+7            # Only appears to be needed once for any 6 hour period. If
             # running the tap for more than 6 hours is needed this will
             # likely need to be more complicated.
             self.refresh_credentials()
@@ -194,3 +196,120 @@ class Paginator():
 
             if page:
                 yield page
+
+class TestStream(ABC):
+    def __init__(self, client):
+        self._client = client
+
+    @abstractmethod
+    def create_test_data(self, min_ensure_exists=1):
+        pass
+
+    def count_all(self):
+        return len(self.get_all())
+
+    def get_first(self):
+        return self.get_all()[0]
+
+    @abstractmethod
+    def get_all(self):
+        pass
+
+
+class TestProjects(TestStream):
+    tap_stream_id = 'projects'
+
+    def create_test_data(self, min_ensure_exists=1):
+        raise NotImplementedError("Not implemented yet")
+
+    def get_all(self):
+        return self._client.request(
+            self.tap_stream_id, "GET", "/rest/api/2/project",
+            params={"expand": "description,lead,url,projectKeys"})
+
+class TestUsers(TestStream):
+    tap_stream_id = 'users'
+
+    def create_test_data(self, min_ensure_exists=1):
+        raise NotImplementedError("Not implemented yet")
+
+    def get_all(self):
+        max_results = 2
+        groups = ["jira-administrators",
+                  "jira-software-users",
+                  "jira-core-users",
+                  "jira-users",
+                  "users"]
+        all_users = list()
+        for group in groups:
+            try:
+                params = {"groupname": group,
+                          "maxResults": max_results,
+                          "includeInactiveUsers": True}
+                pager = Paginator(self.client, items_key='values')
+                for page in pager.pages(self.tap_stream_id, "GET",
+                                        "/rest/api/2/group/member",
+                                        params=params):
+                    for user in page:
+                        all_users.append(user)
+            except requests.exceptions.HTTPError as http_error:
+                if http_error.response.status_code == 404:
+                    LOGGER.info("Could not find group \"%s\", skipping", group)
+                else:
+                    raise http_error
+
+        return all_users
+
+class TestComponents(TestStream):
+    tap_stream_id = 'components'
+
+    def create_test_data(self, min_ensure_exists=1):
+        count = self.count_all()
+        LOGGER.info("Found %s records for stream %s", count, self.tap_stream_id)
+
+        if min_ensure_exists - count + 1 > 0:
+            LOGGER.info("Need to create %s more records for stream %s, doing so now", min_ensure_exists - count + 1, self.tap_stream_id)
+            for i in range(0, min_ensure_exists - count + 1):
+                self._client.request(
+                    self.tap_stream_id, "POST", "/rest/api/2/component",
+                    headers={"Content-Type": "application/json"},
+                    data=json.dumps({
+                        "isAssigneeTypeValid": False,
+                        "name": "Component {}".format(i),
+                        "description": "This is Jira component {}".format(i),
+                        "project": self.get_test_project()['key'],
+                        "leadAccountId": self.get_test_user()['accountId'],
+                    }),
+                )
+
+    # Cache means it saves the result of this call forever
+    # It assumes project data does not change
+    @functools.lru_cache
+    def get_test_project(self):
+        TestProjects(self._client).get_first()
+
+    # Cache means it saves the result of this call forever
+    # It assumes project data does not change
+    @functools.lru_cache
+    def get_test_user(self):
+        TestUsers(self._client).get_first()
+
+    def get_all(self):
+        path = "/rest/api/2/project/{}/component".format(self.get_test_project()["id"])
+        pager = Paginator(self._client)
+        all_records = list()
+        for page in pager.pages("components", "GET", path):
+            for rec in page:
+                all_records.append(rec)
+
+        return all_records
+
+
+ALL_TEST_STREAMS = {
+    "components": TestComponents,
+    "projects": TestProjects,
+    "users": TestUsers,
+}
+
+for stream_class in ALL_TEST_STREAMS.values():
+    TestStream.register(stream_class)

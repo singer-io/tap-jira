@@ -64,12 +64,12 @@ class TapSpec():
 
         id_pk = {
             self.PRIMARY_KEYS: {"id"},
-            self.API_LIMIT: 0, # Not a paginated api
+            self.API_LIMIT: 0, # Not a paginated api TODO: Confirm this
         }
 
         key_pk = {
             self.PRIMARY_KEYS: {"key"},
-            self.API_LIMIT: 0, # Not a paginated api
+            self.API_LIMIT: 0, # Not a paginated api TODO: Confirm this
         }
 
         return {
@@ -78,21 +78,21 @@ class TapSpec():
             "project_categories": id_pk,
             "versions": {
                 self.PRIMARY_KEYS: {"id"},
-                self.API_LIMIT: 0 # TODO: Backlog ticket to create data required to test this 50 - maxResults comes back as this
+                self.API_LIMIT: 0, # TODO: Backlog ticket to create data required to test this 50 - maxResults comes back as this
             },
             "components": {
                 self.PRIMARY_KEYS: {"id"},
-                self.API_LIMIT: 50 # maxResults comes back as this
+                self.API_LIMIT: 50, # maxResults comes back as this
             },
             "resolutions": id_pk,
             "roles": id_pk,
             "users": {
                 self.PRIMARY_KEYS: {"accountId"},
-                self.API_LIMIT: 0 # TODO: Backlog ticket to create data required to test this 2 - maxResults comes back as this
+                self.API_LIMIT: 2, # - maxResults comes back as this
             },
             "issues": {
                 self.PRIMARY_KEYS: {"id"},
-                self.API_LIMIT: 0 # TODO: Backlog ticket to create data required to test this 50 - maxResults comes back as this
+                self.API_LIMIT: 0, # TODO: Backlog ticket to create data required to test this 50 - maxResults comes back as this
             },
             "issue_comments": id_pk,
             "issue_transitions": id_pk,

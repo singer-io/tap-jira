@@ -22,11 +22,7 @@ class MinimumSelectionTest(BaseTapTest):
         fetch of data.  For instance if you have a limit of 250 records ensure
         that 251 (or more) records have been posted for that stream.
         """
-        if 'components' in self.expected_streams():
-            stream = 'components'
-            self.create_test_data(
-                stream,
-                self.expected_metadata().get(stream, {}).get(self.API_LIMIT))
+        self.create_test_data()
 
         # Select all streams and no fields within streams
         # IF THERE ARE NO AUTOMATIC FIELDS FOR A STREAM

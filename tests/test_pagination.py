@@ -23,15 +23,11 @@ class PaginationTest(BaseTapTest):
         fetch of data.  For instance if you have a limit of 250 records ensure
         that 251 (or more) records have been posted for that stream.
         """
+        self.create_test_data()
+
         # Select all streams and all fields within streams
         found_catalogs = menagerie.get_catalogs(conn_id)
         self.select_all_streams_and_fields(conn_id, found_catalogs, select_all_fields=True)
-
-        if 'components' in self.expected_streams():
-            stream = 'components'
-            self.create_test_data(
-                stream,
-                self.expected_metadata().get(stream, {}).get(self.API_LIMIT))
 
         # Run a sync job using orchestrator
         record_count_by_stream = self.run_sync(conn_id)
