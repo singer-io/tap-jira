@@ -4,13 +4,13 @@ import time
 import threading
 import re
 from datetime import datetime, timedelta
+from abc import ABC, abstractmethod
 from requests.exceptions import HTTPError
 from requests.auth import HTTPBasicAuth
 import requests
 from singer import metrics
 import singer
 import backoff
-from abc import ABC, abstractmethod
 
 class RateLimitException(Exception):
     pass
@@ -35,6 +35,10 @@ def should_retry_httperror(exception):
     return 500 <= exception.response.status_code < 600
 
 
+"""
+Almost all the code in this file is copied from the client and stream code in the tap.
+This avoids sharing code between the tap and test.
+"""
 class TestClient():
     def __init__(self, config):
         self.is_cloud = 'oauth_client_id' in config.keys()
@@ -247,7 +251,7 @@ class TestUsers(TestStream):
                 params = {"groupname": group,
                           "maxResults": max_results,
                           "includeInactiveUsers": True}
-                pager = Paginator(self.client, items_key='values')
+                pager = Paginator(self._client, items_key='values')
                 for page in pager.pages(self.tap_stream_id, "GET",
                                         "/rest/api/2/group/member",
                                         params=params):
@@ -287,13 +291,13 @@ class TestComponents(TestStream):
     # It assumes project data does not change
     @functools.lru_cache
     def get_test_project(self):
-        TestProjects(self._client).get_first()
+        return TestProjects(self._client).get_first()
 
     # Cache means it saves the result of this call forever
     # It assumes project data does not change
     @functools.lru_cache
     def get_test_user(self):
-        TestUsers(self._client).get_first()
+        return TestUsers(self._client).get_first()
 
     def get_all(self):
         path = "/rest/api/2/project/{}/component".format(self.get_test_project()["id"])
