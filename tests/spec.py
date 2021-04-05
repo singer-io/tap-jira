@@ -64,28 +64,29 @@ class TapSpec():
 
         id_pk = {
             self.PRIMARY_KEYS: {"id"},
-            self.API_LIMIT: 0, # Not a paginated api TODO: Confirm this
+            self.API_LIMIT: 0,
         }
 
         key_pk = {
             self.PRIMARY_KEYS: {"key"},
-            self.API_LIMIT: 0, # Not a paginated api TODO: Confirm this
+            self.API_LIMIT: 0,
         }
 
         return {
-            "projects": id_pk,
-            "project_types": key_pk,
-            "project_categories": id_pk,
+            "projects": id_pk, # Tap uses deprecated all projects endpoint, not paginated one, see https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-projects/#api-group-projects
+            "project_types": key_pk, # Not paginated, see https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-project-types/#api-rest-api-2-project-type-get
+            "project_categories": id_pk, # Not paginated, see https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-project-categories/
             "versions": {
                 self.PRIMARY_KEYS: {"id"},
                 self.API_LIMIT: 0, # TODO: Backlog ticket to create data required to test this 50 - maxResults comes back as this
+                # https://stitchdata.atlassian.net/browse/SRCE-5193
             },
             "components": {
                 self.PRIMARY_KEYS: {"id"},
                 self.API_LIMIT: 50, # maxResults comes back as this
             },
-            "resolutions": id_pk,
-            "roles": id_pk,
+            "resolutions": id_pk, # Not paginated, see https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issue-resolutions/#api-group-issue-resolutions
+            "roles": id_pk, # Not paginated, see https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-project-roles/#api-rest-api-2-role-get
             "users": {
                 self.PRIMARY_KEYS: {"accountId"},
                 self.API_LIMIT: 2, # - maxResults comes back as this
@@ -93,9 +94,14 @@ class TapSpec():
             "issues": {
                 self.PRIMARY_KEYS: {"id"},
                 self.API_LIMIT: 0, # TODO: Backlog ticket to create data required to test this 50 - maxResults comes back as this
+                # https://stitchdata.atlassian.net/browse/SRCE-5193
             },
-            "issue_comments": id_pk,
-            "issue_transitions": id_pk,
-            "changelogs": id_pk,
-            "worklogs": id_pk,
+            "issue_comments": id_pk, # Returned as part of the issue
+            "issue_transitions": id_pk, # Returned as part of the issue
+            "changelogs": id_pk, # Returned as part of the issue
+            "worklogs": {
+                self.PRIMARY_KEYS: {"id"},
+                self.API_LIMIT: 0, # TODO: Backlog ticket to create data required to test this documentation says 1000, see https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issue-worklogs/#api-rest-api-2-worklog-updated-get
+                # https://stitchdata.atlassian.net/browse/SRCE-5193
+            },
         }
