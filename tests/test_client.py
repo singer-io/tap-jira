@@ -20,11 +20,6 @@ class RateLimitException(Exception):
 # come in under the limit.
 REFRESH_TOKEN_EXPIRATION_PERIOD = 3500
 
-# The project plan for this tap specified:
-# > our past experience has shown that issuing queries no more than once every
-# > 10ms can help avoid performance issues
-TIME_BETWEEN_REQUESTS = timedelta(microseconds=10e3)
-
 LOGGER = singer.get_logger()
 
 def should_retry_httperror(exception):
@@ -44,7 +39,6 @@ class TestClient():
     def __init__(self, config):
         self.is_cloud = 'oauth_client_id' in config.keys()
         self.session = requests.Session()
-        self.next_request_at = datetime.now()
         self.user_agent = config.get("user_agent")
         self.login_timer = None
 
@@ -116,12 +110,8 @@ class TestClient():
                           max_tries=10,
                           interval=60)
     def request(self, tap_stream_id, *args, **kwargs):
-        wait = (self.next_request_at - datetime.now()).total_seconds()
-        if wait > 0:
-            time.sleep(wait)
         with metrics.http_request_timer(tap_stream_id) as timer:
             response = self.send(*args, **kwargs)
-            self.next_request_at = datetime.now() + TIME_BETWEEN_REQUESTS
             timer.tags[metrics.Tag.http_status_code] = response.status_code
         if response.status_code == 429:
             raise RateLimitException()
@@ -277,25 +267,25 @@ class TestComponents(TestStream):
                         "isAssigneeTypeValid": False,
                         "name": "Component {}".format(random_uuid),
                         "description": "This is Jira component {}".format(random_uuid),
-                        "project": self.get_test_project()['key'],
-                        "leadAccountId": self.get_test_user()['accountId'],
+                        "project": self.__get_test_project()['key'],
+                        "leadAccountId": self.__get_test_user()['accountId'],
                     }),
                 )
 
     # Cache means it saves the result of this call forever
     # It assumes project data does not change
     @functools.lru_cache
-    def get_test_project(self):
+    def __get_test_project(self):
         return TestProjects(self._client).get_first()
 
     # Cache means it saves the result of this call forever
-    # It assumes project data does not change
+    # It assumes user data does not change
     @functools.lru_cache
-    def get_test_user(self):
+    def __get_test_user(self):
         return TestUsers(self._client).get_first()
 
     def get_all(self):
-        path = "/rest/api/2/project/{}/component".format(self.get_test_project()["id"])
+        path = "/rest/api/2/project/{}/component".format(self.__get_test_project()["id"])
         pager = Paginator(self._client)
         all_records = list()
         for page in pager.pages("components", "GET", path):
