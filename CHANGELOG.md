@@ -1,5 +1,17 @@
 # Changelog
 
+## [v2.0.1](https://github.com/singer-io/tap-jira/tree/v2.0.1) (2021-04-06)
+
+[Full Changelog](https://github.com/singer-io/tap-jira/compare/v2.0.0...v2.0.1)
+
+**Merged pull requests:**
+
+- Adding new components stream and updating / improving circle [\#59](https://github.com/singer-io/tap-jira/pull/59) ([asaf-erlich](https://github.com/asaf-erlich))
+- add slack orb [\#58](https://github.com/singer-io/tap-jira/pull/58) ([kspeer825](https://github.com/kspeer825))
+- limit setuptools to 51.0.0 [\#56](https://github.com/singer-io/tap-jira/pull/56) ([kspeer825](https://github.com/kspeer825))
+- add context user [\#55](https://github.com/singer-io/tap-jira/pull/55) ([kspeer825](https://github.com/kspeer825))
+- Document that user\_agent is required in all modes [\#53](https://github.com/singer-io/tap-jira/pull/53) ([rpaterson](https://github.com/rpaterson))
+
 ## 2.0.0
   * Change primary key of `users` stream to from `key` to `accountId` [#46](https://github.com/singer-io/tap-jira/pull/46)
 
