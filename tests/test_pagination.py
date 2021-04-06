@@ -23,6 +23,8 @@ class PaginationTest(BaseTapTest):
         fetch of data.  For instance if you have a limit of 250 records ensure
         that 251 (or more) records have been posted for that stream.
         """
+        self.create_test_data()
+
         # Select all streams and all fields within streams
         found_catalogs = menagerie.get_catalogs(conn_id)
         self.select_all_streams_and_fields(conn_id, found_catalogs, select_all_fields=True)
@@ -32,13 +34,13 @@ class PaginationTest(BaseTapTest):
 
         actual_fields_by_stream = runner.examine_target_output_for_fields()
 
+
         for stream in self.expected_streams():
             with self.subTest(stream=stream):
-
                 # verify that we can paginate with all fields selected
                 self.assertGreater(
                     record_count_by_stream.get(stream, -1),
-                    self.expected_metadata().get(stream, {}).get(self.API_LIMIT, 0),
+                    self.expected_metadata().get(stream, {}).get(self.API_LIMIT),
                     msg="The number of records is not over the stream max limit")
 
                 # verify that the automatic fields are sent to the target

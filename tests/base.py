@@ -7,9 +7,13 @@ import os
 from datetime import datetime as dt
 from datetime import timezone as tz
 
+import singer
 from tap_tester import connections, menagerie, runner
 
 from spec import TapSpec
+from test_client import TestClient, ALL_TEST_STREAMS
+
+LOGGER = singer.get_logger()
 
 class BaseTapTest(TapSpec, unittest.TestCase):
     """
@@ -261,3 +265,14 @@ class BaseTapTest(TapSpec, unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.start_date = self.get_properties().get("start_date")
+        self.client = TestClient({
+            **self.get_properties(),
+            **self.get_credentials(),
+        })
+
+    def create_test_data(self):
+        for stream in self.expected_streams():
+            # TODO: Once more streams have data creation implemented add them here
+            if stream == 'components':
+                api_limit = self.expected_metadata().get(stream, {}).get(self.API_LIMIT)
+                ALL_TEST_STREAMS[stream](self.client).create_test_data(api_limit)
