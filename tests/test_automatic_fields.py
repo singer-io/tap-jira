@@ -3,7 +3,6 @@ Test that with no fields selected for a stream automatic fields are still replic
 """
 
 from tap_tester import runner, menagerie
-from tap_tester.scenario import SCENARIOS
 from base import BaseTapTest
 
 class MinimumSelectionTest(BaseTapTest):
@@ -55,6 +54,3 @@ class MinimumSelectionTest(BaseTapTest):
                     actual_fields_by_stream.get(stream, set()),
                     expected_fields_for_stream,
                     msg="The fields sent to the target are not the automatic fields.\nExpected: {}\nActual: {}".format(expected_fields_for_stream, actual_fields_by_stream.get(stream, set())))
-
-
-SCENARIOS.add(MinimumSelectionTest)

@@ -3,7 +3,6 @@ Test that with no fields selected for a stream automatic fields are still replic
 """
 
 from tap_tester import runner, menagerie
-from tap_tester.scenario import SCENARIOS
 from base import BaseTapTest
 
 class CustomGroupsTest(BaseTapTest):
@@ -36,6 +35,3 @@ class CustomGroupsTest(BaseTapTest):
             record_count_by_stream.get("users", 0),
             0,
             msg="Expected zero users records because we used garbage group names")
-
-    
-SCENARIOS.add(CustomGroupsTest)

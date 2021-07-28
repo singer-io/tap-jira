@@ -6,7 +6,6 @@ from datetime import datetime as dt
 from dateutil.parser import parse
 
 from tap_tester import menagerie, runner
-from tap_tester.scenario import SCENARIOS
 
 from base import BaseTapTest
 
@@ -142,6 +141,3 @@ class BookmarkTest(BaseTapTest):
                 # verify that the minimum bookmark sent to the target for the second sync
                 # is greater than or equal to the bookmark from the first sync
                 self.assertGreaterEqual(target_value, state_value)
-
-
-SCENARIOS.add(BookmarkTest)

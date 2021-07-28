@@ -3,7 +3,6 @@ Test tap pagination of streams
 """
 from tap_tester import menagerie, runner
 
-from tap_tester.scenario import SCENARIOS
 from base import BaseTapTest
 
 
@@ -63,6 +62,3 @@ class PaginationTest(BaseTapTest):
                         self.expected_foreign_keys().get(stream, set())),
                     msg="The fields sent to the target don't include non-automatic fields"
                 )
-
-
-SCENARIOS.add(PaginationTest)
