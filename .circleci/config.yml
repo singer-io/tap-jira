@@ -42,85 +42,43 @@ jobs:
           command: |
             source dev_env.sh
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
-            run-test --tap=tap-jira \
-                     --target=target-stitch \
-                     --orchestrator=stitch-orchestrator \
-                     --email=harrison+sandboxtest@stitchdata.com \
-                     --password=$SANDBOX_PASSWORD \
-                     --client-id=50 \
-                     tests/test_discovery.py
+            run-test --tap=tap-jira tests/test_discovery.py
       - run:
           name: 'Test Full Replication'
           command: |
             source dev_env.sh
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
-            run-test --tap=tap-jira \
-                     --target=target-stitch \
-                     --orchestrator=stitch-orchestrator \
-                     --email=harrison+sandboxtest@stitchdata.com \
-                     --password=$SANDBOX_PASSWORD \
-                     --client-id=50 \
-                     tests/test_full_replication.py
+            run-test --tap=tap-jira tests/test_full_replication.py
       - run:
           name: 'Test Custom Groups'
           command: |
             source dev_env.sh
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
-            run-test --tap=tap-jira \
-                     --target=target-stitch \
-                     --orchestrator=stitch-orchestrator \
-                     --email=harrison+sandboxtest@stitchdata.com \
-                     --password=$SANDBOX_PASSWORD \
-                     --client-id=50 \
-                     tests/test_custom_groups.py
+            run-test --tap=tap-jira tests/test_custom_groups.py
       - run:
           name: 'Test Bookmarks'
           command: |
             source dev_env.sh
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
-            run-test --tap=tap-jira \
-                     --target=target-stitch \
-                     --orchestrator=stitch-orchestrator \
-                     --email=harrison+sandboxtest@stitchdata.com \
-                     --password=$SANDBOX_PASSWORD \
-                     --client-id=50 \
-                     tests/test_bookmarks.py
+            run-test --tap=tap-jira tests/test_bookmarks.py
       - run:
           name: 'Test Start Date'
           command: |
             source dev_env.sh
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
-            run-test --tap=tap-jira \
-                     --target=target-stitch \
-                     --orchestrator=stitch-orchestrator \
-                     --email=harrison+sandboxtest@stitchdata.com \
-                     --password=$SANDBOX_PASSWORD \
-                     --client-id=50 \
-                     tests/test_start_date.py
+            run-test --tap=tap-jira tests/test_start_date.py
       - run:
           name: 'Test Automatic Fields'
           command: |
             source dev_env.sh
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
-            run-test --tap=tap-jira \
-                     --target=target-stitch \
-                     --orchestrator=stitch-orchestrator \
-                     --email=harrison+sandboxtest@stitchdata.com \
-                     --password=$SANDBOX_PASSWORD \
-                     --client-id=50 \
-                     tests/test_automatic_fields.py
+            run-test --tap=tap-jira tests/test_automatic_fields.py
       - run:
           name: 'Test Pagination'
           command: |
             source dev_env.sh
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
-            run-test --tap=tap-jira \
-                     --target=target-stitch \
-                     --orchestrator=stitch-orchestrator \
-                     --email=harrison+sandboxtest@stitchdata.com \
-                     --password=$SANDBOX_PASSWORD \
-                     --client-id=50 \
-                     tests/test_pagination.py
+            run-test --tap=tap-jira tests/test_pagination.py
       - slack/notify-on-failure:
           only_for_branches: master
 
