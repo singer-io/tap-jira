@@ -21,11 +21,6 @@ class BaseTapTest(TapSpec, unittest.TestCase):
     Run discovery for as a prerequisite for most tests
     """
 
-    @staticmethod
-    def name():
-        """The name of the test within the suite"""
-        return "test_name"
-
     def environment_variables(self):
         return ({p for p in self.CONFIGURATION_ENVIRONMENT['properties'].values()} |
                 {c for c in self.CONFIGURATION_ENVIRONMENT['credentials'].values()})
@@ -107,23 +102,11 @@ class BaseTapTest(TapSpec, unittest.TestCase):
         if missing_envs:
             raise Exception("Missing test-required environment variables: {}".format(missing_envs))
 
-    def test_run(self):
-        """
-        Default Test Setup
-        Remove previous connections (with the same name)
-        Create a new connection (with the properties and credentials above)
-        Run discovery and ensure it completes successfully
-        """
-        self.do_test(self.create_connection())
-
-    def do_test(self, conn_id):
-        """A placeholder test to override in sub-class tests"""
-
     #########################
     #   Helper Methods      #
     #########################
 
-    def create_connection(self, original_properties: bool = True):
+    def create_connection_with_initial_discovery(self, original_properties: bool = True):
         """Create a new connection with the test name"""
         # Create the connection
         conn_id = connections.ensure_connection(self, original_properties)

@@ -8,7 +8,6 @@ from dateutil.parser import parse
 
 from tap_tester import menagerie, runner
 
-from tap_tester.scenario import SCENARIOS
 from base import BaseTapTest
 
 
@@ -25,10 +24,12 @@ class StartDateTest(BaseTapTest):
     """
 
     def name(self):
-        return "tap_tester_tap_jira_start_date_test"
+        return "tt_jira_start_date_test"
 
-    def do_test(self, conn_id):
+    def test_run(self):
         """Test we get a lot of data back based on the start date configured in base"""
+
+        conn_id = self.create_connection_with_initial_discovery()
 
         # Select all streams and all fields within streams
         found_catalogs = menagerie.get_catalogs(conn_id)
@@ -71,7 +72,7 @@ class StartDateTest(BaseTapTest):
         self.start_date = self.local_to_utc(largest_bookmark).strftime(self.START_DATE_FORMAT)
 
         # create a new connection with the new start_date
-        conn_id = self.create_connection(original_properties=False)
+        conn_id = self.create_connection_with_initial_discovery(original_properties=False)
 
         # Select all streams and all fields within streams
         found_catalogs = menagerie.get_catalogs(conn_id)
@@ -118,5 +119,3 @@ class StartDateTest(BaseTapTest):
                         print("bookmarks cannot be converted to dates, "
                               "can't test start_date for {}".format(stream))
 
-
-SCENARIOS.add(StartDateTest)
