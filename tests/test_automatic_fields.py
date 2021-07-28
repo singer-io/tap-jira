@@ -10,9 +10,9 @@ class MinimumSelectionTest(BaseTapTest):
     """Test that with no fields selected for a stream automatic fields are still replicated"""
 
     def name(self):
-        return "tap_tester_tap_jira_no_fields_test"
+        return "tt_jira_no_fields_test"
 
-    def do_test(self, conn_id):
+    def test_run(self):
         """
         Verify that for each stream you can get multiple pages of data
         when no fields are selected and only the automatic fields are replicated.
@@ -22,6 +22,8 @@ class MinimumSelectionTest(BaseTapTest):
         fetch of data.  For instance if you have a limit of 250 records ensure
         that 251 (or more) records have been posted for that stream.
         """
+        conn_id = self.create_connection_with_initial_discovery()
+
         self.create_test_data()
 
         # Select all streams and no fields within streams

@@ -13,9 +13,9 @@ class DiscoveryTest(BaseTapTest):
     """ Test the tap discovery """
 
     def name(self):
-        return "tap_tester_tap_jira_discovery_test"
+        return "tt_jira_discovery_test"
 
-    def do_test(self, conn_id):
+    def test_run(self):
         """
         Verify that discover creates the appropriate catalog, schema, metadata, etc.
 
@@ -32,6 +32,7 @@ class DiscoveryTest(BaseTapTest):
           are given the inclusion of automatic (metadata and annotated schema).
         • verify that all other fields have inclusion of available (metadata and schema)
         """
+        conn_id = self.create_connection_with_initial_discovery()
 
         # Verify number of actual streams discovered match expected
         found_catalogs = menagerie.get_catalogs(conn_id)

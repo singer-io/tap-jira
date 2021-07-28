@@ -13,9 +13,9 @@ class FullReplicationTest(BaseTapTest):
     """Test tap gets all records for streams with full replication"""
 
     def name(self):
-        return "tap_tester_tap_name_full_test"
+        return "tt_name_full_test"
 
-    def do_test(self, conn_id):
+    def test_run(self):
         """
         Verify that a bookmark doesn't exist for the stream
         Verify that the second sync includes the same number or more records than the first sync
@@ -26,6 +26,8 @@ class FullReplicationTest(BaseTapTest):
         For EACH stream that is fully replicated there are multiple rows of data with
             different values for the replication key
         """
+        conn_id = self.create_connection_with_initial_discovery()
+
         # Select all streams and no fields within streams
         found_catalogs = menagerie.get_catalogs(conn_id)
         full_streams = {key for key, value in self.expected_replication_method().items()
