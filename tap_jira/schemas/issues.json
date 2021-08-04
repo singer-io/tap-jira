@@ -166,6 +166,502 @@
           "items": {
             "$ref": "attachment"
           }
+        },
+        "issuetype": {
+          "$ref": "issuetype"
+        },
+
+        "timespent": {
+          "type": [
+            "null",
+            "integer"
+          ]
+        },
+        "project": {
+          "$ref": "project"
+        },
+        "aggregatetimespent": {
+          "type": [
+            "null",
+            "integer"
+          ]
+        },
+        "workratio": {
+          "type": [
+            "null",
+            "integer"
+          ]
+        },
+        "timeestimate": {
+          "type": [
+            "null",
+            "integer"
+          ]
+        },
+        "aggregatetimeoriginalestimate": {
+          "type": [
+            "null",
+            "integer"
+          ]
+        },
+        "timeoriginalestimate": {
+          "type": [
+            "null",
+            "integer"
+          ]
+        },
+        "aggregatetimeestimate": {
+          "type": [
+            "null",
+            "integer"
+          ]
+        },
+
+        "resolution": {
+          "$ref": "resolution"
+        },
+        "resolutiondate": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "date-time"
+        },
+        "fixVersions": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "$ref": "fixversion"
+          }
+        },
+        "versions": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "patternProperties": {
+              ".+": {}
+            }
+          }
+        },
+        "priority": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "properties": {
+            "self": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "format": "uri"
+            },
+            "iconUrl": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "format": "uri"
+            },
+            "name": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "id": {
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          }
+        },
+        "labels": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "issuelinks": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "$ref": "issuelink"
+          }
+        },
+        "assignee": {
+          "$ref": "user"
+        },
+        "status": {
+          "$ref": "status"
+        },
+        "components": {
+          "items": {
+            "$ref": "component"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "summary": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "description": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "timetracking": {
+          "properties": {
+            "originalEstimate": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "remainingEstimate": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "timeSpent": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "originalEstimateSeconds": {
+              "type": [
+                "null",
+                "integer"
+              ]
+            },
+            "remainingEstimateSeconds": {
+              "type": [
+                "null",
+                "integer"
+              ]
+            },
+            "timeSpentSeconds": {
+              "type": [
+                "null",
+                "integer"
+              ]
+            }
+          },
+          "type": [
+            "null",
+            "object"
+          ]
+        },
+        "security": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "creator": {
+          "$ref": "user"
+        },
+        "reporter": {
+          "$ref": "user"
+        },
+        "subtasks": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "$ref": "issuestub"
+          }
+        },
+        "aggregateprogress": {
+          "$ref": "progress"
+        },
+        "progress": {
+          "$ref": "progress"
+        },
+        "environment": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "duedate": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "date"
+        },
+        "votes": {
+          "properties": {
+            "self": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "format": "uri"
+            },
+            "votes": {
+              "type": [
+                "null",
+                "integer"
+              ]
+            },
+            "hasVoted": {
+              "type": [
+                "null",
+                "boolean"
+              ]
+            }
+          },
+          "type": [
+            "null",
+            "object"
+          ]
+        },
+
+        "customfield_10000": {
+          "title": "development",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "customfield_10001": {
+          "title": "team",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "customfield_10002": {
+          "title": "organizations",
+          "__COMMENT": "not sure of data type, don't import yet",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "customfield_10003": {
+          "title": "approvers",
+          "__COMMENT": "actually an array of users, don't import yet",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "customfield_10004": {
+          "title": "impact",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "customfield_10005": {
+          "title": "changetype",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "customfield_10006": {
+          "title": "changerisk",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "customfield_10007": {
+          "title": "changereason",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "customfield_10008": {
+          "title": "actualstart",
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "date-time"
+        },
+        "customfield_10009": {
+          "title": "actualend",
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "date-time"
+        },
+        "customfield_10010": {
+          "title": "requesttype",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "customfield_10011": {
+          "title": "epicname",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "customfield_10012": {
+          "title": "epicstatus",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "customfield_10013": {
+          "title": "epiccolor",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "customfield_10014": {
+          "title": "epiclink",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "customfield_10015": {
+          "title": "startdate",
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "date-time"
+        },
+        "customfield_10016": {
+          "title": "storypointestimate",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "customfield_10017": {
+          "title": "issuecolor",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "customfield_10018": {
+          "title": "parentlink",
+          "type": [
+            "null",
+            "object"
+          ],
+          "patternProperties": {
+            ".+": {}
+          }
+        },
+        "customfield_10019": {
+          "title": "rank",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "customfield_10020": {
+          "title": "sprint",
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "$ref": "sprint"
+          }
+        },
+        "customfield_10021": {
+          "title": "flagged",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "customfield_10022": {
+          "title": "targetstart",
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "date-time"
+        },
+        "customfield_10023": {
+          "title": "targetend",
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "date-time"
+        },
+        "customfield_10024": {
+          "title": "dateoffirstresponse",
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "date-time"
+        },
+
+        "customfield_10025": {
+          "title": "timeinstatus",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "customfield_10026": {
+          "title": "storypoints",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "customfield_10027": {
+          "title": "uuid",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "customfield_10028": {
+          "title": "location",
+          "type": [
+            "null",
+            "string"
+          ]
         }
       },
       "patternProperties": {
@@ -278,6 +774,149 @@
         }
       }
     },
+    "issuetype": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "self": {
+          "format": "uri",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "id": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "description": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "iconUrl": {
+          "format": "uri",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "name": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "subtask": {
+          "type": [
+            "null",
+            "boolean"
+          ]
+        },
+        "avatarId": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "hierarchyLevel": {
+          "type": [
+            "null",
+            "integer"
+          ]
+        }
+      }
+    },
+    "resolution": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "self": {
+          "format": "uri",
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "id": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "description": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "name": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      }
+    },
+    "sprint": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "id": {
+          "type": [
+            "null",
+            "integer"
+          ]
+        },
+        "name": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "state": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "boardId": {
+          "type": [
+            "null",
+            "integer"
+          ]
+        },
+        "goal": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "startDate": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "date-time"
+        }
+      }
+    },
     "simple-link": {
       "title": "Simple Link",
       "type": [
@@ -329,13 +968,318 @@
         }
       }
     },
+    "user": {
+      "properties": {
+        "name": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "self": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "uri"
+        },
+        "timeZone": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "accountId": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "active": {
+          "type": [
+            "null",
+            "boolean"
+          ]
+        },
+        "key": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "avatarUrls": {
+          "properties": {
+            "16x16": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "24x24": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "48x48": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "32x32": {
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          },
+          "type": [
+            "null",
+            "object"
+          ]
+        },
+        "emailAddress": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "displayName": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "accountType": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      },
+      "type": [
+        "null",
+        "object"
+      ]
+    },
+    "project": {
+      "properties": {
+        "self": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "uri"
+        },
+        "id": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "key": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "name": {
+          "type": [
+            "null",
+            "boolean"
+          ]
+        },
+        "projectTypeKey": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "simplified": {
+          "type": [
+            "null",
+            "boolean"
+          ]
+        },
+        "avatarUrls": {
+          "properties": {
+            "16x16": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "24x24": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "48x48": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "32x32": {
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          },
+          "type": [
+            "null",
+            "object"
+          ]
+        }
+      },
+      "type": [
+        "null",
+        "object"
+      ]
+    },
+    "component": {
+      "properties": {
+        "self": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "uri"
+        },
+        "name": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "id": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      },
+      "type": [
+        "null",
+        "object"
+      ]
+    },
+    "progress": {
+      "properties": {
+        "progress": {
+          "type": [
+            "null",
+            "integer"
+          ]
+        },
+        "total": {
+          "type": [
+            "null",
+            "integer"
+          ]
+        },
+        "percent": {
+          "type": [
+            "null",
+            "integer"
+          ]
+        }
+      },
+      "type": [
+        "null",
+        "object"
+      ]
+    },
+    "status": {
+      "properties": {
+        "self": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "uri"
+        },
+        "description": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "iconUrl": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "uri"
+        },
+        "name": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "id": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "statusCategory": {
+          "properties": {
+            "self": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "format": "uri"
+            },
+            "id": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "key": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "colorName": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "name": {
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          },
+          "type": [
+            "null",
+            "object"
+          ]
+        }
+      },
+      "type": [
+        "null",
+        "object"
+      ]
+    },
     "attachment": {
       "properties": {
         "self": {
           "type": [
             "null",
             "string"
-          ]
+          ],
+          "format": "uri"
         },
         "thumbnail": {
           "type": [
@@ -363,92 +1307,7 @@
           ]
         },
         "author": {
-          "properties": {
-            "name": {
-              "type": [
-                "null",
-                "string"
-              ]
-            },
-            "self": {
-              "type": [
-                "null",
-                "string"
-              ]
-            },
-            "timeZone": {
-              "type": [
-                "null",
-                "string"
-              ]
-            },
-            "accountId": {
-              "type": [
-                "null",
-                "string"
-              ]
-            },
-            "active": {
-              "type": [
-                "null",
-                "boolean"
-              ]
-            },
-            "key": {
-              "type": [
-                "null",
-                "string"
-              ]
-            },
-            "avatarUrls": {
-              "properties": {
-                "16x16": {
-                  "type": [
-                    "null",
-                    "string"
-                  ]
-                },
-                "24x24": {
-                  "type": [
-                    "null",
-                    "string"
-                  ]
-                },
-                "48x48": {
-                  "type": [
-                    "null",
-                    "string"
-                  ]
-                },
-                "32x32": {
-                  "type": [
-                    "null",
-                    "string"
-                  ]
-                }
-              },
-              "type": [
-                "null",
-                "object"
-              ]
-            },
-            "emailAddress": {
-              "type": [
-                "null",
-                "string"
-              ]
-            },
-            "displayName": {
-              "type": [
-                "null",
-                "string"
-              ]
-            }
-          },
-          "type": [
-            "null",
-            "object"
-          ]
+          "$ref": "user"
         },
         "size": {
           "type": [
@@ -473,6 +1332,144 @@
         "null",
         "object"
       ]
+    },
+    "issuelink": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "id": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "self": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "uri"
+        },
+        "type": {
+          "properties": {
+            "id": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "name": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "inward": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "outward": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "self": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "format": "uri"
+            }
+          },
+          "type": [
+            "null",
+            "object"
+          ]
+        },
+        "inwardIssue": {
+          "$ref": "issuestub"
+        }
+      }
+    },
+    "issuestub": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "id": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "key": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      },
+      "patternProperties": {
+        ".+": {}
+      }
+    },
+    "fixversion": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "id": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "self": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "uri"
+        },
+        "description": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "name": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "archived": {
+          "type": [
+            "null",
+            "boolean"
+          ]
+        },
+        "released": {
+          "type": [
+            "null",
+            "boolean"
+          ]
+        },
+        "releaseDate": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "date"
+        }
+      }
     }
   }
 }
