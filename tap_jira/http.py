@@ -2,15 +2,13 @@ from datetime import datetime, timedelta
 import time
 import threading
 import re
+from json.decoder import JSONDecodeError
 from requests.exceptions import HTTPError
 from requests.auth import HTTPBasicAuth
 import requests
 from singer import metrics
 import singer
 import backoff
-
-class RateLimitException(Exception):
-    pass
 
 # Jira OAuth tokens last for 3600 seconds. We set it to 3500 to try to
 # come in under the limit.
@@ -110,7 +108,7 @@ def check_status(response):
     # Forming a response message for raising custom exception
     try:
         response_json = response.json()
-    except Exception:
+    except JSONDecodeError:
         response_json = {}
     if response.status_code != 200:
         message = "HTTP-error-code: {}, Error: {}".format(
