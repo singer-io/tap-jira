@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 import time
 import threading
 import re
-from json.decoder import JSONDecodeError
 from requests.exceptions import HTTPError
 from requests.auth import HTTPBasicAuth
 import requests
@@ -108,7 +107,7 @@ def check_status(response):
     # Forming a response message for raising custom exception
     try:
         response_json = response.json()
-    except JSONDecodeError:
+    except Exception: # pylint: disable=broad-except
         response_json = {}
     if response.status_code != 200:
         message = "HTTP-error-code: {}, Error: {}".format(
