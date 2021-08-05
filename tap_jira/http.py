@@ -106,6 +106,22 @@ ERROR_CODE_EXCEPTION_MAPPING = {
     }
 }
 
+def check_status(response):
+    # Forming a response message for raising custom exception
+    try:
+        response_json = response.json()
+    except Exception:
+        response_json = {}
+    if response.status_code != 200:
+        message = "HTTP-error-code: {}, Error: {}".format(
+            response.status_code,
+            response_json.get("status", ERROR_CODE_EXCEPTION_MAPPING.get(
+                response.status_code, {})).get("message", "Unknown Error")
+        )
+        exc = ERROR_CODE_EXCEPTION_MAPPING.get(
+            response.status_code, {}).get("raise_exception", JiraError)
+        raise exc(message, response) from None
+
 class Client():
     def __init__(self, config):
         self.is_cloud = 'oauth_client_id' in config.keys()
@@ -189,24 +205,8 @@ class Client():
             response = self.send(*args, **kwargs)
             self.next_request_at = datetime.now() + TIME_BETWEEN_REQUESTS
             timer.tags[metrics.Tag.http_status_code] = response.status_code
-        self.check_status(response)
+        check_status(response)
         return response.json()
-
-    def check_status(self, response):
-        # Forming a response message for raising custom exception
-        try:
-            response_json = response.json()
-        except Exception:
-            response_json = {}
-        if response.status_code != 200:
-            message = "HTTP-error-code: {}, Error: {}".format(
-                response.status_code,
-                response_json.get("status", ERROR_CODE_EXCEPTION_MAPPING.get(
-                    response.status_code, {})).get("message", "Unknown Error")
-            )
-            exc = ERROR_CODE_EXCEPTION_MAPPING.get(
-                response.status_code, {}).get("raise_exception", JiraError)
-            raise exc(message, response) from None
 
     def refresh_credentials(self):
         body = {"grant_type": "refresh_token",
