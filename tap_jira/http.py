@@ -45,7 +45,7 @@ class JiraBadGateway(JiraError):
     pass
 
 
-class JiraNotFoundError(JiraBackoffError):
+class JiraNotFoundError(JiraError):
     pass
 
 
@@ -112,8 +112,8 @@ def check_status(response):
     if response.status_code != 200:
         message = "HTTP-error-code: {}, Error: {}".format(
             response.status_code,
-            response_json.get("status", ERROR_CODE_EXCEPTION_MAPPING.get(
-                response.status_code, {})).get("message", "Unknown Error")
+            response_json.get("errorMessages", [ERROR_CODE_EXCEPTION_MAPPING.get(
+                response.status_code, {}).get("message", "Unknown Error")])[0]
         )
         exc = ERROR_CODE_EXCEPTION_MAPPING.get(
             response.status_code, {}).get("raise_exception", JiraError)

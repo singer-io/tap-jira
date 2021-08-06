@@ -103,7 +103,6 @@ class TestJiraErrorHandling(unittest.TestCase):
             expected_error_message = "HTTP-error-code: 404, Error: The resource you have specified cannot be found."
             # Verifying the message formed for the custom exception
             self.assertEquals(str(e), expected_error_message)
-            self.assertEquals(mock_send.call_count,10)
 
     @mock.patch("tap_jira.http.Client.send",side_effect=mock_send_429)
     def test_request_with_handling_for_429_exceptin_handling(self,mock_send):
