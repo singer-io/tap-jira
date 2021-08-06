@@ -1,6 +1,5 @@
 import json
 import pytz
-import requests
 import singer
 
 from singer import metrics, utils, metadata, Transformer
