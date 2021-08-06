@@ -45,7 +45,7 @@ class JiraBadGateway(JiraError):
     pass
 
 
-class JiraNotFoundError(JiraError):
+class JiraNotFoundError(JiraBackoffError):
     pass
 
 
