@@ -59,6 +59,7 @@ class Client():
             LOGGER.info("Using Basic Auth API authentication")
             self.base_url = config.get("base_url")
             self.auth = HTTPBasicAuth(config.get("username"), config.get("password"))
+            self.test_credentials_are_authorized()
 
     def url(self, path):
         if self.is_cloud:
