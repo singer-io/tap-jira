@@ -36,7 +36,7 @@ class TestBasicAuthInDiscoverMode(unittest.TestCase):
         mocked_send.return_value = get_mock_http_response(401, {})
         mocked_args.return_value = Args()
         try:
-            tap_jira.main_impl()
+            tap_jira.main()
         except HTTPError as e:
             self.assertEqual(e.response.status_code, 401)
         
@@ -49,5 +49,5 @@ class TestBasicAuthInDiscoverMode(unittest.TestCase):
         '''
         mocked_send.return_value = get_mock_http_response(200, {})
         mocked_args.return_value = Args()
-        tap_jira.main_impl()
+        tap_jira.main()
         self.assertEqual(mocked_discover.call_count, 2)
