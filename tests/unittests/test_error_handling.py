@@ -2,6 +2,7 @@ import unittest
 from unittest import mock
 import requests
 from tap_jira import http
+from tap_jira import streams
 
 # mock responce
 class Mockresponse:
@@ -168,3 +169,37 @@ class TestJiraErrorHandling(unittest.TestCase):
             # Verifying the message formed for the custom exception
             self.assertEquals(str(e), expected_error_message)
             
+class TestUserGroupSync(unittest.TestCase):
+    def mock_raise_404(*args, **kwargs):
+        raise http.JiraNotFoundError
+
+    @mock.patch("tap_jira.streams.Paginator.pages", side_effect=mock_raise_404)
+    @mock.patch("tap_jira.streams.Context.config")
+    @mock.patch("tap_jira.streams.LOGGER.info")
+    def test_no_user_group_found(self,mocked_logger, mock_config, mock_raise_404):
+        '''
+            Verify that if user group is not found then skip message should be print instead of raising exception
+        '''
+        mock_config.get.return_value = "test"
+
+        user = streams.Users("users", ["accountId"])
+        user.sync()
+
+        # JiraNotFoundError is raised so skipping log should be called
+        mocked_logger.assert_called_with('Could not find group "%s", skipping', 'test')
+
+    @mock.patch("tap_jira.streams.Paginator.pages")
+    @mock.patch("tap_jira.streams.Context.config")
+    @mock.patch("tap_jira.streams.Stream.write_page")
+    def test_user_group_found(self,mocked_write_page, mock_config, mock_get_pages):
+        '''
+            Verify that if user group found then write_page should be called
+        '''
+        mock_config.get.return_value = "test"
+        mock_get_pages.return_value = ["page1", "page2", "page3"] # return 3 mock pages
+
+        user = streams.Users("users", ["accountId"])
+        user.sync()
+
+        # write_page should be called 3 times as three mock pages return
+        self.assertEqual(mocked_write_page.call_count, 3)
