@@ -40,8 +40,13 @@ class JiraUnauthorizedError(JiraError):
 class JiraForbiddenError(JiraError):
     pass
 
+class JiraSubRequestFailedError(JiraError):
+    pass
 
 class JiraBadGateway(JiraError):
+    pass
+
+class JiraConflictError(JiraError):
     pass
 
 
@@ -79,15 +84,23 @@ ERROR_CODE_EXCEPTION_MAPPING = {
     },
     403: {
         "raise_exception": JiraForbiddenError,
-        "message": "User doesn't have permission to access the resource."
+        "message": "User does not have permission to access the resource."
     },
     404: {
         "raise_exception": JiraNotFoundError,
         "message": "The resource you have specified cannot be found."
     },
+    409: {
+        "raise_exception": JiraConflictError,
+        "message": "The request doesn't match our state in some way."
+    },
     429: {
         "raise_exception": JiraRateLimitError,
         "message": "The API rate limit for your organisation/application pairing has been exceeded."
+    },
+    449:{
+        "raise_exception": JiraSubRequestFailedError,
+        "message": "The API was unable to process every part of the request."
     },
     502: {
         "raise_exception": JiraBadGateway,
