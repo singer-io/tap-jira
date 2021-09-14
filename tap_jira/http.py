@@ -59,7 +59,7 @@ class Client():
             LOGGER.info("Using Basic Auth API authentication")
             self.base_url = config.get("base_url")
             self.auth = HTTPBasicAuth(config.get("username"), config.get("password"))
-            self.test_credentials_are_authorized()
+            self.test_basic_credentials_are_authorized()
 
     def url(self, path):
         if self.is_cloud:
@@ -145,6 +145,10 @@ class Client():
         # Assume that everyone has issues, so we try and hit that endpoint
         self.request("issues", "GET", "/rest/api/2/search",
                      params={"maxResults": 1})
+
+    def test_basic_credentials_are_authorized(self):
+        # Make a call to myself endpoint for verify creds
+        self.request("test", "GET", "/rest/api/2/myself")
 
 
 class Paginator():
