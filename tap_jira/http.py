@@ -92,7 +92,7 @@ ERROR_CODE_EXCEPTION_MAPPING = {
     },
     409: {
         "raise_exception": JiraConflictError,
-        "message": "The request doesn't match our state in some way."
+        "message": "The request does not match our state in some way."
     },
     429: {
         "raise_exception": JiraRateLimitError,

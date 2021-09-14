@@ -39,8 +39,14 @@ class TestJiraErrorHandling(unittest.TestCase):
     def mock_send_404(*args, **kwargs):
         return Mockresponse("",404,raise_error=True)
 
+    def mock_send_409(*args, **kwargs):
+        return Mockresponse("",409,raise_error=True)
+
     def mock_send_429(*args, **kwargs):
         return Mockresponse("",429,raise_error=True)
+
+    def mock_send_449(*args, **kwargs):
+        return Mockresponse("",449,raise_error=True)
 
     def mock_send_502(*args, **kwargs):
         return Mockresponse("",502,raise_error=True)
@@ -88,7 +94,8 @@ class TestJiraErrorHandling(unittest.TestCase):
             mock_client = http.Client(mock_config)
             mock_client.request(tap_stream_id)
         except http.JiraForbiddenError as e:
-            expected_error_message = "HTTP-error-code: 403, Error: User doesn't have permission to access the resource."
+            expected_error_message = "HTTP-error-code: 403, Error: User does not have permission to access the resource."
+
             # Verifying the message formed for the custom exception
             self.assertEquals(str(e), expected_error_message)
             
@@ -104,6 +111,18 @@ class TestJiraErrorHandling(unittest.TestCase):
             expected_error_message = "HTTP-error-code: 404, Error: The resource you have specified cannot be found."
             # Verifying the message formed for the custom exception
             self.assertEquals(str(e), expected_error_message)
+    
+    @mock.patch("tap_jira.http.Client.send",side_effect=mock_send_409)
+    def test_request_with_handling_for_409_exceptin_handling(self,mock_send):
+        try:
+            tap_stream_id = "tap_jira"
+            mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
+            mock_client = http.Client(mock_config)
+            mock_client.request(tap_stream_id)
+        except http.JiraConflictError as e:
+            expected_error_message = "HTTP-error-code: 409, Error: The request does not match our state in some way."
+            # Verifying the message formed for the custom exception
+            self.assertEquals(str(e), expected_error_message)
 
     @mock.patch("tap_jira.http.Client.send",side_effect=mock_send_429)
     def test_request_with_handling_for_429_exceptin_handling(self,mock_send):
@@ -117,6 +136,18 @@ class TestJiraErrorHandling(unittest.TestCase):
             # Verifying the message formed for the custom exception
             self.assertEquals(str(e), expected_error_message)
             self.assertEquals(mock_send.call_count,10)
+
+    @mock.patch("tap_jira.http.Client.send",side_effect=mock_send_449)
+    def test_request_with_handling_for_449_exceptin_handling(self,mock_send):
+        try:
+            tap_stream_id = "tap_jira"
+            mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
+            mock_client = http.Client(mock_config)
+            mock_client.request(tap_stream_id)
+        except http.JiraSubRequestFailedError as e:
+            expected_error_message = "HTTP-error-code: 449, Error: The API was unable to process every part of the request."
+            # Verifying the message formed for the custom exception
+            self.assertEquals(str(e), expected_error_message)
 
     @mock.patch("tap_jira.http.Client.send",side_effect=mock_send_502)
     def test_request_with_handling_for_502_exceptin_handling(self,mock_send):
