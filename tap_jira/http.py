@@ -104,8 +104,8 @@ ERROR_CODE_EXCEPTION_MAPPING = {
     },
     500: {
         "raise_exception": JiraInternalServerError,
-        "message": "The server encountered an unexpected condition which prevented \
-            it from fulfilling the request."
+        "message": "The server encountered an unexpected condition which prevented" \
+            " it from fulfilling the request."
     },
     501: {
         "raise_exception": JiraNotImplementedError,
