@@ -163,7 +163,7 @@ class TestJiraErrorHandling(unittest.TestCase):
             mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
             mock_client = http.Client(mock_config)
             mock_client.request(tap_stream_id)
-        except http.JiraBadGateway as e:
+        except http.JiraInternalServerError as e:
             expected_error_message = "HTTP-error-code: 500, Error: The server encountered an unexpected condition which prevented it from fulfilling the request."
             # Verifying the message formed for the custom exception
             self.assertEquals(str(e), expected_error_message)
@@ -176,7 +176,7 @@ class TestJiraErrorHandling(unittest.TestCase):
             mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
             mock_client = http.Client(mock_config)
             mock_client.request(tap_stream_id)
-        except http.JiraBadGateway as e:
+        except http.JiraNotImplementedError as e:
             expected_error_message = "HTTP-error-code: 501, Error: The server does not support the functionality required to fulfill the request."
             # Verifying the message formed for the custom exception
             self.assertEquals(str(e), expected_error_message)
@@ -189,7 +189,7 @@ class TestJiraErrorHandling(unittest.TestCase):
             mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
             mock_client = http.Client(mock_config)
             mock_client.request(tap_stream_id)
-        except http.JiraBadGateway as e:
+        except http.JiraBadGatewayError as e:
             expected_error_message = "HTTP-error-code: 502, Error: Server received an invalid response."
             # Verifying the message formed for the custom exception
             self.assertEquals(str(e), expected_error_message)
@@ -215,7 +215,7 @@ class TestJiraErrorHandling(unittest.TestCase):
             mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
             mock_client = http.Client(mock_config)
             mock_client.request(tap_stream_id)
-        except http.JiraGatewayTimeout as e:
+        except http.JiraGatewayTimeoutError as e:
             expected_error_message = "HTTP-error-code: 504, Error: API service time out, please check Jira server."
             # Verifying the message formed for the custom exception
             self.assertEquals(str(e), expected_error_message)
