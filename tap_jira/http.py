@@ -32,10 +32,8 @@ class JiraBackoffError(JiraError):
 class JiraBadRequestError(JiraError):
     pass
 
-
 class JiraUnauthorizedError(JiraError):
     pass
-
 
 class JiraForbiddenError(JiraError):
     pass
@@ -43,26 +41,28 @@ class JiraForbiddenError(JiraError):
 class JiraSubRequestFailedError(JiraError):
     pass
 
-class JiraBadGateway(JiraError):
+class JiraBadGatewayError(JiraError):
     pass
 
 class JiraConflictError(JiraError):
     pass
 
-
 class JiraNotFoundError(JiraError):
     pass
-
 
 class JiraRateLimitError(JiraBackoffError):
     pass
 
-
 class JiraServiceUnavailableError(JiraBackoffError):
     pass
 
+class JiraGatewayTimeoutError(JiraError):
+    pass
 
-class JiraGatewayTimeout(JiraError):
+class JiraInternalServerError(JiraError):
+    pass
+
+class JiraNotImplementedError(JiraError):
     pass
 
 def should_retry_httperror(exception):
@@ -102,8 +102,16 @@ ERROR_CODE_EXCEPTION_MAPPING = {
         "raise_exception": JiraSubRequestFailedError,
         "message": "The API was unable to process every part of the request."
     },
+    500: {
+        "raise_exception": JiraInternalServerError,
+        "message": "The server encountered an unexpected condition which prevented it from fulfilling the request."
+    },
+    501: {
+        "raise_exception": JiraNotImplementedError,
+        "message": "The server does not support the functionality required to fulfill the request."
+    },
     502: {
-        "raise_exception": JiraBadGateway,
+        "raise_exception": JiraBadGatewayError,
         "message": "Server received an invalid response."
     },
     503: {
@@ -111,7 +119,7 @@ ERROR_CODE_EXCEPTION_MAPPING = {
         "message": "API service is currently unavailable."
     },
     504: {
-        "raise_exception": JiraGatewayTimeout,
+        "raise_exception": JiraGatewayTimeoutError,
         "message": "API service time out, please check Jira server."
     }
 }

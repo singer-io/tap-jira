@@ -48,6 +48,12 @@ class TestJiraErrorHandling(unittest.TestCase):
     def mock_send_449(*args, **kwargs):
         return Mockresponse("",449,raise_error=True)
 
+    def mock_send_500(*args, **kwargs):
+        return Mockresponse("",500,raise_error=True)
+
+    def mock_send_501(*args, **kwargs):
+        return Mockresponse("",501,raise_error=True)
+    
     def mock_send_502(*args, **kwargs):
         return Mockresponse("",502,raise_error=True)
 
@@ -149,6 +155,33 @@ class TestJiraErrorHandling(unittest.TestCase):
             # Verifying the message formed for the custom exception
             self.assertEquals(str(e), expected_error_message)
 
+    
+    @mock.patch("tap_jira.http.Client.send",side_effect=mock_send_500)
+    def test_request_with_handling_for_500_exceptin_handling(self,mock_send):
+        try:
+            tap_stream_id = "tap_jira"
+            mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
+            mock_client = http.Client(mock_config)
+            mock_client.request(tap_stream_id)
+        except http.JiraBadGateway as e:
+            expected_error_message = "HTTP-error-code: 500, Error: The server encountered an unexpected condition which prevented it from fulfilling the request."
+            # Verifying the message formed for the custom exception
+            self.assertEquals(str(e), expected_error_message)
+
+    
+    @mock.patch("tap_jira.http.Client.send",side_effect=mock_send_501)
+    def test_request_with_handling_for_501_exceptin_handling(self,mock_send):
+        try:
+            tap_stream_id = "tap_jira"
+            mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
+            mock_client = http.Client(mock_config)
+            mock_client.request(tap_stream_id)
+        except http.JiraBadGateway as e:
+            expected_error_message = "HTTP-error-code: 501, Error: The server does not support the functionality required to fulfill the request."
+            # Verifying the message formed for the custom exception
+            self.assertEquals(str(e), expected_error_message)
+
+    
     @mock.patch("tap_jira.http.Client.send",side_effect=mock_send_502)
     def test_request_with_handling_for_502_exceptin_handling(self,mock_send):
         try:
