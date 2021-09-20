@@ -22,7 +22,7 @@ jobs:
             source /usr/local/share/virtualenvs/tap-jira/bin/activate
             source dev_env.sh
             echo "pylint is skipping the following: $PYLINT_DISABLE_LIST"
-            pylint tap_jira -d '$PYLINT_DISABLE_LIST,missing-function-docstring,missing-module-docstring'
+            pylint tap_jira -d "$PYLINT_DISABLE_LIST,unsupported-assignment-operation,unsupported-membership-test,unsubscriptable-object,dangerous-default-value,too-many-instance-attributes"
             nosetests tests/unittests
       - run:
           name: 'JSON Validator'
