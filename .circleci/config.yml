@@ -21,6 +21,7 @@ jobs:
           command: |
             source /usr/local/share/virtualenvs/tap-jira/bin/activate
             source dev_env.sh
+            # BUG https://jira.talendforge.org/browse/TDL-15395
             echo "pylint is skipping the following: $PYLINT_DISABLE_LIST"
             pylint tap_jira -d "$PYLINT_DISABLE_LIST,unsupported-assignment-operation,unsupported-membership-test,unsubscriptable-object,dangerous-default-value,too-many-instance-attributes"
             nosetests tests/unittests
