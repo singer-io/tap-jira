@@ -19,8 +19,8 @@ jobs:
           name: 'Pylint + Unit Tests'
           command: |
             source /usr/local/share/virtualenvs/tap-jira/bin/activate
-            # Default make command is test, which declares a dependency on pylint make command
-            make
+            pylint tap_jira -d '${PYLINT_DISABLE_LIST},unsupported-assignment-operation,unsubscriptable-object,dangerous-default-value,too-many-instance-attributes,unsupported-membership-test'
+            nosetests tests/unittests
       - run:
           name: 'JSON Validator'
           command: |
