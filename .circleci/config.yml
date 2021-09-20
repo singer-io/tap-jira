@@ -16,10 +16,15 @@ jobs:
             pip install -U pip setuptools
             pip install -e .[dev]
       - run:
+          name: 'Integration Tests Setup'
+          command: |
+            aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
+      - run:
           name: 'Pylint + Unit Tests'
           command: |
             source /usr/local/share/virtualenvs/tap-jira/bin/activate
-            pylint tap_jira -d '${PYLINT_DISABLE_LIST},unsupported-assignment-operation,unsubscriptable-object,dangerous-default-value,too-many-instance-attributes,unsupported-membership-test'
+            source dev_env.sh
+            pylint tap_jira -d '${PYLINT_DISABLE_LIST}
             nosetests tests/unittests
       - run:
           name: 'JSON Validator'
@@ -27,10 +32,6 @@ jobs:
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
             stitch-validate-json tap_jira/schemas/*.json
       - add_ssh_keys
-      - run:
-          name: 'Integration Tests Setup'
-          command: |
-            aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
       - run:
           name: 'All Tests Running'
           command: |
