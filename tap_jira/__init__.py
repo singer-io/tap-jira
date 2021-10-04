@@ -105,7 +105,8 @@ def sync():
     singer.write_state(Context.state)
 
 
-def main_impl():
+@singer.utils.handle_top_exception(LOGGER)
+def main():
     args = get_args()
 
     # Setup Context
@@ -127,12 +128,6 @@ def main_impl():
         if Context.client and Context.client.login_timer:
             Context.client.login_timer.cancel()
 
-def main():
-    try:
-        main_impl()
-    except Exception as exc:
-        LOGGER.critical(exc)
-        raise exc
 
 if __name__ == "__main__":
     main()

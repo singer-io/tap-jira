@@ -1,10 +1,9 @@
 import json
 import pytz
-import requests
 import singer
 
 from singer import metrics, utils, metadata, Transformer
-from .http import Paginator
+from .http import Paginator,JiraNotFoundError
 from .context import Context
 
 
@@ -174,11 +173,8 @@ class Users(Stream):
                                         "/rest/api/2/group/member",
                                         params=params):
                     self.write_page(page)
-            except requests.exceptions.HTTPError as http_error:
-                if http_error.response.status_code == 404:
-                    LOGGER.info("Could not find group \"%s\", skipping", group)
-                else:
-                    raise http_error
+            except JiraNotFoundError:
+                LOGGER.info("Could not find group \"%s\", skipping", group)
 
 
 class Issues(Stream):
