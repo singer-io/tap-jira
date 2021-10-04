@@ -37,9 +37,12 @@ class TestBasicAuthInDiscoverMode(unittest.TestCase):
         mocked_args.return_value = Args()
         try:
             tap_jira.main()
-        except HTTPError as e:
+        except tap_jira.http.JiraUnauthorizedError as e:
             self.assertEqual(e.response.status_code, 401)
-        
+            expected_error_message = "HTTP-error-code: 401, Error: Invalid authorization credentials."
+            # Verifying the message formed for the custom exception
+            self.assertEquals(str(e), expected_error_message)
+
         self.assertEqual(mocked_discover.call_count, 1)
 
     def test_basic_auth_access_200(self, mocked_discover, mocked_send, mocked_args):
