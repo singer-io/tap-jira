@@ -1,5 +1,14 @@
 # Changelog
 
+## [v2.1.0]
+  * Prevent connections that would yield a 401 from becoming fully_configured [#66] (https://github.com/singer-io/tap-jira/pull/66)
+
+  * Updated error handling of HTTP error and added Retry for error code 503 [#64] (https://github.com/singer-io/tap-jira/pull/64)
+
+  * Upgraded singer python dependency,upgraded high-level exception handling [#65] (https://github.com/singer-io/tap-jira/pull/65)
+
+[Full Changelog](https://github.com/singer-io/tap-jira/compare/v2.0.0...v2.0.1)
+
 ## [v2.0.1](https://github.com/singer-io/tap-jira/tree/v2.0.1) (2021-04-06)
 
 [Full Changelog](https://github.com/singer-io/tap-jira/compare/v2.0.0...v2.0.1)
