@@ -158,7 +158,7 @@ class Client():
         if config_request_timeout and float(config_request_timeout):
             self.request_timeout = float(config_request_timeout)
         else:
-            self.request_timeout = REQUEST_TIMEOUT 
+            self.request_timeout = REQUEST_TIMEOUT
 
         if self.is_cloud:
             LOGGER.info("Using OAuth based API authentication")
