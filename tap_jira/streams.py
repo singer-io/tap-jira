@@ -117,24 +117,24 @@ class Stream():
 class Projects(Stream):
     def sync(self):
         projects = Context.client.request(
-            self.tap_stream_id, "GET", "/rest/api/2/project",
+            self.tap_stream_id, "GET", "/rest/api/2/project/search",
             params={"expand": "description,lead,url,projectKeys"})
-        for project in projects:
+        for project in projects.get('values'):
             # The Jira documentation suggests that a "versions" key may appear
             # in the project, but from my testing that hasn't been the case
             # (even when projects do have versions). Since we are already
             # syncing versions separately, pop this key just in case it
             # appears.
             project.pop("versions", None)
-        self.write_page(projects)
+        self.write_page(projects.get('values'))
         if Context.is_selected(VERSIONS.tap_stream_id):
-            for project in projects:
+            for project in projects.get('values'):
                 path = "/rest/api/2/project/{}/version".format(project["id"])
                 pager = Paginator(Context.client, order_by="sequence")
                 for page in pager.pages(VERSIONS.tap_stream_id, "GET", path):
                     VERSIONS.write_page(page)
         if Context.is_selected(COMPONENTS.tap_stream_id):
-            for project in projects:
+            for project in projects.get('values'):
                 path = "/rest/api/2/project/{}/component".format(project["id"])
                 pager = Paginator(Context.client)
                 for page in pager.pages(COMPONENTS.tap_stream_id, "GET", path):
