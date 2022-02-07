@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import time
 import threading
 import re
-from requests.exceptions import HTTPError
+from requests.exceptions import HTTPError, Timeout
 from requests.auth import HTTPBasicAuth
 import requests
 from singer import metrics
@@ -17,6 +17,9 @@ REFRESH_TOKEN_EXPIRATION_PERIOD = 3500
 # > our past experience has shown that issuing queries no more than once every
 # > 10ms can help avoid performance issues
 TIME_BETWEEN_REQUESTS = timedelta(microseconds=10e3)
+
+# timeout request after 300 seconds
+REQUEST_TIMEOUT = 300
 
 LOGGER = singer.get_logger()
 
@@ -149,6 +152,14 @@ class Client():
         self.user_agent = config.get("user_agent")
         self.login_timer = None
 
+        # Set request timeout to config param `request_timeout` value.
+        # If value is 0,"0","" or not passed then it set default to 300 seconds.
+        config_request_timeout = config.get("request_timeout")
+        if config_request_timeout and float(config_request_timeout):
+            self.request_timeout = float(config_request_timeout)
+        else:
+            self.request_timeout = REQUEST_TIMEOUT 
+
         if self.is_cloud:
             LOGGER.info("Using OAuth based API authentication")
             self.auth = None
@@ -193,7 +204,7 @@ class Client():
         return headers
 
     @backoff.on_exception(backoff.expo,
-                          (requests.exceptions.ConnectionError, HTTPError),
+                          (requests.exceptions.ConnectionError, HTTPError, Timeout),
                           jitter=None,
                           max_tries=6,
                           giveup=lambda e: not should_retry_httperror(e))
@@ -211,7 +222,7 @@ class Client():
                                        auth=self.auth,
                                        headers=self._headers(headers),
                                        **kwargs)
-        return self.session.send(request.prepare())
+        return self.session.send(request.prepare(), timeout=self.request_timeout)
 
     @backoff.on_exception(backoff.constant,
                           JiraBackoffError,
