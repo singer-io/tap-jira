@@ -40,7 +40,8 @@ This tap:
         "username": "your-jira-username",
         "password": "your-jira-password",
         "base_url": "https://your-jira-domain",
-        "user_agent": "<user-agent>"
+        "user_agent": "<user-agent>",
+        "request_timeout": 300
     }
     ```
 
@@ -54,7 +55,8 @@ This tap:
      "access_token": "<access-token>",
      "cloud_id": "<cloud-id>",
      "refresh_token": "<refresh-token>",
-     "start_date": "<i.e. 2017-12-04T19:19:32Z>"
+     "start_date": "<i.e. 2017-12-04T19:19:32Z>",
+     "request_timeout": 300
    }
    ```
 
