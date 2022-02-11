@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import time
 import threading
 import re
-from requests.exceptions import HTTPError
+from requests.exceptions import (HTTPError, Timeout)
 from requests.auth import HTTPBasicAuth
 import requests
 from singer import metrics
@@ -19,6 +19,9 @@ REFRESH_TOKEN_EXPIRATION_PERIOD = 3500
 TIME_BETWEEN_REQUESTS = timedelta(microseconds=10e3)
 
 LOGGER = singer.get_logger()
+
+# timeout requests after 300 seconds
+REQUEST_TIMEOUT = 300
 
 class JiraError(Exception):
     def __init__(self, message=None, response=None):
@@ -141,6 +144,18 @@ def check_status(response):
             response.status_code, {}).get("raise_exception", JiraError)
         raise exc(message, response) from None
 
+def get_request_timeout(config):
+    # Get `request_timeout` value from config
+    config_request_timeout = config.get('request_timeout')
+
+    # if config request_timeout is other than 0, "0", or "" then use request_timeout
+    if config_request_timeout and float(config_request_timeout):
+        request_timeout = float(config_request_timeout)
+    else:
+        # If value is 0, "0", "", or not passed then it set default to 300 seconds
+        request_timeout = REQUEST_TIMEOUT
+    return request_timeout
+
 class Client():
     def __init__(self, config):
         self.is_cloud = 'oauth_client_id' in config.keys()
@@ -148,6 +163,7 @@ class Client():
         self.next_request_at = datetime.now()
         self.user_agent = config.get("user_agent")
         self.login_timer = None
+        self.timeout = get_request_timeout(config)
 
         if self.is_cloud:
             LOGGER.info("Using OAuth based API authentication")
@@ -193,7 +209,7 @@ class Client():
         return headers
 
     @backoff.on_exception(backoff.expo,
-                          (requests.exceptions.ConnectionError, HTTPError),
+                          (requests.exceptions.ConnectionError, HTTPError, Timeout),
                           jitter=None,
                           max_tries=6,
                           giveup=lambda e: not should_retry_httperror(e))
@@ -211,7 +227,7 @@ class Client():
                                        auth=self.auth,
                                        headers=self._headers(headers),
                                        **kwargs)
-        return self.session.send(request.prepare())
+        return self.session.send(request.prepare(), timeout=self.timeout)
 
     @backoff.on_exception(backoff.constant,
                           JiraBackoffError,
@@ -228,13 +244,19 @@ class Client():
         check_status(response)
         return response.json()
 
+    # backoff for Timeout error is already included in "Exception"
+    # as it's a parent class of "Timeout" error
+    @backoff.on_exception(backoff.expo, Exception, max_tries=3)
     def refresh_credentials(self):
         body = {"grant_type": "refresh_token",
                 "client_id": self.oauth_client_id,
                 "client_secret": self.oauth_client_secret,
                 "refresh_token": self.refresh_token}
         try:
-            resp = self.session.post("https://auth.atlassian.com/oauth/token", data=body)
+            resp = self.session.post(
+                "https://auth.atlassian.com/oauth/token",
+                data=body,
+                timeout=self.timeout)
             resp.raise_for_status()
             self.access_token = resp.json()['access_token']
         except Exception as ex:
