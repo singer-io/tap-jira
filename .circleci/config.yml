@@ -14,6 +14,8 @@ jobs:
             aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
             python3 -mvenv /usr/local/share/virtualenvs/tap-jira
             source /usr/local/share/virtualenvs/tap-jira/bin/activate
+            pip install 'pip==21.1.3'
+            pip install 'setuptools==56.0.0'
             pip install -e .[dev]
       - run:
           name: 'Pylint + Unit Tests'
