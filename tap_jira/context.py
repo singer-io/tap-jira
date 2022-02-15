@@ -57,8 +57,5 @@ class Context():
     @classmethod
     def retrieve_timezone(cls):
         response = cls.client.send("GET", "/rest/api/2/myself")
-        import ipdb;ipdb.set_trace()
-        1+1
         check_status(response)
-        LOGGER.info(response)
         return response.json()["timeZone"]
