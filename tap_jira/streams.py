@@ -192,6 +192,8 @@ class Issues(Stream):
                   "expand": "changelog,transitions",
                   "validateQuery": "strict",
                   "jql": jql}
+        response = Context.retrieve_timezone(page_num_offset)
+        LOGGER.info(response)
         page_num = Context.bookmark(page_num_offset) or 0
         pager = Paginator(Context.client, items_key="issues", page_num=page_num)
         for page in pager.pages(self.tap_stream_id,

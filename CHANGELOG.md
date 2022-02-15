@@ -1,5 +1,7 @@
 # Changelog
 
+## [v2.1.1]
+  * Request Timeout Implementation [#71](https://github.com/singer-io/tap-jira/pull/71)
 ## [v2.1.0]
   * Prevent connections that would yield a 401 from becoming fully_configured [#66] (https://github.com/singer-io/tap-jira/pull/66)
 
