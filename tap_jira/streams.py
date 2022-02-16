@@ -6,7 +6,7 @@ from singer import metrics, utils, metadata, Transformer
 from .http import Paginator,JiraNotFoundError
 from .context import Context
 
-DEFAULT_PAGE_SIZE = 50
+DEFAULT_PAGE_SIZE = 1
 
 def raise_if_bookmark_cannot_advance(worklogs):
     # Worklogs can only be queried with a `since` timestamp and
@@ -121,7 +121,7 @@ class Projects(Stream):
         while True:
             params = {
                 "expand": "description,lead,url,projectKeys",
-                "maxResults": DEFAULT_PAGE_SIZE, # r=maximum number of results to fetch in a poge.
+                "maxResults": DEFAULT_PAGE_SIZE, # maximum number of results to fetch in a page.
                 "startAt": offset #the offset to start at for the next page
             }
             projects = Context.client.request(
