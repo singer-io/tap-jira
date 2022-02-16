@@ -80,6 +80,12 @@ jobs:
             source dev_env.sh
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
             run-test --tap=tap-jira tests/test_pagination.py
+      - run:
+          name: 'Test All Fields'
+          command: |
+            source dev_env.sh
+            source /usr/local/share/virtualenvs/tap-tester/bin/activate
+            run-test --tap=tap-jira tests/test_all_fields.py
       - slack/notify-on-failure:
           only_for_branches: master
 
