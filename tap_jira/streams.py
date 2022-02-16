@@ -123,7 +123,7 @@ class Projects(Stream):
                 "expand": "description,lead,url,projectKeys",
                 "maxResults": DEFAULT_PAGE_SIZE, # r=maximum number of results to fetch in a poge.
                 "startAt": offset #the offset to start at for the next page
-                }
+            }
             projects = Context.client.request(
                 self.tap_stream_id, "GET", "/rest/api/2/project/search",
                 params=params)
@@ -147,7 +147,7 @@ class Projects(Stream):
                     pager = Paginator(Context.client)
                     for page in pager.pages(COMPONENTS.tap_stream_id, "GET", path):
                         COMPONENTS.write_page(page)
-            
+
             # `isLast` corresponds to whether it is the last page or not.
             if projects.get("isLast"):
                 break
