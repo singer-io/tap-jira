@@ -13,8 +13,9 @@ class MinimumSelectionTest(BaseTapTest):
 
     def test_run(self):
         """
-        Verify that for each stream you can get multiple pages of data
-        when no fields are selected and only the automatic fields are replicated.
+        - Verify that for each stream you can get multiple pages of data
+        - when no fields are selected and only the automatic fields are replicated.
+        - Verify that all replicated records have unique primary key values
 
         PREREQUISITE
         For EACH stream add enough data that you surpass the limit of a single
@@ -35,9 +36,15 @@ class MinimumSelectionTest(BaseTapTest):
         record_count_by_stream = self.run_sync(conn_id)
 
         actual_fields_by_stream = runner.examine_target_output_for_fields()
+        synced_records = runner.get_records_from_target_output()
 
         for stream in self.expected_streams():
             with self.subTest(stream=stream):
+                # get primary keys
+                expected_primary_keys = self.expected_primary_keys().get(stream, set())
+                # collect records
+                messages = synced_records.get(stream)
+
                 # verify that you get more than a page of data
                 # SKIP THIS ASSERTION FOR STREAMS WHERE YOU CANNOT GET
                 # MORE THAN 1 PAGE OF DATA IN THE TEST ACCOUNT
@@ -47,10 +54,18 @@ class MinimumSelectionTest(BaseTapTest):
                     msg="The number of records is not over the stream max limit")
 
                 # verify that only the automatic fields are sent to the target
-                expected_fields_for_stream = (self.expected_primary_keys().get(stream, set()) |
+                expected_fields_for_stream = (expected_primary_keys |
                                               self.top_level_replication_key_fields().get(stream, set()) |
                                               self.expected_foreign_keys().get(stream, set()))
                 self.assertEqual(
                     actual_fields_by_stream.get(stream, set()),
                     expected_fields_for_stream,
                     msg="The fields sent to the target are not the automatic fields.\nExpected: {}\nActual: {}".format(expected_fields_for_stream, actual_fields_by_stream.get(stream, set())))
+
+                # Verify that all replicated records have unique primary key values
+                records_pks_set = {tuple([message.get('data').get(primary_key) for primary_key in expected_primary_keys])
+                                          for message in messages.get('messages')}
+                records_pks_list = [tuple([message.get('data').get(primary_key) for primary_key in expected_primary_keys])
+                                           for message in messages.get('messages')]
+                self.assertCountEqual(records_pks_set, records_pks_list,
+                                      msg="We have duplicate records for {}".format(stream))
