@@ -6,7 +6,7 @@ from singer import metrics, utils, metadata, Transformer
 from .http import Paginator,JiraNotFoundError
 from .context import Context
 
-DEFAULT_PAGE_SIZE = 1
+DEFAULT_PAGE_SIZE = 50
 
 def raise_if_bookmark_cannot_advance(worklogs):
     # Worklogs can only be queried with a `since` timestamp and

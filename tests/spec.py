@@ -76,7 +76,7 @@ class TapSpec():
             "projects": {
                 self.PRIMARY_KEYS: {"id"},
                 self.API_LIMIT: 50,
-            },
+            }, # maxResults comes back as this
             "project_types": key_pk, # Not paginated, see https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-project-types/#api-rest-api-2-project-type-get
             "project_categories": id_pk, # Not paginated, see https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-project-categories/
             "versions": {
