@@ -8,16 +8,24 @@ from base import BaseTapTest
 class AllFieldsTest(BaseTapTest):
     """Test that with no fields selected for a stream automatic fields are still replicated"""
 
-    # fields for which data is not generated
+    # fields for which data is not generated or available via updating API Call
     fields_to_remove = {
-        "worklogs": ["properties", "visibility"],
+        # Most of the fields will be included using "expand" parameter in the API Call
+        # See backlog card: https://jira.talendforge.org/browse/TDL-17948 for more details
+        "worklogs": ["properties"],
+        # removed in the Tap
         "project_types": ["icon"],
+        # name, key: properties are deprected
+        # expand: not populated in the response
         "users": ["name", "key", "expand"],
+        # project: not populated in the response
         "versions": ["expand", "moveUnfixedIssuesTo", "project", "remotelinks", "operations"],
+        # fieldsToInclude: not found in the doc
         "issues": ["renderedFields", "schema", "editmeta", "fieldsToInclude", "versionedRepresentations", "names", "properties"],
-        "issue_comments": ["properties", "visibility", "renderedBody"],
-        "projects": ["roles", "url", "issueTypes", "email", "assigneeType", "components", "projectCategory"],
+        "issue_comments": ["properties", "renderedBody"],
+        "projects": ["roles", "issueTypes", "email", "assigneeType", "components"],
         "issue_transitions": ["fields", "expand"],
+        # iconUrl: not found in the doc
         "resolutions": ["iconUrl"],
         "changelogs": ["historyMetadata"]
     }

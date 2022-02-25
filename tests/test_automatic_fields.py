@@ -63,9 +63,7 @@ class MinimumSelectionTest(BaseTapTest):
                     msg="The fields sent to the target are not the automatic fields.\nExpected: {}\nActual: {}".format(expected_fields_for_stream, actual_fields_by_stream.get(stream, set())))
 
                 # Verify that all replicated records have unique primary key values
-                records_pks_set = {tuple([message.get('data').get(primary_key) for primary_key in expected_primary_keys])
-                                          for message in messages.get('messages')}
                 records_pks_list = [tuple([message.get('data').get(primary_key) for primary_key in expected_primary_keys])
                                            for message in messages.get('messages')]
-                self.assertCountEqual(records_pks_set, records_pks_list,
+                self.assertCountEqual(set(records_pks_list), records_pks_list,
                                       msg="We have duplicate records for {}".format(stream))
