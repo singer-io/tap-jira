@@ -1,10 +1,6 @@
 """
 Test tap sets a bookmark and respects it for the next sync of a stream
 """
-from datetime import datetime as dt
-
-from dateutil.parser import parse
-
 from tap_tester import menagerie, runner
 
 from base import BaseTapTest
@@ -91,30 +87,6 @@ class BookmarkTest(BaseTapTest):
                     target_min_value = first_min_bookmarks.get(
                         stream, {None: None}).get(stream_bookmark_key)
 
-                    try:
-                        # attempt to parse the bookmark as a date
-                        if state_value:
-                            if isinstance(state_value, str):
-                                state_value = self.local_to_utc(parse(state_value))
-                            if isinstance(state_value, int):
-                                state_value = self.local_to_utc(dt.utcfromtimestamp(state_value))
-
-                        if target_value:
-                            if isinstance(target_value, str):
-                                target_value = self.local_to_utc(parse(target_value))
-                            if isinstance(target_value, int):
-                                target_value = self.local_to_utc(dt.utcfromtimestamp(target_value))
-
-                        if target_min_value:
-                            if isinstance(target_min_value, str):
-                                target_min_value = self.local_to_utc(parse(target_min_value))
-                            if isinstance(target_min_value, int):
-                                target_min_value = self.local_to_utc(
-                                    dt.utcfromtimestamp(target_min_value))
-
-                    except (OverflowError, ValueError, TypeError):
-                        print("bookmarks cannot be converted to dates, comparing values directly")
-
                     # verify that there is data with different bookmark values - setup necessary
                     self.assertGreaterEqual(target_value, target_min_value,
                                             msg="Data isn't set up to be able to test bookmarks")
@@ -132,15 +104,6 @@ class BookmarkTest(BaseTapTest):
                     # verify all data from 2nd sync >= 1st bookmark
                     target_value = second_min_bookmarks.get(
                         stream, {None: None}).get(stream_bookmark_key)
-                    try:
-                        if target_value:
-                            if isinstance(target_value, str):
-                                target_value = self.local_to_utc(parse(target_value))
-                            if isinstance(target_value, int):
-                                target_value = self.local_to_utc(dt.utcfromtimestamp(target_value))
-
-                    except (OverflowError, ValueError, TypeError):
-                        print("bookmarks cannot be converted to dates, comparing values directly")
 
                     # verify that the minimum bookmark sent to the target for the second sync
                     # is greater than or equal to the bookmark from the first sync
