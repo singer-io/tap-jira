@@ -45,13 +45,12 @@ def load_schema(tap_stream_id):
     return schema
 
 
-def discover(jira_client):
+def discover():
     catalog = Catalog([])
     for stream in streams_.ALL_STREAMS:
         schema = Schema.from_dict(load_schema(stream.tap_stream_id))
 
-        # Pass jira_client instance to switch pk for users stream in the catalog
-        mdata = generate_metadata(stream, schema, jira_client)
+        mdata = generate_metadata(stream, schema)
 
         catalog.streams.append(CatalogEntry(
             stream=stream.tap_stream_id,
@@ -62,12 +61,12 @@ def discover(jira_client):
     return catalog
 
 
-def generate_metadata(stream, schema, jira_client):
+def generate_metadata(stream, schema):
     mdata = metadata.new()
     mdata = metadata.write(mdata, (), 'table-key-properties', stream.pk_fields)
 
     # Update pk for users stream to key for on prem jira instance
-    if stream.tap_stream_id == "users" and jira_client.is_on_prem_instance:
+    if stream.tap_stream_id == "users" and Context.client.is_on_prem_instance:
         stream.pk_fields = ["key"]
 
     for field_name in schema.properties.keys():
@@ -119,17 +118,16 @@ def main():
     jira_client = Client(jira_config)
 
     # Setup Context
+    Context.client = jira_client
     catalog = Catalog.from_dict(args.properties) \
-        if args.properties else discover(jira_client) # Pass jira_client instance to switch pk for users stream in the catalog
+        if args.properties else discover()
     Context.config = jira_config
     Context.state = args.state
     Context.catalog = catalog
 
-    Context.client = jira_client
     try:
         if args.discover:
-            # Pass jira_client instance to switch pk for users stream in the catalog
-            discover(jira_client).dump()
+            discover().dump()
             print()
         else:
             sync()

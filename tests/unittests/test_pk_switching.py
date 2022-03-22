@@ -2,6 +2,7 @@ from unittest import mock
 from unittest.mock import Mock
 from tap_jira.http import Client
 from tap_jira.streams import ALL_STREAMS
+from tap_jira.context import Context
 import tap_jira
 import unittest
 import requests
@@ -59,7 +60,7 @@ class TestPkSwitchingForUserStream(unittest.TestCase):
 
         jira_client = Client(JIRA_CONFIG)
         jira_client.is_on_prem_instance = True
-
+        Context.client = jira_client
         # `users` stream
         users_stream = ALL_STREAMS[7]
 
@@ -67,7 +68,7 @@ class TestPkSwitchingForUserStream(unittest.TestCase):
         schema = Mock()
         schema.properties = {}
 
-        tap_jira.generate_metadata(users_stream, schema, jira_client)
+        tap_jira.generate_metadata(users_stream, schema)
 
         # Verify primary key of stream
         self.assertEqual(users_stream.pk_fields, ["key"])
@@ -82,6 +83,7 @@ class TestPkSwitchingForUserStream(unittest.TestCase):
 
         jira_client = Client(JIRA_CONFIG)
         jira_client.is_on_prem_instance = False
+        Context.client = jira_client
 
         # `users` stream
         users_stream = ALL_STREAMS[7]
@@ -90,7 +92,7 @@ class TestPkSwitchingForUserStream(unittest.TestCase):
         schema = Mock()
         schema.properties = {}
 
-        tap_jira.generate_metadata(users_stream, schema, jira_client)
+        tap_jira.generate_metadata(users_stream, schema)
 
         # Verify primary key of stream
         self.assertEqual(users_stream.pk_fields, ["accountId"])
@@ -111,7 +113,7 @@ class TestPkSwitchingForUserStream(unittest.TestCase):
         schema = Mock()
         schema.properties = {}
 
-        tap_jira.generate_metadata(users_stream, schema, jira_client)
+        tap_jira.generate_metadata(users_stream, schema)
 
         # Verify primary key of stream
         self.assertEqual(users_stream.pk_fields, ["id"])
