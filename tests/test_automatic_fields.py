@@ -30,7 +30,14 @@ class MinimumSelectionTest(BaseTapTest):
         # IF THERE ARE NO AUTOMATIC FIELDS FOR A STREAM
         # WE WILL NEED TO UPDATE THE BELOW TO SELECT ONE
         found_catalogs = menagerie.get_catalogs(conn_id)
-        self.select_all_streams_and_fields(conn_id, found_catalogs, select_all_fields=False)
+
+        # BUG: https://jira.talendforge.org/browse/TDL-18287
+        #   Primary key is not unique for 'issue_transitions' stream
+        expected_streams = self.expected_streams() - {"issue_transitions"}
+        our_catalogs = [catalog for catalog in found_catalogs if
+                        catalog.get('tap_stream_id') in expected_streams]
+
+        self.select_all_streams_and_fields(conn_id, our_catalogs, select_all_fields=False)
 
         # Run a sync job using orchestrator
         record_count_by_stream = self.run_sync(conn_id)
@@ -38,7 +45,7 @@ class MinimumSelectionTest(BaseTapTest):
         actual_fields_by_stream = runner.examine_target_output_for_fields()
         synced_records = runner.get_records_from_target_output()
 
-        for stream in self.expected_streams():
+        for stream in expected_streams:
             with self.subTest(stream=stream):
                 # get primary keys
                 expected_primary_keys = self.expected_primary_keys().get(stream, set())
