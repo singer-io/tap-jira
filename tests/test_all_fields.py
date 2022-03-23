@@ -41,7 +41,15 @@ class AllFieldsTest(BaseTapTest):
 
         # Select all streams and no fields within streams
         found_catalogs = menagerie.get_catalogs(conn_id)
-        self.select_all_streams_and_fields(conn_id, found_catalogs, select_all_fields=True)
+
+        # BUG: https://jira.talendforge.org/browse/TDL-18287
+        #   Primary key is not unique for 'issue_transitions' stream
+        expected_streams = self.expected_streams() - {"issue_transitions"}
+        our_catalogs = [catalog for catalog in found_catalogs if
+                        catalog.get('tap_stream_id') in expected_streams]
+
+        # stream and field selection
+        self.select_all_streams_and_fields(conn_id, our_catalogs, select_all_fields=True)
 
         # grab metadata after performing table-and-field selection to set expectations
         stream_to_all_catalog_fields = dict() # used for asserting all fields are replicated
@@ -59,9 +67,9 @@ class AllFieldsTest(BaseTapTest):
 
         # Verify no unexpected streams were replicated
         synced_stream_names = set(synced_records.keys())
-        self.assertSetEqual(self.expected_streams(), synced_stream_names)
+        self.assertSetEqual(expected_streams, synced_stream_names)
 
-        for stream in self.expected_streams():
+        for stream in expected_streams:
             with self.subTest(stream=stream):
                 # expected values
                 expected_automatic_keys = self.expected_primary_keys().get(stream, set()) | \
