@@ -178,13 +178,18 @@ class Client():
             # Only appears to be needed once for any 6 hour period. If
             # running the tap for more than 6 hours is needed this will
             # likely need to be more complicated.
-            self.refresh_credentials()
+            if self._check_refresh_credentials(config):
+                self.refresh_credentials()
             self.test_credentials_are_authorized()
         else:
             LOGGER.info("Using Basic Auth API authentication")
             self.base_url = config.get("base_url")
             self.auth = HTTPBasicAuth(config.get("username"), config.get("password"))
             self.test_basic_credentials_are_authorized()
+
+    def _check_refresh_credentials(self, config):
+        if config.get("refresh_credentials") is None or str(config.get("refresh_credentials")).lower() == "true": 
+            return True
 
     def url(self, path):
         if self.is_cloud:
