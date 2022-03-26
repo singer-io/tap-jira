@@ -60,6 +60,17 @@ This tap:
    }
    ```
 
+  or (for Personal Access Token):
+
+  ```json
+  {
+      "start_date": "2010-01-01",
+      "access_token": "<personal-access-token>",
+      "base_url": "https://your-jira-domain",
+      "user_agent": "<user-agent>",
+      "request_timeout": 300
+  }
+
    The `start_date` specifies the date at which the tap will begin pulling data
    (for those resources that support this).
 

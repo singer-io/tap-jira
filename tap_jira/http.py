@@ -158,6 +158,7 @@ def get_request_timeout(config):
 
 class Client():
     def __init__(self, config):
+        self.is_hosted_pat = self._pat_exists(config)
         self.is_cloud = 'oauth_client_id' in config.keys()
         self.session = requests.Session()
         self.next_request_at = datetime.now()
@@ -165,7 +166,12 @@ class Client():
         self.login_timer = None
         self.timeout = get_request_timeout(config)
 
-        if self.is_cloud:
+        if self.is_hosted_pat:
+            LOGGER.info("Using Personal Access Token authentication")
+            self.base_url = config.get("base_url")
+            self.access_token = config.get('access_token')
+            self.test_pat_credentials_are_authorized()
+        elif self.is_cloud:
             LOGGER.info("Using OAuth based API authentication")
             self.auth = None
             self.base_url = 'https://api.atlassian.com/ex/jira/{}{}'
@@ -195,13 +201,16 @@ class Client():
         base_url = re.sub('^http[s]?://', '', base_url)
         base_url = 'https://' + base_url
         return base_url.rstrip("/") + "/" + path.lstrip("/")
+    
+    def _pat_exists(self,config):
+        return 'base_url' in config.keys() and 'access_token' in config.keys()
 
     def _headers(self, headers):
         headers = headers.copy()
         if self.user_agent:
             headers["User-Agent"] = self.user_agent
 
-        if self.is_cloud:
+        if self.is_cloud or self.is_hosted_pat:
             # Add OAuth Headers
             headers['Accept'] = 'application/json'
             headers['Authorization'] = 'Bearer {}'.format(self.access_token)
@@ -214,8 +223,8 @@ class Client():
                           max_tries=6,
                           giveup=lambda e: not should_retry_httperror(e))
     def send(self, method, path, headers={}, **kwargs):
-        if self.is_cloud:
-            # OAuth Path
+        if self.is_cloud or self.is_hosted_pat:
+            # OAuth Path / PAT Path
             request = requests.Request(method,
                                        self.url(path),
                                        headers=self._headers(headers),
@@ -276,6 +285,10 @@ class Client():
                      params={"maxResults": 1})
 
     def test_basic_credentials_are_authorized(self):
+        # Make a call to myself endpoint for verify creds
+        self.request("test", "GET", "/rest/api/2/myself")
+    
+    def test_pat_credentials_are_authorized(self):
         # Make a call to myself endpoint for verify creds
         self.request("test", "GET", "/rest/api/2/myself")
 
