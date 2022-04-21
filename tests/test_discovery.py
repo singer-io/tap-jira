@@ -23,6 +23,7 @@ class DiscoveryTest(BaseTapTest):
         • Verify stream names follow naming convention
           streams should only have lowercase alphas and underscores
         • verify there is only 1 top level breadcrumb
+        • verify there are no duplicate/conflicting metadata entries
         • verify replication key(s)
         • verify primary key(s)
         • verify that if there is a replication key we are doing INCREMENTAL otherwise FULL
@@ -72,6 +73,14 @@ class DiscoveryTest(BaseTapTest):
                 stream_properties = [item for item in metadata if item.get("breadcrumb") == []]
                 self.assertTrue(len(stream_properties) == 1,
                                 msg="There is more than one top level breadcrumb")
+
+                # collect fields
+                actual_fields = []
+                for md_entry in metadata:
+                    if md_entry["breadcrumb"] != []:
+                        actual_fields.append(md_entry["breadcrumb"][1])
+                # Verify there are no duplicate/conflicting metadata entries.
+                self.assertEqual(len(actual_fields), len(set(actual_fields)), msg="There are duplicate entries in the fields of '{}' stream".format(stream))
 
                 # verify replication key(s)
                 self.assertEqual(
