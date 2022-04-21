@@ -97,7 +97,10 @@ class TapSpec():
                 # https://stitchdata.atlassian.net/browse/SRCE-5193
             },
             "issue_comments": id_pk, # Returned as part of the issue
-            "issue_transitions": id_pk, # Returned as part of the issue
+            "issue_transitions": {
+                    self.PRIMARY_KEYS: {"id","issueId"},# Composite primary key
+                    self.API_LIMIT: 0,
+                }, # Returned as part of the issue
             "changelogs": id_pk, # Returned as part of the issue
             "worklogs": {
                 self.PRIMARY_KEYS: {"id"},
