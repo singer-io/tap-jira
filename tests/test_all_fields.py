@@ -42,9 +42,7 @@ class AllFieldsTest(BaseTapTest):
         # Select all streams and no fields within streams
         found_catalogs = menagerie.get_catalogs(conn_id)
 
-        # BUG: https://jira.talendforge.org/browse/TDL-18287
-        #   Primary key is not unique for 'issue_transitions' stream
-        expected_streams = self.expected_streams() - {"issue_transitions"}
+        expected_streams = self.expected_streams()
         our_catalogs = [catalog for catalog in found_catalogs if
                         catalog.get('tap_stream_id') in expected_streams]
 

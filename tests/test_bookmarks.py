@@ -35,7 +35,7 @@ class BookmarkTest(BaseTapTest):
 
         # IF THERE ARE STREAMS THAT SHOULD NOT BE TESTED
         # REPLACE THE EMPTY SET BELOW WITH THOSE STREAMS
-        untested_streams = self.child_streams().union({"issue_comments", "issue_transitions", "changelogs"})
+        untested_streams = self.child_streams().union({"issue_comments", "changelogs"})
         expected_streams = self.expected_streams().difference(untested_streams)
 
         incremental_streams = {key for key, value in self.expected_replication_method().items()
