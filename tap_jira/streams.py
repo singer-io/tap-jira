@@ -117,6 +117,7 @@ class Stream():
 
 class Projects(Stream):
     def sync_on_prem(self):
+        """ Sync function for the on prem instances"""
         projects = Context.client.request(
             self.tap_stream_id, "GET", "/rest/api/2/project",
             params={"expand": "description,lead,url,projectKeys"})
@@ -142,6 +143,7 @@ class Projects(Stream):
                     COMPONENTS.write_page(page)
 
     def sync_cloud(self):
+        """ Sync function for the cloud instances"""
         offset = 0
         while True:
             params = {
@@ -179,6 +181,11 @@ class Projects(Stream):
             offset = offset + DEFAULT_PAGE_SIZE # next offset to start from
 
     def sync(self):
+        # The documentation https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-projects/#api-rest-api-3-project-get 
+        # suggests that the rest/api/3/project endpoint would be deprecated from the version 3 and w could use project/search endpoint 
+        # which gives paginated response. However, the on prem servers doesn't allow working on the project/search endpoint. Hence for the cloud 
+        # instances, the new endpoint would be called which also suggests pagination, but for on prm instances the old endpoint would be called.
+        # As we want to include both the cloud as well as the on-prem servers.
         if Context.client.is_on_prem_instance:
             self.sync_on_prem()
         else:
