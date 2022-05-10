@@ -1,5 +1,10 @@
 # Changelog
 
+## [v2.1.2]
+  * Added Missing Test Cases [#74](https://github.com/singer-io/tap-jira/pull/74)
+  * Updated Project stream with new endpoint as old one is deprecated [#75](https://github.com/singer-io/tap-jira/pull/75)
+  * Primary Key Switching change for On prem JIRA [#76](https://github.com/singer-io/tap-jira/pull/76)
+  * Updating primary key for issue_transition_stream [#81](https://github.com/singer-io/tap-jira/pull/81)
 ## [v2.1.1]
   * Request Timeout Implementation [#71](https://github.com/singer-io/tap-jira/pull/71)
 ## [v2.1.0]
