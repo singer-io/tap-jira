@@ -6,6 +6,7 @@ from singer import metrics, utils, metadata, Transformer
 from .http import Paginator,JiraNotFoundError
 from .context import Context
 
+DEFAULT_PAGE_SIZE = 50
 
 def raise_if_bookmark_cannot_advance(worklogs):
     # Worklogs can only be queried with a `since` timestamp and
@@ -115,7 +116,8 @@ class Stream():
 
 
 class Projects(Stream):
-    def sync(self):
+    def sync_on_prem(self):
+        """ Sync function for the on prem instances"""
         projects = Context.client.request(
             self.tap_stream_id, "GET", "/rest/api/2/project",
             params={"expand": "description,lead,url,projectKeys"})
@@ -140,6 +142,54 @@ class Projects(Stream):
                 for page in pager.pages(COMPONENTS.tap_stream_id, "GET", path):
                     COMPONENTS.write_page(page)
 
+    def sync_cloud(self):
+        """ Sync function for the cloud instances"""
+        offset = 0
+        while True:
+            params = {
+                "expand": "description,lead,url,projectKeys",
+                "maxResults": DEFAULT_PAGE_SIZE, # maximum number of results to fetch in a page.
+                "startAt": offset #the offset to start at for the next page
+            }
+            projects = Context.client.request(
+                self.tap_stream_id, "GET", "/rest/api/2/project/search",
+                params=params)
+            for project in projects.get('values'):
+                # The Jira documentation suggests that a "versions" key may appear
+                # in the project, but from my testing that hasn't been the case
+                # (even when projects do have versions). Since we are already
+                # syncing versions separately, pop this key just in case it
+                # appears.
+                project.pop("versions", None)
+            self.write_page(projects.get('values'))
+            if Context.is_selected(VERSIONS.tap_stream_id):
+                for project in projects.get('values'):
+                    path = "/rest/api/2/project/{}/version".format(project["id"])
+                    pager = Paginator(Context.client, order_by="sequence")
+                    for page in pager.pages(VERSIONS.tap_stream_id, "GET", path):
+                        VERSIONS.write_page(page)
+            if Context.is_selected(COMPONENTS.tap_stream_id):
+                for project in projects.get('values'):
+                    path = "/rest/api/2/project/{}/component".format(project["id"])
+                    pager = Paginator(Context.client)
+                    for page in pager.pages(COMPONENTS.tap_stream_id, "GET", path):
+                        COMPONENTS.write_page(page)
+
+            # `isLast` corresponds to whether it is the last page or not.
+            if projects.get("isLast"):
+                break
+            offset = offset + DEFAULT_PAGE_SIZE # next offset to start from
+
+    def sync(self):
+        # The documentation https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-projects/#api-rest-api-3-project-get
+        # suggests that the rest/api/3/project endpoint would be deprecated from the version 3 and w could use project/search endpoint
+        # which gives paginated response. However, the on prem servers doesn't allow working on the project/search endpoint. Hence for the cloud
+        # instances, the new endpoint would be called which also suggests pagination, but for on prm instances the old endpoint would be called.
+        # As we want to include both the cloud as well as the on-prem servers.
+        if Context.client.is_on_prem_instance:
+            self.sync_on_prem()
+        else:
+            self.sync_cloud()
 
 class ProjectTypes(Stream):
     def sync(self):

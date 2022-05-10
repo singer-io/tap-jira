@@ -25,7 +25,13 @@ jobs:
             # BUG https://jira.talendforge.org/browse/TDL-15395
             echo "pylint is skipping the following: $PYLINT_DISABLE_LIST"
             pylint tap_jira -d "$PYLINT_DISABLE_LIST,unsupported-assignment-operation,unsupported-membership-test,unsubscriptable-object,dangerous-default-value,too-many-instance-attributes"
-            nosetests tests/unittests
+            pip install nose coverage
+            nosetests --with-coverage --cover-erase --cover-package=tap_jira --cover-html-dir=htmlcov tests/unittests
+            coverage html
+      - store_test_results:
+          path: test_output/report.xml
+      - store_artifacts:
+          path: htmlcov
       - run:
           name: 'JSON Validator'
           command: |
