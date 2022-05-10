@@ -63,6 +63,11 @@ def discover():
 
 def generate_metadata(stream, schema):
     mdata = metadata.new()
+
+    # Update pk for users stream to key for on prem jira instance
+    if stream.tap_stream_id == "users" and Context.client.is_on_prem_instance:
+        stream.pk_fields = ["key"]
+
     mdata = metadata.write(mdata, (), 'table-key-properties', stream.pk_fields)
 
     for field_name in schema.properties.keys():
@@ -109,14 +114,17 @@ def sync():
 def main():
     args = get_args()
 
+    jira_config = args.config
+    # jira client instance
+    jira_client = Client(jira_config)
+
     # Setup Context
+    Context.client = jira_client
     catalog = Catalog.from_dict(args.properties) \
         if args.properties else discover()
-    Context.config = args.config
+    Context.config = jira_config
     Context.state = args.state
     Context.catalog = catalog
-
-    Context.client = Client(Context.config)
 
     try:
         if args.discover:

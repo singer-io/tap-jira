@@ -31,7 +31,7 @@ class TestBasicAuthInDiscoverMode(unittest.TestCase):
     def test_basic_auth_no_access_401(self, mocked_discover, mocked_send, mocked_args):
         '''
             Verify exception is raised for no access(401) error code for basic auth
-            and discover is called once for setup Context.
+            and discover is not called.
         '''
         mocked_send.return_value = get_mock_http_response(401, {})
         mocked_args.return_value = Args()
@@ -43,7 +43,7 @@ class TestBasicAuthInDiscoverMode(unittest.TestCase):
             # Verifying the message formed for the custom exception
             self.assertEquals(str(e), expected_error_message)
 
-        self.assertEqual(mocked_discover.call_count, 1)
+        self.assertEqual(mocked_discover.call_count, 0)
 
     def test_basic_auth_access_200(self, mocked_discover, mocked_send, mocked_args):
         '''

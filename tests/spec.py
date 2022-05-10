@@ -73,7 +73,10 @@ class TapSpec():
         }
 
         return {
-            "projects": id_pk, # Tap uses deprecated all projects endpoint, not paginated one, see https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-projects/#api-group-projects
+            "projects": {
+                self.PRIMARY_KEYS: {"id"},
+                self.API_LIMIT: 50,
+            }, # maxResults comes back as this
             "project_types": key_pk, # Not paginated, see https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-project-types/#api-rest-api-2-project-type-get
             "project_categories": id_pk, # Not paginated, see https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-project-categories/
             "versions": {
@@ -97,7 +100,10 @@ class TapSpec():
                 # https://stitchdata.atlassian.net/browse/SRCE-5193
             },
             "issue_comments": id_pk, # Returned as part of the issue
-            "issue_transitions": id_pk, # Returned as part of the issue
+            "issue_transitions": {
+                    self.PRIMARY_KEYS: {"id","issueId"},# Composite primary key
+                    self.API_LIMIT: 0,
+                }, # Returned as part of the issue
             "changelogs": id_pk, # Returned as part of the issue
             "worklogs": {
                 self.PRIMARY_KEYS: {"id"},
