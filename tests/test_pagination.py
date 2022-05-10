@@ -34,10 +34,14 @@ class PaginationTest(BaseTapTest):
         record_count_by_stream = self.run_sync(conn_id)
 
         actual_fields_by_stream = runner.examine_target_output_for_fields()
-
+      
+        synced_recs = runner.get_records_from_target_output()
 
         for stream in self.expected_streams():
             with self.subTest(stream=stream):
+                
+                expected_pks = self.expected_primary_keys()[stream]
+
                 # verify that we can paginate with all fields selected
                 self.assertGreater(
                     record_count_by_stream.get(stream, -1),
@@ -62,3 +66,13 @@ class PaginationTest(BaseTapTest):
                         self.expected_foreign_keys().get(stream, set())),
                     msg="The fields sent to the target don't include non-automatic fields"
                 )
+
+                pk_value_list = [
+                    tuple(message.get("data").get(pk) for pk in expected_pks)
+                    for message in synced_recs[stream].get("messages", [])
+                    if message["action"] == "upsert"
+                ]
+                unique_pk_values = set(pk_value_list)
+                
+                # verify No records have dulpicate primary-keys value
+                self.assertEqual(len(pk_value_list), len(unique_pk_values), msg="Replicated records does not have unique values.")

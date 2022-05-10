@@ -322,7 +322,7 @@ VERSIONS = Stream("versions", ["id"], indirect_stream=True)
 COMPONENTS = Stream("components", ["id"], indirect_stream=True)
 ISSUES = Issues("issues", ["id"])
 ISSUE_COMMENTS = Stream("issue_comments", ["id"], indirect_stream=True)
-ISSUE_TRANSITIONS = Stream("issue_transitions", ["id"],
+ISSUE_TRANSITIONS = Stream("issue_transitions", ["id","issueId"], # Composite primary key
                            indirect_stream=True)
 PROJECTS = Projects("projects", ["id"])
 CHANGELOGS = Stream("changelogs", ["id"], indirect_stream=True)

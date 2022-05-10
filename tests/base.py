@@ -159,7 +159,15 @@ class BaseTapTest(TapSpec, unittest.TestCase):
         string compared which works for ISO date-time strings
         """
         max_bookmarks = {}
+        # get incremental streams
+        incremental_streams = [key for key, value in self.expected_replication_method().items()
+                               if value == self.INCREMENTAL]
         for stream, batch in sync_records.items():
+            # skip stream that is not incremental
+            # as bookmark will be written for incremental streams
+            if stream not in incremental_streams:
+                continue
+
             upsert_messages = [m for m in batch.get('messages') if m['action'] == 'upsert']
             stream_record_key = self.expected_replication_key_record_paths().get(stream, set())
             stream_bookmark_key = self.expected_replication_keys().get(stream, set())
@@ -192,7 +200,14 @@ class BaseTapTest(TapSpec, unittest.TestCase):
     def min_bookmarks_by_stream(self, sync_records):
         """Return the minimum value for the replication key for each stream"""
         min_bookmarks = {}
+        # get incremental streams
+        incremental_streams = [key for key, value in self.expected_replication_method().items()
+                               if value == self.INCREMENTAL]
         for stream, batch in sync_records.items():
+            # skip stream that is not incremental
+            # as bookmark will be written for incremental streams
+            if stream not in incremental_streams:
+                continue
 
             upsert_messages = [m for m in batch.get('messages') if m['action'] == 'upsert']
             stream_record_key = self.expected_replication_key_record_paths().get(stream, set())
