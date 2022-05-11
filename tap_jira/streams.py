@@ -376,7 +376,7 @@ def validate_dependencies():
             errs.append(msg_tmpl.format("Issue Transitions", "Issues"))
     if errs:
         raise DependencyException(" ".join(errs))
-    
+
 def transform_user_date(user_date):
     """Transform date value to 'yyyy-mm-dd' format."""
     return dateparser.parse(user_date).strftime('%Y-%m-%d')
