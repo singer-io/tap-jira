@@ -11,6 +11,7 @@ setup(name="tap-jira",
       install_requires=[
           "singer-python==5.12.1",
           "requests==2.20.0",
+          "dateparser"
       ],
       extras_require={
           'dev': [

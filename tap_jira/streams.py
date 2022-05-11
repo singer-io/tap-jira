@@ -1,6 +1,7 @@
 import json
 import pytz
 import singer
+import dateparser
 
 from singer import metrics, utils, metadata, Transformer
 from .http import Paginator,JiraNotFoundError
@@ -134,6 +135,12 @@ class Projects(Stream):
                 path = "/rest/api/2/project/{}/version".format(project["id"])
                 pager = Paginator(Context.client, order_by="sequence")
                 for page in pager.pages(VERSIONS.tap_stream_id, "GET", path):
+                    for each_page in page:
+                        # Transform userReleaseDate and userReleaseDate to 'yyyy-mm-dd' format.
+                        if each_page.get('userReleaseDate'):
+                            each_page['userReleaseDate'] = transform_user_date(each_page['userReleaseDate'])
+                        if each_page.get('userStartDate'):
+                            each_page['userStartDate'] = transform_user_date(each_page['userStartDate'])
                     VERSIONS.write_page(page)
         if Context.is_selected(COMPONENTS.tap_stream_id):
             for project in projects:
@@ -369,3 +376,7 @@ def validate_dependencies():
             errs.append(msg_tmpl.format("Issue Transitions", "Issues"))
     if errs:
         raise DependencyException(" ".join(errs))
+    
+def transform_user_date(user_date):
+    """Transform date value to 'yyyy-mm-dd' format."""
+    return dateparser.parse(user_date).strftime('%Y-%m-%d')
