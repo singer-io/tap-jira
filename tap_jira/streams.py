@@ -136,7 +136,10 @@ class Projects(Stream):
                 pager = Paginator(Context.client, order_by="sequence")
                 for page in pager.pages(VERSIONS.tap_stream_id, "GET", path):
                     for each_page in page:
-                        # Transform userReleaseDate and userReleaseDate to 'yyyy-mm-dd' format.
+                        # API return userReleaseDate and userStartDate in the dd/mm/yyyy format where the month name is in Abbreviation form.
+                        # For example, if the user selected the Spanish language in the Jira profile, then API returns these field values in 12/okt/2022 or 12/abr/2022 format.
+                        # Singer-python throw error for this kind of format.
+                        # That's why, transform userReleaseDate and userStartDate to 'yyyy-mm-dd' format here.
                         if each_page.get('userReleaseDate'):
                             each_page['userReleaseDate'] = transform_user_date(each_page['userReleaseDate'])
                         if each_page.get('userStartDate'):
