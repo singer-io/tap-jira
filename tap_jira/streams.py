@@ -381,5 +381,14 @@ def validate_dependencies():
         raise DependencyException(" ".join(errs))
 
 def transform_user_date(user_date):
-    """Transform date value to 'yyyy-mm-dd' format."""
+    """
+    Transform date value to 'yyyy-mm-dd' format.
+    API returns userReleaseDate and userStartDate always in the dd/mm/yyyy format where the month name is in Abbreviation form.
+    Dateparser library handles locale value and converts Abbreviation month to number.
+    For example, if userReleaseDate is 12/abr/2022 then we are converting it to 2022-04-12.
+    Then, at the end singer-python will transform any DateTime to %Y-%m-%dT00:00:00Z format.
+
+    All the locales are supported except following below locales,
+    Chinese, Italia, Japanese, Korean, Polska, Brasil.
+    """
     return dateparser.parse(user_date).strftime('%Y-%m-%d')
