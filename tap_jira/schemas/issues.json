@@ -445,138 +445,21 @@
           ]
         },
 
-        "customfield_10000": {
-          "title": "development",
-          "type": [
-            "null",
-            "string"
-          ]
-        },
-        "customfield_10001": {
-          "title": "team",
-          "type": [
-            "null",
-            "string"
-          ]
-        },
-        "customfield_10002": {
-          "title": "organizations",
-          "__COMMENT": "not sure of data type, don't import yet",
-          "type": [
-            "null",
-            "string"
-          ]
-        },
-        "customfield_10003": {
-          "title": "approvers",
-          "__COMMENT": "actually an array of users, don't import yet",
-          "type": [
-            "null",
-            "string"
-          ]
-        },
-        "customfield_10004": {
-          "title": "impact",
-          "type": [
-            "null",
-            "string"
-          ]
-        },
-        "customfield_10005": {
-          "title": "changetype",
-          "type": [
-            "null",
-            "string"
-          ]
-        },
-        "customfield_10006": {
-          "title": "changerisk",
-          "type": [
-            "null",
-            "string"
-          ]
-        },
-        "customfield_10007": {
-          "title": "changereason",
-          "type": [
-            "null",
-            "string"
-          ]
-        },
-        "customfield_10008": {
-          "title": "actualstart",
-          "type": [
-            "null",
-            "string"
-          ],
-          "format": "date-time"
-        },
-        "customfield_10009": {
-          "title": "actualend",
-          "type": [
-            "null",
-            "string"
-          ],
-          "format": "date-time"
-        },
-        "customfield_10010": {
-          "title": "requesttype",
-          "type": [
-            "null",
-            "string"
-          ]
-        },
-        "customfield_10011": {
-          "title": "epicname",
-          "type": [
-            "null",
-            "string"
-          ]
-        },
-        "customfield_10012": {
-          "title": "epicstatus",
-          "type": [
-            "null",
-            "string"
-          ]
-        },
-        "customfield_10013": {
-          "title": "epiccolor",
-          "type": [
-            "null",
-            "string"
-          ]
-        },
-        "customfield_10014": {
+        "Epic Link": {
           "title": "epiclink",
           "type": [
             "null",
             "string"
           ]
         },
-        "customfield_10015": {
-          "title": "startdate",
+        "Story Points": {
+          "title": "storypoints",
           "type": [
             "null",
-            "string"
-          ],
-          "format": "date-time"
-        },
-        "customfield_10016": {
-          "title": "storypointestimate",
-          "type": [
-            "null",
-            "string"
+            "number"
           ]
         },
-        "customfield_10017": {
-          "title": "issuecolor",
-          "type": [
-            "null",
-            "string"
-          ]
-        },
-        "customfield_10018": {
+        "Parent Link": {
           "title": "parentlink",
           "type": [
             "null",
@@ -586,14 +469,14 @@
             ".+": {}
           }
         },
-        "customfield_10019": {
+        "Rank": {
           "title": "rank",
           "type": [
             "null",
             "string"
           ]
         },
-        "customfield_10020": {
+        "Sprint": {
           "title": "sprint",
           "type": [
             "null",
@@ -603,65 +486,15 @@
             "$ref": "sprint"
           }
         },
-        "customfield_10021": {
-          "title": "flagged",
-          "type": [
-            "null",
-            "string"
-          ]
-        },
-        "customfield_10022": {
-          "title": "targetstart",
+        "_custom": {
+          "title": "othercustomfields",
           "type": [
             "null",
             "string"
           ],
-          "format": "date-time"
-        },
-        "customfield_10023": {
-          "title": "targetend",
-          "type": [
-            "null",
-            "string"
-          ],
-          "format": "date-time"
-        },
-        "customfield_10024": {
-          "title": "dateoffirstresponse",
-          "type": [
-            "null",
-            "string"
-          ],
-          "format": "date-time"
-        },
-
-        "customfield_10025": {
-          "title": "timeinstatus",
-          "type": [
-            "null",
-            "string"
-          ]
-        },
-        "customfield_10026": {
-          "title": "storypoints",
-          "type": [
-            "null",
-            "string"
-          ]
-        },
-        "customfield_10027": {
-          "title": "uuid",
-          "type": [
-            "null",
-            "string"
-          ]
-        },
-        "customfield_10028": {
-          "title": "location",
-          "type": [
-            "null",
-            "string"
-          ]
+          "patternProperties": {
+            ".+": {}
+          }
         }
       },
       "patternProperties": {
@@ -914,6 +747,13 @@
             "string"
           ],
           "format": "date-time"
+        },
+        "completeDate": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "date-time"
         }
       }
     },
@@ -990,6 +830,12 @@
           ]
         },
         "accountId": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "accountType": {
           "type": [
             "null",
             "string"
@@ -1150,6 +996,12 @@
           "format": "uri"
         },
         "name": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "description": {
           "type": [
             "null",
             "string"
@@ -1392,6 +1244,9 @@
           ]
         },
         "inwardIssue": {
+          "$ref": "issuestub"
+        },
+        "outwardIssue": {
           "$ref": "issuestub"
         }
       }

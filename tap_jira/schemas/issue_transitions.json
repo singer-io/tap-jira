@@ -125,6 +125,18 @@
         "boolean"
       ]
     },
+    "isAvailable": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "isLooped": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
     "isInitial": {
       "type": [
         "null",

@@ -149,6 +149,12 @@
             "string"
           ]
         },
+        "accountType": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
         "emailAddress": {
           "type": [
             "null",

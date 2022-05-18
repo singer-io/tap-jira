@@ -24,6 +24,12 @@
         "string"
       ]
     },
+    "accountType": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
     "name": {
       "type": [
         "null",
