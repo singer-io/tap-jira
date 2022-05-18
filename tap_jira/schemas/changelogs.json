@@ -45,6 +45,12 @@
             "string"
           ]
         },
+        "accountType": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
         "emailAddress": {
           "type": [
             "null",
@@ -122,6 +128,12 @@
               "string"
             ]
           },
+          "tmpFromAccountId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "from": {
             "type": [
               "null",
@@ -129,6 +141,12 @@
             ]
           },
           "fromString": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tmpToAccountId": {
             "type": [
               "null",
               "string"

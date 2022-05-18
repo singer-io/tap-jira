@@ -191,10 +191,30 @@ class Issues(Stream):
         timezone = Context.retrieve_timezone()
         start_date = last_updated.astimezone(pytz.timezone(timezone)).strftime("%Y-%m-%d %H:%M")
 
+        # First, fetch all the custom field names for translation
+        page_num = 0
+        fieldPager = Paginator(Context.client, page_num=page_num, items_key=None)
+        params = {
+            "maxResults": 100,
+        }
+        fieldNames = {}
+        for page in fieldPager.pages('issue_fields', "GET", "/rest/api/2/field", params=params):
+            for field in page:
+                id = field['id']
+                name = field['name']
+                fieldNames[id] = name
+            # HACK - there should only be one page, not sure why pager doesn't support this
+            break
+
+        stream = Context.get_catalog_entry(self.tap_stream_id)
+        knownFields = stream.schema.properties['fields'].properties
+
+        # Now fetch all the actual issues, translating custom fields
         jql = "updated >= '{}' order by updated asc".format(start_date)
         params = {"fields": "*all",
                   "expand": "changelog,transitions",
                   "validateQuery": "strict",
+                  "maxResults": 100,
                   "jql": jql}
         page_num = Context.bookmark(page_num_offset) or 0
         pager = Paginator(Context.client, items_key="issues", page_num=page_num)
@@ -214,6 +234,33 @@ class Issues(Stream):
                 # the "menu" bar for each issue. This is of questionable utility,
                 # so we decided to just strip the field out for now.
                 issue['fields'].pop('operations', None)
+
+                # Rename all of the custom fields
+                issueKeys = []
+                for k in issue['fields'].keys():
+                    issueKeys.append(k)
+                for k in issueKeys:
+                    if k[:len('customfield_')] == 'customfield_':
+                        val = issue['fields'][k]
+                        del issue['fields'][k]
+                        issue['fields'][fieldNames[k]] = val
+
+                # Now, go through and separate fields we don't recognize into "_custom"
+                issueKeys = []
+                customFields = {}
+                for k in issue['fields'].keys():
+                    issueKeys.append(k)
+                for k in issueKeys:
+                    # If we don't know about this field, then put it in a "_custom" object for
+                    # outputting as a single JSON
+                    if not k in knownFields:
+                        val = issue['fields'][k]
+                        # Don't include null values, which just waste a bunch of space
+                        if val != None:
+                            customFields[k] = val
+                        del issue['fields'][k]
+                issue['fields']['_custom'] = json.dumps(customFields)
+
 
             # Grab last_updated before transform in write_page
             last_updated = utils.strptime_to_utc(page[-1]["fields"]["updated"])
