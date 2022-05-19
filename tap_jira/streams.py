@@ -115,7 +115,19 @@ class Stream():
         with metrics.record_counter(self.tap_stream_id) as counter:
             counter.increment(len(page))
 
+def update_user_date(page):
+    """
+    Transform date value to 'yyyy-mm-dd' format.
+    API returns userReleaseDate and userStartDate always in the dd/mm/yyyy format where the month name is in Abbreviation form.
+    Dateparser library handles locale value and converts Abbreviation month to number.
+    For example, if userReleaseDate is 12/abr/2022 then we are converting it to 2022-04-12.
+    """
+    if page.get('userReleaseDate'):
+        page['userReleaseDate'] = transform_user_date(page['userReleaseDate'])
+    if page.get('userStartDate'):
+        page['userStartDate'] = transform_user_date(page['userStartDate'])
 
+    return page
 class Projects(Stream):
     def sync_on_prem(self):
         """ Sync function for the on prem instances"""
@@ -135,15 +147,9 @@ class Projects(Stream):
                 path = "/rest/api/2/project/{}/version".format(project["id"])
                 pager = Paginator(Context.client, order_by="sequence")
                 for page in pager.pages(VERSIONS.tap_stream_id, "GET", path):
+                    # Transform userReleaseDate and userStartDate values to 'yyyy-mm-dd' format.
                     for each_page in page:
-                        # API return userReleaseDate and userStartDate in the dd/mm/yyyy format where the month name is in Abbreviation form.
-                        # For example, if the user selected the Spanish language in the Jira profile, then API returns these field values in 12/okt/2022 or 12/abr/2022 format.
-                        # Singer-python throw error for this kind of format.
-                        # That's why, transform userReleaseDate and userStartDate to 'yyyy-mm-dd' format here.
-                        if each_page.get('userReleaseDate'):
-                            each_page['userReleaseDate'] = transform_user_date(each_page['userReleaseDate'])
-                        if each_page.get('userStartDate'):
-                            each_page['userStartDate'] = transform_user_date(each_page['userStartDate'])
+                        each_page = update_user_date(each_page)
                     VERSIONS.write_page(page)
         if Context.is_selected(COMPONENTS.tap_stream_id):
             for project in projects:
@@ -177,6 +183,10 @@ class Projects(Stream):
                     path = "/rest/api/2/project/{}/version".format(project["id"])
                     pager = Paginator(Context.client, order_by="sequence")
                     for page in pager.pages(VERSIONS.tap_stream_id, "GET", path):
+                        # Transform userReleaseDate and userStartDate values to 'yyyy-mm-dd' format.
+                        for each_page in page:
+                            each_page = update_user_date(each_page)
+
                         VERSIONS.write_page(page)
             if Context.is_selected(COMPONENTS.tap_stream_id):
                 for project in projects.get('values'):
