@@ -7,13 +7,11 @@ import os
 from datetime import datetime as dt
 from datetime import timezone as tz
 
-import singer
 from tap_tester import connections, menagerie, runner
 
 from spec import TapSpec
 from test_client import TestClient, ALL_TEST_STREAMS
 
-LOGGER = singer.get_logger()
 
 class BaseTapTest(TapSpec, unittest.TestCase):
     """

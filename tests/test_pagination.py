@@ -22,24 +22,31 @@ class PaginationTest(BaseTapTest):
         fetch of data.  For instance if you have a limit of 250 records ensure
         that 251 (or more) records have been posted for that stream.
         """
+        streams_to_test = self.expected_streams() - {
+            'projects', # BUG https://jira.talendforge.org/browse/TDL-19163
+            'versions', # child of projects
+            'components', # child of projects
+        }
+
         conn_id = self.create_connection_with_initial_discovery()
 
         self.create_test_data()
 
         # Select all streams and all fields within streams
         found_catalogs = menagerie.get_catalogs(conn_id)
-        self.select_all_streams_and_fields(conn_id, found_catalogs, select_all_fields=True)
+        test_catalogs = [catalog for catalog in found_catalogs if catalog['tap_stream_id'] in streams_to_test]
+        self.select_all_streams_and_fields(conn_id, test_catalogs, select_all_fields=True)
 
         # Run a sync job using orchestrator
         record_count_by_stream = self.run_sync(conn_id)
 
         actual_fields_by_stream = runner.examine_target_output_for_fields()
-      
+
         synced_recs = runner.get_records_from_target_output()
 
-        for stream in self.expected_streams():
+        for stream in streams_to_test:
             with self.subTest(stream=stream):
-                
+
                 expected_pks = self.expected_primary_keys()[stream]
 
                 # verify that we can paginate with all fields selected
@@ -73,6 +80,6 @@ class PaginationTest(BaseTapTest):
                     if message["action"] == "upsert"
                 ]
                 unique_pk_values = set(pk_value_list)
-                
+
                 # verify No records have dulpicate primary-keys value
                 self.assertEqual(len(pk_value_list), len(unique_pk_values), msg="Replicated records does not have unique values.")
