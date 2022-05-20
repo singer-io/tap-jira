@@ -1,6 +1,7 @@
 import json
 import pytz
 import singer
+import dateparser
 
 from singer import metrics, utils, metadata, Transformer
 from .http import Paginator,JiraNotFoundError
@@ -114,7 +115,19 @@ class Stream():
         with metrics.record_counter(self.tap_stream_id) as counter:
             counter.increment(len(page))
 
+def update_user_date(page):
+    """
+    Transform date value to 'yyyy-mm-dd' format.
+    API returns userReleaseDate and userStartDate always in the dd/mm/yyyy format where the month name is in Abbreviation form.
+    Dateparser library handles locale value and converts Abbreviation month to number.
+    For example, if userReleaseDate is 12/abr/2022 then we are converting it to 2022-04-12.
+    """
+    if page.get('userReleaseDate'):
+        page['userReleaseDate'] = transform_user_date(page['userReleaseDate'])
+    if page.get('userStartDate'):
+        page['userStartDate'] = transform_user_date(page['userStartDate'])
 
+    return page
 class Projects(Stream):
     def sync_on_prem(self):
         """ Sync function for the on prem instances"""
@@ -134,6 +147,9 @@ class Projects(Stream):
                 path = "/rest/api/2/project/{}/version".format(project["id"])
                 pager = Paginator(Context.client, order_by="sequence")
                 for page in pager.pages(VERSIONS.tap_stream_id, "GET", path):
+                    # Transform userReleaseDate and userStartDate values to 'yyyy-mm-dd' format.
+                    for each_page in page:
+                        each_page = update_user_date(each_page)
                     VERSIONS.write_page(page)
         if Context.is_selected(COMPONENTS.tap_stream_id):
             for project in projects:
@@ -167,6 +183,10 @@ class Projects(Stream):
                     path = "/rest/api/2/project/{}/version".format(project["id"])
                     pager = Paginator(Context.client, order_by="sequence")
                     for page in pager.pages(VERSIONS.tap_stream_id, "GET", path):
+                        # Transform userReleaseDate and userStartDate values to 'yyyy-mm-dd' format.
+                        for each_page in page:
+                            each_page = update_user_date(each_page)
+
                         VERSIONS.write_page(page)
             if Context.is_selected(COMPONENTS.tap_stream_id):
                 for project in projects.get('values'):
@@ -369,3 +389,16 @@ def validate_dependencies():
             errs.append(msg_tmpl.format("Issue Transitions", "Issues"))
     if errs:
         raise DependencyException(" ".join(errs))
+
+def transform_user_date(user_date):
+    """
+    Transform date value to 'yyyy-mm-dd' format.
+    API returns userReleaseDate and userStartDate always in the dd/mm/yyyy format where the month name is in Abbreviation form.
+    Dateparser library handles locale value and converts Abbreviation month to number.
+    For example, if userReleaseDate is 12/abr/2022 then we are converting it to 2022-04-12.
+    Then, at the end singer-python will transform any DateTime to %Y-%m-%dT00:00:00Z format.
+
+    All the locales are supported except following below locales,
+    Chinese, Italia, Japanese, Korean, Polska, Brasil.
+    """
+    return dateparser.parse(user_date).strftime('%Y-%m-%d')
