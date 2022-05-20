@@ -35,6 +35,12 @@ class AllFieldsTest(BaseTapTest):
 
     def test_run(self):
 
+        streams_to_test = self.expected_streams() - {
+            'projects', # BUG https://jira.talendforge.org/browse/TDL-19163
+            'versions', # child of projects
+            'components', # child of projects
+        }
+
         conn_id = self.create_connection_with_initial_discovery()
 
         self.create_test_data()
@@ -42,9 +48,8 @@ class AllFieldsTest(BaseTapTest):
         # Select all streams and no fields within streams
         found_catalogs = menagerie.get_catalogs(conn_id)
 
-        expected_streams = self.expected_streams()
         our_catalogs = [catalog for catalog in found_catalogs if
-                        catalog.get('tap_stream_id') in expected_streams]
+                        catalog.get('tap_stream_id') in streams_to_test]
 
         # stream and field selection
         self.select_all_streams_and_fields(conn_id, our_catalogs, select_all_fields=True)
@@ -65,9 +70,9 @@ class AllFieldsTest(BaseTapTest):
 
         # Verify no unexpected streams were replicated
         synced_stream_names = set(synced_records.keys())
-        self.assertSetEqual(expected_streams, synced_stream_names)
+        self.assertSetEqual(streams_to_test, synced_stream_names)
 
-        for stream in expected_streams:
+        for stream in streams_to_test:
             with self.subTest(stream=stream):
                 # expected values
                 expected_automatic_keys = self.expected_primary_keys().get(stream, set()) | \

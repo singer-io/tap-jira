@@ -34,7 +34,8 @@ class PaginationTest(BaseTapTest):
 
         # Select all streams and all fields within streams
         found_catalogs = menagerie.get_catalogs(conn_id)
-        test_catalogs = [catalog for catalog in found_catalogs if catalog['tap_stream_id'] in streams_to_test]
+        test_catalogs = [catalog for catalog in found_catalogs
+                         if catalog['tap_stream_id'] in streams_to_test]
         self.select_all_streams_and_fields(conn_id, test_catalogs, select_all_fields=True)
 
         # Run a sync job using orchestrator
