@@ -1,5 +1,7 @@
 # Changelog
 
+## [v2.1.3]
+  * Fixed Tranform Issues [#84](https://github.com/singer-io/tap-jira/pull/84)
 ## [v2.1.2]
   * Added Missing Test Cases [#74](https://github.com/singer-io/tap-jira/pull/74)
   * Updated Project stream with new endpoint as old one is deprecated [#75](https://github.com/singer-io/tap-jira/pull/75)
