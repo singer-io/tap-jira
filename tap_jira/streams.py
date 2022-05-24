@@ -4,14 +4,14 @@ import singer
 import dateparser
 
 from singer import metrics, utils, metadata, Transformer
-from .http import Paginator,JiraNotFoundError
-from .context import Context
 from singer.transform import SchemaMismatch
 from dateutil.parser._parser import ParserError
+from .http import Paginator,JiraNotFoundError
+from .context import Context
 
 DEFAULT_PAGE_SIZE = 50
 
-def handle_date_time_schema_miss_match(exception, record):
+def handle_date_time_schema_miss_match(exception, record): # pylint: disable=inconsistent-return-statements
     """
     Handling exception for date-time value out of range.
     """
@@ -36,13 +36,13 @@ def handle_date_time_schema_miss_match(exception, record):
             if ("out of range" in str(err)) or (
                 # Check the error message if 'month' or ['hours','minutes','seconds'] given in date is not in range
                 "must be in" in str(err)):
-                LOGGER.warning("Skipping record of id: {} due to Date out of range, DATE: {}".format(record["id"], obj))
+                LOGGER.warning("Skipping record of id: %s due to Date out of range, DATE: %s", record["id"], obj)
                 return True
             else:
                 # raise an error if exception is not for 'out of range' date
                 raise err
     else:
-        # raise an error in case of schema mismatch error other than ones 
+        # raise an error in case of schema mismatch error other than ones
         # caused by out of date range values
         raise exception
 
