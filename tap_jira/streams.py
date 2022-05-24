@@ -6,8 +6,45 @@ import dateparser
 from singer import metrics, utils, metadata, Transformer
 from .http import Paginator,JiraNotFoundError
 from .context import Context
+from singer.transform import SchemaMismatch
+from dateutil.parser._parser import ParserError
 
 DEFAULT_PAGE_SIZE = 50
+
+def handle_date_time_schema_miss_match(exception, record):
+    """
+    Handling exception for date-time value out of range.
+    """
+
+    if ("{'format': 'date-time', 'type': ['string', 'null']}"
+        in exception.args[0].split("\n\t")[1]):
+        nested_keys = (
+            exception.args[0].split("\n\t")[1].split(":")[0]
+        )
+        # Getting the date value from nested object
+        obj = record.copy()
+        for key in nested_keys.split("."):
+            # In nested object to convert list index to integer
+            obj = obj[int(key) if key.isnumeric() else key]
+
+        try:
+            # Parsing date to catch 'out of range' error
+            utils.strptime_to_utc(obj)
+        except ParserError as err:
+
+            # Check the error message if the 'year' or 'day' is out of range
+            if ("out of range" in str(err)) or (
+                # Check the error message if 'month' or ['hours','minutes','seconds'] given in date is not in range
+                "must be in" in str(err)):
+                LOGGER.warning("Skipping record of id: {} due to Date out of range, DATE: {}".format(record["id"], obj))
+                return True
+            else:
+                # raise an error if exception is not for 'out of range' date
+                raise err
+    else:
+        # raise an error in case of schema mismatch error other than ones 
+        # caused by out of date range values
+        raise exception
 
 def raise_if_bookmark_cannot_advance(worklogs):
     # Worklogs can only be queried with a `since` timestamp and
@@ -110,7 +147,12 @@ class Stream():
         extraction_time = singer.utils.now()
         for rec in page:
             with Transformer() as transformer:
-                rec = transformer.transform(rec, stream.schema.to_dict(), stream_metadata)
+                try:
+                    rec = transformer.transform(rec, stream.schema.to_dict(), stream_metadata)
+                except SchemaMismatch as ex:
+                    # Checking if schema-mismatch is occurring for datetime value
+                    if handle_date_time_schema_miss_match(ex, rec):
+                        continue    # skipping record for this error
             singer.write_record(self.tap_stream_id, rec, time_extracted=extraction_time)
         with metrics.record_counter(self.tap_stream_id) as counter:
             counter.increment(len(page))
