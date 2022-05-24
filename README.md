@@ -41,7 +41,8 @@ This tap:
         "password": "your-jira-password",
         "base_url": "https://your-jira-domain",
         "user_agent": "<user-agent>",
-        "request_timeout": 300
+        "request_timeout": 300,
+        "groups": "jira-administrators,site-admins,jira-software-users"
     }
     ```
 
@@ -56,7 +57,8 @@ This tap:
      "cloud_id": "<cloud-id>",
      "refresh_token": "<refresh-token>",
      "start_date": "<i.e. 2017-12-04T19:19:32Z>",
-     "request_timeout": 300
+     "request_timeout": 300,
+     "groups": "jira-administrators,site-admins,jira-software-users"
    }
    ```
 
@@ -66,6 +68,8 @@ This tap:
    For Basic Auth, the `base_url` is the URL where your Jira installation
    can be found. For example, it might look like:
    `https://mycompany.atlassian.net`.
+
+   The `groups` specifies groups for users stream. `groups` is optional parameter. Default value of groups is ["jira-administrators","jira-software-users","jira-core-users","jira-users","site-admin","users"].
 
 4. Run the Tap in Discovery Mode
 
