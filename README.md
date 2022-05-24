@@ -69,7 +69,7 @@ This tap:
    can be found. For example, it might look like:
    `https://mycompany.atlassian.net`.
 
-   The `groups` specifies groups for users stream. `groups` is optional parameter. Default value of groups is ["jira-administrators", "jira-software-users", "jira-core-users", "jira-users", "site-admin", "users"].
+   The `groups` specifies groups for users stream. `groups` is optional parameter. Default value of groups is `["jira-administrators", "jira-software-users", "jira-core-users", "jira-users", "users"]`.
 
 4. Run the Tap in Discovery Mode
 
