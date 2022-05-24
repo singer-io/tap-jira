@@ -56,7 +56,8 @@ This tap:
      "cloud_id": "<cloud-id>",
      "refresh_token": "<refresh-token>",
      "start_date": "<i.e. 2017-12-04T19:19:32Z>",
-     "request_timeout": 300
+     "request_timeout": 300,
+     "refresh_credentials": "true"
    }
    ```
 
@@ -66,6 +67,9 @@ This tap:
    For Basic Auth, the `base_url` is the URL where your Jira installation
    can be found. For example, it might look like:
    `https://mycompany.atlassian.net`.
+
+   The `refresh_credentials` specifies if OAuth credentials i.e (access token and refersh token) 
+   needs to be refreshed. By default, `refresh_credentials` value is set to `true`.
 
 4. Run the Tap in Discovery Mode
 
