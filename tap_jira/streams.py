@@ -18,13 +18,12 @@ def handle_date_time_schema_miss_match(exception, record): # pylint: disable=inc
 
     if ("{'format': 'date-time', 'type': ['string', 'null']}"
         in exception.args[0].split("\n\t")[1]):
-        nested_keys = (
-            exception.args[0].split("\n\t")[1].split(":")[0]
-        )
-        # Getting the date value from nested object
+        nested_keys = exception.args[0].split("\n\t")[1].split(":")[0]
+
         obj = record.copy()
+        # Getting the date value from nested object
         for key in nested_keys.split("."):
-            # In nested object to convert list index to integer
+            # Convert list index of nested object to integer
             obj = obj[int(key) if key.isnumeric() else key]
 
         try:
@@ -33,8 +32,10 @@ def handle_date_time_schema_miss_match(exception, record): # pylint: disable=inc
         except ParserError as err:
 
             # Check the error message if the 'year' or 'day' is out of range
+            # example: year 51502 is out of range: 51502-06-08T14:46:42.000000
             if ("out of range" in str(err)) or (
                 # Check the error message if 'month' or ['hours','minutes','seconds'] given in date is not in range
+                # example: month must be in 1..12: 5150-33-08T14:46:42.000000
                 "must be in" in str(err)):
                 LOGGER.warning("Skipping record of id: %s due to Date out of range, DATE: %s", record["id"], obj)
                 return True
@@ -42,8 +43,7 @@ def handle_date_time_schema_miss_match(exception, record): # pylint: disable=inc
                 # raise an error if exception is not for 'out of range' date
                 raise err
     else:
-        # raise an error in case of schema mismatch error other than ones
-        # caused by out of date range values
+        # raise a schema mismatch error, other than date out of range values
         raise exception
 
 def raise_if_bookmark_cannot_advance(worklogs):
@@ -151,6 +151,7 @@ class Stream():
                     rec = transformer.transform(rec, stream.schema.to_dict(), stream_metadata)
                 except SchemaMismatch as ex:
                     # Checking if schema-mismatch is occurring for datetime value
+                    # TDL-19174: Transformation issue for "date out of range"
                     if handle_date_time_schema_miss_match(ex, rec):
                         continue    # skipping record for this error
             singer.write_record(self.tap_stream_id, rec, time_extracted=extraction_time)
