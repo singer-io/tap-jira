@@ -142,21 +142,24 @@ class Stream():
         self.write_page(page)
 
     def write_page(self, page):
+        rec_count = 0
         stream = Context.get_catalog_entry(self.tap_stream_id)
         stream_metadata = metadata.to_map(stream.metadata)
         extraction_time = singer.utils.now()
+        for rec in page:
+            with Transformer() as transformer:
+                try:
+                    rec = transformer.transform(rec, stream.schema.to_dict(), stream_metadata)
+                except SchemaMismatch as ex:
+                    # Checking if schema-mismatch is occurring for datetime value
+                    # TDL-19174: Transformation issue for "date out of range"
+                    if handle_date_time_schema_mis_match(ex, rec, self.pk_fields):
+                        continue    # skipping record for this error
+            singer.write_record(self.tap_stream_id, rec, time_extracted=extraction_time)
+            rec_count += 1 # increment counter only after the record is written
+
         with metrics.record_counter(self.tap_stream_id) as counter:
-            for rec in page:
-                with Transformer() as transformer:
-                    try:
-                        rec = transformer.transform(rec, stream.schema.to_dict(), stream_metadata)
-                    except SchemaMismatch as ex:
-                        # Checking if schema-mismatch is occurring for datetime value
-                        # TDL-19174: Transformation issue for "date out of range"
-                        if handle_date_time_schema_mis_match(ex, rec, self.pk_fields):
-                            continue    # skipping record for this error
-                singer.write_record(self.tap_stream_id, rec, time_extracted=extraction_time)
-                counter.increment(1) # increment counter only after the record is written
+            counter.increment(rec_count) # Do not increment counter for skipped records
 
 def update_user_date(page):
     """
