@@ -32,7 +32,7 @@ def handle_date_time_schema_miss_match(exception, record, pk_fields): # pylint: 
         except ParserError as err:
 
             # Check the error message if the 'year' or 'day' is out of range
-            # example: year 51502 is out of range: 51502-06-08T14:46:42.000000
+            # For Example: year 51502 is out of range: 51502-06-08T14:46:42.000000
             if ("out of range" in str(err)) or (
                 # Check the error message if 'month' or ['hours','minutes','seconds'] given in date is not in range
                 # example: month must be in 1..12: 5150-33-08T14:46:42.000000
@@ -40,10 +40,10 @@ def handle_date_time_schema_miss_match(exception, record, pk_fields): # pylint: 
                 LOGGER.warning("Skipping record of: %s due to Date out of range, DATE: %s", dict((pk, record.get(pk)) for pk in pk_fields), obj)
                 return True
             else:
-                # raise an error if exception is not for 'out of range' date
+                # Raise an error for exception except 'out of range' date
                 raise err
     else:
-        # raise a schema mismatch error, other than date out of range values
+        # Raise a schema mismatch error, other than date out of range values
         raise exception
 
 def raise_if_bookmark_cannot_advance(worklogs):
