@@ -11,7 +11,7 @@ from .context import Context
 
 DEFAULT_PAGE_SIZE = 50
 
-def handle_date_time_schema_miss_match(exception, record, pk_fields): # pylint: disable=inconsistent-return-statements
+def handle_date_time_schema_mis_match(exception, record, pk_fields): # pylint: disable=inconsistent-return-statements
     """
     Handling exception for date-time value out of range.
     """
@@ -152,7 +152,7 @@ class Stream():
                 except SchemaMismatch as ex:
                     # Checking if schema-mismatch is occurring for datetime value
                     # TDL-19174: Transformation issue for "date out of range"
-                    if handle_date_time_schema_miss_match(ex, rec, self.pk_fields):
+                    if handle_date_time_schema_mis_match(ex, rec, self.pk_fields):
                         continue    # skipping record for this error
             singer.write_record(self.tap_stream_id, rec, time_extracted=extraction_time)
         with metrics.record_counter(self.tap_stream_id) as counter:
