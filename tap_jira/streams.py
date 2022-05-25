@@ -11,7 +11,7 @@ from .context import Context
 
 DEFAULT_PAGE_SIZE = 50
 
-def handle_date_time_schema_miss_match(exception, record): # pylint: disable=inconsistent-return-statements
+def handle_date_time_schema_miss_match(exception, record, pk_fields): # pylint: disable=inconsistent-return-statements
     """
     Handling exception for date-time value out of range.
     """
@@ -37,7 +37,7 @@ def handle_date_time_schema_miss_match(exception, record): # pylint: disable=inc
                 # Check the error message if 'month' or ['hours','minutes','seconds'] given in date is not in range
                 # example: month must be in 1..12: 5150-33-08T14:46:42.000000
                 "must be in" in str(err)):
-                LOGGER.warning("Skipping record of id: %s due to Date out of range, DATE: %s", record["id"], obj)
+                LOGGER.warning("Skipping record of: %s due to Date out of range, DATE: %s", dict((pk, record.get(pk)) for pk in pk_fields), obj)
                 return True
             else:
                 # raise an error if exception is not for 'out of range' date
@@ -152,7 +152,7 @@ class Stream():
                 except SchemaMismatch as ex:
                     # Checking if schema-mismatch is occurring for datetime value
                     # TDL-19174: Transformation issue for "date out of range"
-                    if handle_date_time_schema_miss_match(ex, rec):
+                    if handle_date_time_schema_miss_match(ex, rec, self.pk_fields):
                         continue    # skipping record for this error
             singer.write_record(self.tap_stream_id, rec, time_extracted=extraction_time)
         with metrics.record_counter(self.tap_stream_id) as counter:

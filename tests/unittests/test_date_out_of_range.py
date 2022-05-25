@@ -11,19 +11,20 @@ class TestOutOfRangeDate(unittest.TestCase):
         """
         Verify that the tap successfully skips record for out of range date value.
         """
-        mock_records = [
-            {"updated": "2017000-09-05T19:51:03.159Z", "id": "1"},  # year out of range
-            {"updated": "2001-09-05T19:51:03.159000", "id": "2"},  # Correct record
-            {"updated": "2001-13-05T19:51:03.159000", "id": "3"},  # month out of range
-            {"updated": "2007-09-45T19:51:03.159000z", "id": "4"},  # day out of range
-            {"updated": "2006-01-29T01:62:01.99999", "id": "5"},  # minutes out of range
-            {"updated": "2011-09-05T19:51:03.159000", "id": "6"},  # Correct record
-            {"updated": "2009-09-10T26:51:03.159000Z", "id": "7"},  # hour out of range
+        mock_records =[
+            {"updated": "2017000-09-05T19:51:03.159Z", "id": "1","id2": "11"},  # year out of range
+            {"updated": "2001-09-05T19:51:03.159000", "id": "2","id2": "12"},  # Correct record
+            {"updated": "2001-13-05T19:51:03.159000", "id": "3","id2": "13"},  # month out of range
+            {"updated": "2007-09-45T19:51:03.159000z", "id": "4","id2": "14"},  # day out of range
+            {"updated": "2006-01-29T01:62:01.99999", "id": "5","id2": "16"},  # minutes out of range
+            {"updated": "2011-09-05T19:51:03.159000", "id": "6","id2": "15"},  # Correct record
+            {"updated": "2009-09-10T26:51:03.159000Z", "id": "7","id2": "17"},  # hour out of range
         ]
-        mock_schema = {
+        mock_schema ={
             "properties": {
-                "updated": {"format": "date-time", "type": ["string", "null"]},
+                "updated": {"format": "date-time", "type": ["null", "string"]},
                 "id": {"type": ["string", "null"]},
+                "id2": {"type": ["string", "null"]}
             },
             "type": ["object", "null"],
         }
@@ -31,7 +32,7 @@ class TestOutOfRangeDate(unittest.TestCase):
         mock_stream.schema.to_dict.return_value = mock_schema
         mock_metadata.to_map.return_value = {}  # mock_metadata
 
-        stream_obj = Stream("stream_id", "pk_fields")
+        stream_obj = Stream("stream_id", ["id","id2"])
         stream_obj.write_page(mock_records)
 
         # Verify that only records with valid date ranges (2 records) are written
@@ -40,12 +41,12 @@ class TestOutOfRangeDate(unittest.TestCase):
         expected_calls = [
             mock.call(
                 "stream_id",
-                {"updated": "2001-09-05T19:51:03.159000Z", "id": "2"},
+                {"updated": "2001-09-05T19:51:03.159000Z", "id": "2","id2": "12"},
                 time_extracted="2022-05-23T09:16:11.356670Z",
             ),
             mock.call(
                 "stream_id",
-                {"updated": "2011-09-05T19:51:03.159000Z", "id": "6"},
+                {"updated": "2011-09-05T19:51:03.159000Z", "id": "6","id2": "15"},
                 time_extracted="2022-05-23T09:16:11.356670Z",
             ),
         ]
