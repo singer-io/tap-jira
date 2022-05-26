@@ -234,6 +234,7 @@ class Users(Stream):
                       "users"]
 
         for group in groups:
+            group = group.strip()
             try:
                 params = {"groupname": group,
                           "maxResults": max_results,
