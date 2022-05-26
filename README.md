@@ -42,7 +42,7 @@ This tap:
         "base_url": "https://your-jira-domain",
         "user_agent": "<user-agent>",
         "request_timeout": 300,
-        "groups": "jira-administrators,site-admins,jira-software-users"
+        "groups": "jira-administrators, site-admins, jira-software-users"
     }
     ```
 
@@ -58,7 +58,7 @@ This tap:
      "refresh_token": "<refresh-token>",
      "start_date": "<i.e. 2017-12-04T19:19:32Z>",
      "request_timeout": 300,
-     "groups": "jira-administrators,site-admins,jira-software-users"
+     "groups": "jira-administrators, site-admins, jira-software-users"
    }
    ```
 
