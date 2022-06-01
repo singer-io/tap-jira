@@ -1,5 +1,7 @@
 # Changelog
 
+## [v2.1.4]
+  * Updated README [#88](https://github.com/singer-io/tap-jira/pull/88)
 ## [v2.1.3]
   * Fixed Tranform Issues [#84](https://github.com/singer-io/tap-jira/pull/84)
 ## [v2.1.2]
