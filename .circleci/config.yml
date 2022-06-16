@@ -25,6 +25,12 @@ jobs:
             pip install 'pip==21.1.3'
             pip install 'setuptools==56.0.0'
             pip install -e .[dev]
+      - slack/notify-on-failure:
+          only_for_branches: master
+      - persist_to_workspace:
+          root: /usr/local/share/virtualenvs
+          paths:
+            - tap-jira
   run_pylint:
     executor: docker-executor
     steps:
@@ -39,6 +45,9 @@ jobs:
             # BUG https://jira.talendforge.org/browse/TDL-15395
             echo "pylint is skipping the following: $PYLINT_DISABLE_LIST"
             pylint tap_jira -d "$PYLINT_DISABLE_LIST,unsupported-assignment-operation,unsupported-membership-test,unsubscriptable-object,dangerous-default-value,too-many-instance-attributes"
+      - slack/notify-on-failure:
+          only_for_branches: master
+
   run_unit_tests:
     executor: docker-executor
     steps:
