@@ -31,6 +31,7 @@ jobs:
           root: /usr/local/share/virtualenvs
           paths:
             - tap-jira
+            - dev_env.sh
   run_pylint:
     executor: docker-executor
     steps:
@@ -83,7 +84,6 @@ jobs:
           name: 'Run Integration Tests'
           no_output_timeout: 30m
           command: |
-            aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
             source dev_env.sh
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
             circleci tests glob "tests/*.py" | circleci tests split > ./tests-to-run
