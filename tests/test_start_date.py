@@ -7,6 +7,7 @@ from functools import reduce
 from dateutil.parser import parse
 
 from tap_tester import menagerie, runner
+from tap_tester.logger import LOGGER
 
 from base import BaseTapTest
 
@@ -21,9 +22,12 @@ class StartDateTest(BaseTapTest):
     • verify all data from later start data has bookmark values >= start_date
     • verify that the minimum bookmark sent to the target for the later start_date sync
       is greater than or equal to the start date
+
+    TODO Refactor needed.
     """
 
-    def name(self):
+    @staticmethod
+    def name():
         return "tt_jira_start_date_test"
 
     def test_run(self):
@@ -116,6 +120,5 @@ class StartDateTest(BaseTapTest):
                                                 self.local_to_utc(parse(self.start_date)))
 
                     except (OverflowError, ValueError, TypeError):
-                        print("bookmarks cannot be converted to dates, "
-                              "can't test start_date for {}".format(stream))
-
+                        LOGGER.warn("bookmarks cannot be converted to dates, "
+                                    "can't test start_date for %s", stream)

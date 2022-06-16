@@ -8,7 +8,8 @@ from base import BaseTapTest
 class MinimumSelectionTest(BaseTapTest):
     """Test that with no fields selected for a stream automatic fields are still replicated"""
 
-    def name(self):
+    @staticmethod
+    def name():
         return "tt_jira_no_fields_test"
 
     def test_run(self):

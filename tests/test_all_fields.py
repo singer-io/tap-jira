@@ -30,7 +30,8 @@ class AllFieldsTest(BaseTapTest):
         "changelogs": ["historyMetadata"]
     }
 
-    def name(self):
+    @staticmethod
+    def name():
         return "tt_jira_all_fields_test"
 
     def test_run(self):

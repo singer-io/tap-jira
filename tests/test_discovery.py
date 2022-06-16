@@ -11,7 +11,8 @@ from base import BaseTapTest
 class DiscoveryTest(BaseTapTest):
     """ Test the tap discovery """
 
-    def name(self):
+    @staticmethod
+    def name():
         return "tt_jira_discovery_test"
 
     def test_run(self):

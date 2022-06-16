@@ -8,7 +8,8 @@ from base import BaseTapTest
 class CustomGroupsTest(BaseTapTest):
     """Test that custom groups are used if provided"""
 
-    def name(self):
+    @staticmethod
+    def name():
         return "tt_jira_custom_fields_test"
 
     def get_properties(self, original: bool = True):

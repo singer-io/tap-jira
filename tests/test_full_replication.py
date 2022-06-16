@@ -11,7 +11,8 @@ from base import BaseTapTest
 class FullReplicationTest(BaseTapTest):
     """Test tap gets all records for streams with full replication"""
 
-    def name(self):
+    @staticmethod
+    def name():
         return "tt_name_full_test"
 
     def test_run(self):

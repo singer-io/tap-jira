@@ -2,13 +2,16 @@
 Test tap sets a bookmark and respects it for the next sync of a stream
 """
 from tap_tester import menagerie, runner
+from tap_tester.logger import LOGGER
 
 from base import BaseTapTest
+
 
 class BookmarkTest(BaseTapTest):
     """Test tap sets a bookmark and respects it for the next sync of a stream"""
 
-    def name(self):
+    @staticmethod
+    def name():
         return "tt_jira_bookmark_test"
 
     def test_run(self):
@@ -75,7 +78,7 @@ class BookmarkTest(BaseTapTest):
 
                     # get bookmark values from state and target data
                     stream_bookmark_key = self.expected_replication_keys().get(stream, set())
-                    print("Found bookmark key for {}: {}".format(stream, stream_bookmark_key))
+                    LOGGER.info("Found bookmark key for {}: {}".format(stream, stream_bookmark_key))
                     assert len(
                         stream_bookmark_key) == 1  # There shouldn't be a compound replication key
                     stream_bookmark_key = stream_bookmark_key.pop()

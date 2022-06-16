@@ -9,7 +9,8 @@ from base import BaseTapTest
 class PaginationTest(BaseTapTest):
     """ Test the tap pagination to get multiple pages of data """
 
-    def name(self):
+    @staticmethod
+    def name():
         return "tt_jira_pagination_test"
 
     def test_run(self):
@@ -22,6 +23,7 @@ class PaginationTest(BaseTapTest):
         fetch of data.  For instance if you have a limit of 250 records ensure
         that 251 (or more) records have been posted for that stream.
         """
+
         conn_id = self.create_connection_with_initial_discovery()
 
         self.create_test_data()
