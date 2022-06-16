@@ -42,7 +42,7 @@ jobs:
           name: 'Pylint'
           command: |
             source /usr/local/share/virtualenvs/tap-jira/bin/activate
-            source dev_env.sh
+            source /usr/local/share/virtualenvs/dev_env.sh
             # BUG https://jira.talendforge.org/browse/TDL-15395
             echo "pylint is skipping the following: $PYLINT_DISABLE_LIST"
             pylint tap_jira -d "$PYLINT_DISABLE_LIST,unsupported-assignment-operation,unsupported-membership-test,unsubscriptable-object,dangerous-default-value,too-many-instance-attributes"
@@ -59,7 +59,7 @@ jobs:
           name: 'Unit Tests'
           command: |
             source /usr/local/share/virtualenvs/tap-jira/bin/activate
-            source dev_env.sh
+            source /usr/local/share/virtualenvs/dev_env.sh
             pip install nose coverage
             nosetests --with-coverage --cover-erase --cover-package=tap_jira --cover-html-dir=htmlcov tests/unittests
             coverage html
@@ -84,7 +84,7 @@ jobs:
           name: 'Run Integration Tests'
           no_output_timeout: 30m
           command: |
-            source dev_env.sh
+            source /usr/local/share/virtualenvs/dev_env.sh
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
             circleci tests glob "tests/*.py" | circleci tests split > ./tests-to-run
             if [ -s ./tests-to-run ]; then
