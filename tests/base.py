@@ -92,38 +92,69 @@ class BaseTapTest(BaseCase):
         return {
             "projects": {
                 self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.FULL,
                 self.API_LIMIT: 50,
             }, # maxResults comes back as this
-            "project_types": key_pk, # Not paginated, see https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-project-types/#api-rest-api-2-project-type-get
-            "project_categories": id_pk, # Not paginated, see https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-project-categories/
+            "project_types": {
+                self.PRIMARY_KEYS: {"key"},
+                self.REPLICATION_METHOD: self.FULL,
+                self.API_LIMIT: 0, # Not paginated, see https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-project-types/#api-rest-api-2-project-type-get
+            },
+            "project_categories": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.FULL,
+                self.API_LIMIT: 0,
+            }, # Not paginated, see https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-project-categories/
             "versions": {
                 self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.FULL,
                 self.API_LIMIT: 0, # TODO: Backlog ticket to create data required to test this 50 - maxResults comes back as this
                 # https://stitchdata.atlassian.net/browse/SRCE-5193
             },
             "components": {
                 self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.FULL,
                 self.API_LIMIT: 50, # maxResults comes back as this
             },
-            "resolutions": id_pk, # Not paginated, see https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issue-resolutions/#api-group-issue-resolutions
-            "roles": id_pk, # Not paginated, see https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-project-roles/#api-rest-api-2-role-get
+            "resolutions": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.FULL,
+                self.API_LIMIT: 0,
+            }, # Not paginated, see https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issue-resolutions/#api-group-issue-resolutions
+            "roles": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.FULL,
+                self.API_LIMIT: 0,
+            }, # Not paginated, see https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-project-roles/#api-rest-api-2-role-get
             "users": {
                 self.PRIMARY_KEYS: {"accountId"},
+                self.REPLICATION_METHOD: self.FULL,
                 self.API_LIMIT: 2, # - maxResults comes back as this
             },
             "issues": {
                 self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
                 self.API_LIMIT: 0, # TODO: Backlog ticket to create data required to test this 50 - maxResults comes back as this
                 # https://stitchdata.atlassian.net/browse/SRCE-5193
             },
-            "issue_comments": id_pk, # Returned as part of the issue
+            "issue_comments": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.API_LIMIT: 0,
+            }, # Returned as part of the issue
             "issue_transitions": {
-                    self.PRIMARY_KEYS: {"id","issueId"},# Composite primary key
-                    self.API_LIMIT: 0,
-                }, # Returned as part of the issue
-            "changelogs": id_pk, # Returned as part of the issue
+                self.PRIMARY_KEYS: {"id","issueId"},# Composite primary key
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.API_LIMIT: 0,
+            }, # Returned as part of the issue
+            "changelogs": {
+                self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.API_LIMIT: 0,
+            }, # Returned as part of the issue
             "worklogs": {
                 self.PRIMARY_KEYS: {"id"},
+                self.REPLICATION_METHOD: self.INCREMENTAL,
                 self.API_LIMIT: 0, # TODO: Backlog ticket to create data required to test this documentation says 1000, see https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issue-worklogs/#api-rest-api-2-worklog-updated-get
                 # https://stitchdata.atlassian.net/browse/SRCE-5193
             },

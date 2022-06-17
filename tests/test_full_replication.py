@@ -4,7 +4,7 @@ Test tap gets all records for streams with full replication
 import json
 
 from tap_tester import menagerie, runner
-
+from tap_tester.logger import LOGGER
 from base import BaseTapTest
 
 
@@ -40,55 +40,39 @@ class FullReplicationTest(BaseTapTest):
         first_sync_record_count = self.run_sync(conn_id)
 
         # verify that the sync only sent records to the target for selected streams (catalogs)
-        self.assertEqual(set(first_sync_record_count.keys()), full_streams)
+        self.assertEqual(set(first_sync_record_count.keys()), full_streams,
+                         logging="verify only full table streams were replicated")
 
         first_sync_state = menagerie.get_state(conn_id)
 
         # Get the set of records from a first sync
-        first_sync_records = runner.get_records_from_target_output()
+        first_sync_records_by_stream = runner.get_records_from_target_output()
 
         # Run a second sync job using orchestrator
         second_sync_record_count = self.run_sync(conn_id)
 
         # Get the set of records from a second sync
-        second_sync_records = runner.get_records_from_target_output()
-
-        # THIS MAKES AN ASSUMPTION THAT CHILD STREAMS DO NOT NEED TESTING.
-        # ADJUST IF NECESSARY
-        for stream in full_streams.difference(self.child_streams()):
+        second_sync_records_by_stream = runner.get_records_from_target_output()
+        for stream in full_streams:
             with self.subTest(stream=stream):
 
                 # verify there is no bookmark values from state
                 state_value = first_sync_state.get("bookmarks", {}).get(stream)
-                self.assertIsNone(state_value)
+                self.assertIsNone(state_value, logging="verify no bookmark value is saved in state")
 
                 # verify that there is more than 1 record of data - setup necessary
                 self.assertGreater(first_sync_record_count.get(stream, 0), 1,
-                                   msg="Data isn't set up to be able to test full sync")
+                                   msg="verify multiple records are replicatied")
 
                 # verify that you get the same or more data the 2nd time around
                 self.assertGreaterEqual(
                     second_sync_record_count.get(stream, 0),
                     first_sync_record_count.get(stream, 0),
-                    msg="second syc didn't have more records, full sync not verified")
+                    logging="verify the second full table sync replicates at least as many records as the first sync")
 
                 # verify all data from 1st sync included in 2nd sync
-                first_data = [record["data"] for record
-                              in first_sync_records.get(stream, {}).get("messages", {"data": {}})]
-                second_data = [record["data"] for record
-                               in second_sync_records.get(stream, {}).get("messages", {"data": {}})]
-
-                same_records = 0
-                for first_record in first_data:
-                    first_value = json.dumps(first_record, sort_keys=True)
-
-                    for compare_record in second_data:
-                        compare_value = json.dumps(compare_record, sort_keys=True)
-
-                        if first_value == compare_value:
-                            second_data.remove(compare_record)
-                            same_records += 1
-                            break
-
-                self.assertEqual(len(first_data), same_records,
-                                 msg="Not all data from the first sync was in the second sync")
+                first_sync_records = [record["data"] for record in first_sync_records_by_stream[stream]["messages"]]
+                second_sync_records = [record["data"] for record in second_sync_records_by_stream[stream]["messages"]]
+                LOGGER.info("verify all records from the first sync are replicated in the second sync")
+                for record in first_sync_records:
+                    self.assertIn(record, second_sync_records)
