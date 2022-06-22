@@ -26,8 +26,10 @@ class BaseTapTest(BaseCase):
     REPLICATION_METHOD = "forced-replication-method"
     INCREMENTAL = "INCREMENTAL"
     FULL = "FULL_TABLE"
+
     API_LIMIT = "max-row-limit"
     START_DATE_FORMAT = "%Y-%m-%dT00:00:00Z"
+    PARENT_STREAM = "parent-stream"
 
     CONFIGURATION_ENVIRONMENT = {
         "properties": {
@@ -134,6 +136,7 @@ class BaseTapTest(BaseCase):
             "issues": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
+                self.REPLICATION_KEYS: {"updated"},
                 self.API_LIMIT: 0, # TODO: Backlog ticket to create data required to test this 50 - maxResults comes back as this
                 # https://stitchdata.atlassian.net/browse/SRCE-5193
             },
@@ -141,16 +144,19 @@ class BaseTapTest(BaseCase):
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
                 self.API_LIMIT: 0,
+                self.PARENT_STREAM: "issues",
             }, # Returned as part of the issue
             "issue_transitions": {
                 self.PRIMARY_KEYS: {"id","issueId"},# Composite primary key
                 self.REPLICATION_METHOD: self.INCREMENTAL,
                 self.API_LIMIT: 0,
+                self.PARENT_STREAM: "issues",
             }, # Returned as part of the issue
             "changelogs": {
                 self.PRIMARY_KEYS: {"id"},
                 self.REPLICATION_METHOD: self.INCREMENTAL,
                 self.API_LIMIT: 0,
+                self.PARENT_STREAM: "issues",
             }, # Returned as part of the issue
             "worklogs": {
                 self.PRIMARY_KEYS: {"id"},
@@ -173,8 +179,9 @@ class BaseTapTest(BaseCase):
         Return a set of streams that are child streams
         based on having foreign key metadata
         """
-        return {stream for stream, metadata in self.expected_metadata().items()
-                if metadata.get(self.FOREIGN_KEYS)}
+        return {stream
+                for stream, metadata in self.expected_metadata().items()
+                if metadata.get(self.PARENT_STREAM)}
 
     def expected_primary_keys(self):
         """

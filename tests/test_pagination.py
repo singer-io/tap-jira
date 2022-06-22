@@ -41,34 +41,14 @@ class PaginationTest(BaseTapTest):
 
         for stream in self.expected_streams():
             with self.subTest(stream=stream):
-                
+
+                # gather expectations
                 expected_pks = self.expected_primary_keys()[stream]
 
-                # verify that we can paginate with all fields selected
-                self.assertGreater(
-                    record_count_by_stream.get(stream, -1),
-                    self.expected_metadata().get(stream, {}).get(self.API_LIMIT),
-                    msg="The number of records is not over the stream max limit")
-
-                # verify that the automatic fields are sent to the target
-                self.assertTrue(
-                    actual_fields_by_stream.get(stream, set()).issuperset(
-                        self.expected_primary_keys().get(stream, set()) |
-                        self.top_level_replication_key_fields().get(stream, set()) |
-                        self.expected_foreign_keys().get(stream, set())),
-                    msg="The fields sent to the target don't include all automatic fields"
-                )
-
-                # verify we have more fields sent to the target than just automatic fields
-                # SKIP THIS ASSERTION IF ALL FIELDS ARE INTENTIONALLY AUTOMATIC FOR THIS STREAM
-                self.assertTrue(
-                    actual_fields_by_stream.get(stream, set()).symmetric_difference(
-                        self.expected_primary_keys().get(stream, set()) |
-                        self.expected_replication_keys().get(stream, set()) |
-                        self.expected_foreign_keys().get(stream, set())),
-                    msg="The fields sent to the target don't include non-automatic fields"
-                )
-
+                # gather results
+                record_count = record_count_by_stream.get(stream, -1)
+                api_limit = self.expected_metadata().get(stream, {}).get(self.API_LIMIT)
+                replicated_fields = actual_fields_by_stream.get(stream, set())
                 pk_value_list = [
                     tuple(message.get("data").get(pk) for pk in expected_pks)
                     for message in synced_recs[stream].get("messages", [])
@@ -76,5 +56,31 @@ class PaginationTest(BaseTapTest):
                 ]
                 unique_pk_values = set(pk_value_list)
                 
-                # verify No records have dulpicate primary-keys value
-                self.assertEqual(len(pk_value_list), len(unique_pk_values), msg="Replicated records does not have unique values.")
+                # verify that we can paginate with all fields selected
+                self.assertGreater(
+                    record_count, api_limit,
+                    logging="verify the number of records replicated exceeds the stream api limit"
+                )
+
+                # verify that the automatic fields are sent to the target
+                self.assertTrue(
+                    replicated_fields.issuperset(
+                        self.expected_primary_keys().get(stream, set()) |
+                        self.top_level_replication_key_fields().get(stream, set()) |
+                        self.expected_foreign_keys().get(stream, set())),
+                    logging="verify the automatic fields are sent to the target"
+                )
+
+                # verify we have more fields sent to the target than just automatic fields
+                # SKIP THIS ASSERTION IF ALL FIELDS ARE INTENTIONALLY AUTOMATIC FOR THIS STREAM
+                self.assertTrue(
+                    replicated_fields.difference(
+                        self.expected_primary_keys().get(stream, set()) |
+                        self.expected_replication_keys().get(stream, set())
+                    ),
+                    logging="verify more than just the automatic fields are sent to the target"
+                )
+
+                # verify no records have dulpicate primary-keys value
+                self.assertEqual(len(pk_value_list), len(unique_pk_values),
+                                 logging="verify records have unique primary key values")
