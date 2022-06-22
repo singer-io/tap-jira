@@ -60,8 +60,8 @@ class DiscoveryTest(BaseTapTest):
                 # gather expectations
                 expected_primary_keys = self.expected_primary_keys()[stream]
                 expected_replication_key = self.expected_replication_key_metadata()[stream]
-                expected_automatic_fields = (expected_primary_keys |
-                                             expected_replication_key)
+                expected_automatic_fields = expected_primary_keys  # BUG_TDL-19502
+                #expected_automatic_fields = (expected_primary_keys | expected_replication_key)  # BUG_TDL-19502
                 expected_replication_method = self.expected_replication_method().get(stream, None)
 
                 # gather results
@@ -94,13 +94,14 @@ class DiscoveryTest(BaseTapTest):
                 self.assertEqual(len(actual_fields), len(set(actual_fields)),
                                  logging="verify there are no duplicate entries in metadata")
 
-                # verify replication key(s) are marked in metadata
-                self.assertEqual(actual_replication_key, expected_replication_key,
-                                 logging="verify {expected_replication_key} is saved in metadata as the replication-key")
-
                 # verify primary key(s) are marked in metadata
                 self.assertEqual(actual_primary_keys, expected_primary_keys,
                                  logging="verify {expected_primay_keys} is saved in metadata as the primary-key")
+
+                # BUG_TDL-19502
+                # verify replication key(s) are marked in metadata
+                # self.assertEqual(actual_replication_key, expected_replication_key,
+                #                  logging="verify {expected_replication_key} is saved in metadata as the replication-key")
 
                 # BUG_TDL-19502
                 # verify the actual replication matches our expected replication method
