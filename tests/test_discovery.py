@@ -96,7 +96,7 @@ class DiscoveryTest(BaseTapTest):
 
                 # verify primary key(s) are marked in metadata
                 self.assertEqual(actual_primary_keys, expected_primary_keys,
-                                 logging=f"verify {expected_primay_keys} is saved in metadata as the primary-key")
+                                 logging=f"verify {expected_primary_keys} is saved in metadata as the primary-key")
 
                 # BUG_TDL-19502
                 # verify replication key(s) are marked in metadata
