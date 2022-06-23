@@ -42,12 +42,12 @@ class DiscoveryTest(BaseTapTest):
         self.assertGreater(len(found_catalogs), 0,
                            logging="verify a catalog was produced by discovery")
         self.assertEqual(len(found_catalogs), len(self.expected_streams()),
-                         logging="verify {len(self.expected_streams())} streams were discovered")
+                         logging=f"verify {len(self.expected_streams())} streams were discovered")
 
         # Verify the stream names discovered were what we expect
         found_catalog_names = {c['tap_stream_id'] for c in found_catalogs}
         self.assertEqual(set(self.expected_streams()), set(found_catalog_names),
-                        logging="verify the expected streams discovered were: {set(self.expected_streams()),}")
+                        logging=f"verify the expected streams discovered were: {set(self.expected_streams()),}")
 
         # Verify stream names follow naming convention
         # streams should only have lowercase alphas and underscores
@@ -96,12 +96,12 @@ class DiscoveryTest(BaseTapTest):
 
                 # verify primary key(s) are marked in metadata
                 self.assertEqual(actual_primary_keys, expected_primary_keys,
-                                 logging="verify {expected_primay_keys} is saved in metadata as the primary-key")
+                                 logging=f"verify {expected_primay_keys} is saved in metadata as the primary-key")
 
                 # BUG_TDL-19502
                 # verify replication key(s) are marked in metadata
                 # self.assertEqual(actual_replication_key, expected_replication_key,
-                #                  logging="verify {expected_replication_key} is saved in metadata as the replication-key")
+                #                  logging=f"verify {expected_replication_key} is saved in metadata as the replication-key")
 
                 # BUG_TDL-19502
                 # verify the actual replication matches our expected replication method
@@ -114,12 +114,12 @@ class DiscoveryTest(BaseTapTest):
                 # if actual_replication_key:
                 #     self.assertEqual(
                 #         actual_replication_method, self.INCREMENTAL,
-                #         logging="verify the forced replication method is {self.INCREMENTAL} since there is a replication-key"
+                #         logging=f"verify the forced replication method is {self.INCREMENTAL} since there is a replication-key"
                 #     )
                 # else:
                 #     self.assertEqual(
                 #         actual_replication_method, self.FULL,
-                #         logging="verify the forced replication method is {self.FULL} since there is no replication-key"
+                #         logging=f"verify the forced replication method is {self.FULL} since there is no replication-key"
                 #     )
 
                 # verify that primary, replication are given the inclusion of automatic in metadata.
