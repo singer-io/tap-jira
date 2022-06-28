@@ -87,7 +87,7 @@ jobs:
             source /usr/local/share/virtualenvs/dev_env.sh
             mkdir /tmp/${CIRCLE_PROJECT_REPONAME}
             export STITCH_CONFIG_DIR=/tmp/${CIRCLE_PROJECT_REPONAME}
-            source /usr/lnocal/share/virtualenvs/tap-tester/bin/activate
+            source /usr/local/share/virtualenvs/tap-tester/bin/activate
             circleci tests glob "tests/*.py" | circleci tests split > ./tests-to-run
             if [ -s ./tests-to-run ]; then
               for test_file in $(cat ./tests-to-run)
