@@ -96,7 +96,7 @@ jobs:
       - slack/notify-on-failure:
           only_for_branches: master
       - store_artifacts:
-          path: /tmp/
+          path: /tmp/tap*
 
 workflows:
   version: 2
