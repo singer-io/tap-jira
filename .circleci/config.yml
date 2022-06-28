@@ -92,7 +92,7 @@ jobs:
             if [ -s ./tests-to-run ]; then
               for test_file in $(cat ./tests-to-run)
               do
-                cat $test_file > $STITCH_CONFIG_DIR/tap_test.txt
+                echo $test_file > $STITCH_CONFIG_DIR/tap_test.txt
                 run-test --tap=${CIRCLE_PROJECT_REPONAME} $test_file
               done
             fi
