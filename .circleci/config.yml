@@ -98,7 +98,7 @@ jobs:
       - slack/notify-on-failure:
           only_for_branches: master
       - store_artifacts:
-          path: /tmp/$CIRCLE_PROJECT_REPONAME
+          path: '/tmp/${CIRCLE_PROJECT_REPONAME}'
 
 workflows:
   version: 2
