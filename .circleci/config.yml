@@ -85,7 +85,9 @@ jobs:
           no_output_timeout: 30m
           command: |
             source /usr/local/share/virtualenvs/dev_env.sh
-            source /usr/local/share/virtualenvs/tap-tester/bin/activate
+            mkdir /tmp/${CIRCLE_PROJECT_REPONAME}
+            export STITCH_CONFIG_DIR=/tmp/${CIRCLE_PROJECT_REPONAME}
+            source /usr/lnocal/share/virtualenvs/tap-tester/bin/activate
             circleci tests glob "tests/*.py" | circleci tests split > ./tests-to-run
             if [ -s ./tests-to-run ]; then
               for test_file in $(cat ./tests-to-run)
@@ -96,7 +98,7 @@ jobs:
       - slack/notify-on-failure:
           only_for_branches: master
       - store_artifacts:
-          path: /tmp/tap*
+          path: /tmp/${CIRCLE_PROJECT_REPONAME}
 
 workflows:
   version: 2
