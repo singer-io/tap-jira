@@ -100,6 +100,10 @@ jobs:
           only_for_branches: master
       - store_artifacts:
           path: /tmp/tap-jira
+      - persist_to_workspace:
+          root: /tmp/${CIRCLE_PROJECT_REPONAME}
+          paths:
+            - tap-tester.log
 
 workflows:
   version: 2
