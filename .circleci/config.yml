@@ -101,7 +101,7 @@ jobs:
       - store_artifacts:
           path: /tmp/tap-jira
       - persist_to_workspace:
-          root: /tmp/${CIRCLE_PROJECT_REPONAME}
+          root: /tmp/$CIRCLE_PROJECT_REPONAME
           paths:
             - tap-tester.log
 
