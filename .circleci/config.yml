@@ -11,7 +11,9 @@ jobs:
   build:
     executor: docker-executor
     steps:
-      - run: echo 'CI done'
+      - attach_workspace:
+          at: /tmp/tap-jira
+      - run: ls /tmp/tap-jira
   ensure_env:
     executor: docker-executor
     steps:
@@ -101,7 +103,7 @@ jobs:
       - store_artifacts:
           path: /tmp/tap-jira
       - persist_to_workspace:
-          root: /tmp/$CIRCLE_PROJECT_REPONAME
+          root: /tmp/tap-jira
           paths:
             - tap-tester.log
 
