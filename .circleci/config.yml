@@ -13,7 +13,7 @@ jobs:
     steps:
       - attach_workspace:
           at: /tmp/tap-jira
-      - run: ls /tmp/tap-jira
+      - run: cat /tmp/tap-jira/tap-tester.log
   ensure_env:
     executor: docker-executor
     steps:
