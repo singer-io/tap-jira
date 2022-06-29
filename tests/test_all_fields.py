@@ -3,6 +3,7 @@ Test that with no fields selected for a stream automatic fields are still replic
 """
 
 from tap_tester import runner, menagerie
+from tap_tester.logger import LOGGER
 from base import BaseTapTest
 
 class AllFieldsTest(BaseTapTest):
@@ -30,7 +31,8 @@ class AllFieldsTest(BaseTapTest):
         "changelogs": ["historyMetadata"]
     }
 
-    def name(self):
+    @staticmethod
+    def name():
         return "tt_jira_all_fields_test"
 
     def test_run(self):
@@ -65,7 +67,10 @@ class AllFieldsTest(BaseTapTest):
 
         # Verify no unexpected streams were replicated
         synced_stream_names = set(synced_records.keys())
-        self.assertSetEqual(expected_streams, synced_stream_names)
+        self.assertSetEqual(
+            expected_streams, synced_stream_names,
+            logging=f"verify no unexpected streams are replicated: {expected_streams}"
+        )
 
         for stream in expected_streams:
             with self.subTest(stream=stream):
@@ -85,15 +90,25 @@ class AllFieldsTest(BaseTapTest):
                         actual_all_keys.update(message['data'].keys())
 
                 # Verify that you get some records for each stream
-                self.assertGreater(record_count_by_stream.get(stream, -1), 0)
+                self.assertGreater(record_count_by_stream.get(stream, -1), 0,
+                                   logging="verify at least 1 record was replicated")
 
                 # verify all fields for a stream were replicated
-                self.assertGreater(len(expected_all_keys), len(expected_automatic_keys))
-                self.assertTrue(expected_automatic_keys.issubset(expected_all_keys), msg=f'{expected_automatic_keys-expected_all_keys} is not in "expected_all_keys"')
+                self.assertGreater(
+                    len(expected_all_keys), len(expected_automatic_keys),
+                    logging="verify more than just the automatic fields are replicated")
+                self.assertTrue(
+                    expected_automatic_keys.issubset(expected_all_keys),
+                    msg=f'{expected_automatic_keys-expected_all_keys} is not in "expected_all_keys"',
+                    logging="verify the automatic fields are included on the records"
+                )
 
                 # remove some fields as data cannot be generated
                 fields = self.fields_to_remove.get(stream) or []
                 for field in fields:
+                    LOGGER.info("removing field '%s' from expectations", field)
                     expected_all_keys.remove(field)
-
-                self.assertSetEqual(expected_all_keys, actual_all_keys)
+                self.assertSetEqual(
+                    expected_all_keys, actual_all_keys,
+                    logging="verify all discovered fields are replicated"
+                )

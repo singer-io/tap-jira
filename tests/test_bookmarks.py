@@ -2,13 +2,16 @@
 Test tap sets a bookmark and respects it for the next sync of a stream
 """
 from tap_tester import menagerie, runner
+from tap_tester.logger import LOGGER
 
 from base import BaseTapTest
+
 
 class BookmarkTest(BaseTapTest):
     """Test tap sets a bookmark and respects it for the next sync of a stream"""
 
-    def name(self):
+    @staticmethod
+    def name():
         return "tt_jira_bookmark_test"
 
     def test_run(self):
@@ -75,11 +78,7 @@ class BookmarkTest(BaseTapTest):
 
                     # get bookmark values from state and target data
                     stream_bookmark_key = self.expected_replication_keys().get(stream, set())
-                    print("Found bookmark key for {}: {}".format(stream, stream_bookmark_key))
-                    assert len(
-                        stream_bookmark_key) == 1  # There shouldn't be a compound replication key
                     stream_bookmark_key = stream_bookmark_key.pop()
-
                     state_value = first_sync_state.get("bookmarks", {}).get(
                         stream, {None: None}).get(stream_bookmark_key)
                     target_value = first_max_bookmarks.get(
@@ -88,18 +87,25 @@ class BookmarkTest(BaseTapTest):
                         stream, {None: None}).get(stream_bookmark_key)
 
                     # verify that there is data with different bookmark values - setup necessary
-                    self.assertGreaterEqual(target_value, target_min_value,
-                                            msg="Data isn't set up to be able to test bookmarks")
+                    self.assertGreaterEqual(
+                        target_value, target_min_value,
+                        msg="Data isn't set up to be able to test bookmarks",
+                        logging="verify test data is setup with different replication key value"
+                    )
 
                     # verify state agrees with target data after 1st sync
-                    self.assertEqual(state_value, target_value,
-                                    msg="The bookmark value isn't correct based on target data")
+                    self.assertEqual(
+                        state_value, target_value,
+                        msg="The bookmark value isn't correct based on target data",
+                        logging="verify the max replication key value is saved in state for the first sync"
+                    )
 
                     # verify that you get less data the 2nd time around
                     self.assertGreater(
                         first_sync_record_count.get(stream, 0),
                         second_sync_record_count.get(stream, 0),
-                        msg="second syc didn't have less records, bookmark usage not verified")
+                        msg="second syc didn't have less records, bookmark usage not verified",
+                        logging="verify less data is replicated on the second sync")
 
                     # verify all data from 2nd sync >= 1st bookmark
                     target_value = second_min_bookmarks.get(
@@ -107,7 +113,10 @@ class BookmarkTest(BaseTapTest):
 
                     # verify that the minimum bookmark sent to the target for the second sync
                     # is greater than or equal to the bookmark from the first sync
-                    self.assertGreaterEqual(target_value, state_value)
+                    self.assertGreaterEqual(
+                        target_value, state_value,
+                        logging="verify the second sync replicates records inclusive of the last saved bookmark"
+                    )
 
                 else:
 
@@ -117,10 +126,17 @@ class BookmarkTest(BaseTapTest):
                     second_sync_count = second_sync_record_count.get(stream, 0)
 
                     # Verify the syncs do not set a bookmark for full table streams
-                    self.assertIsNone(first_bookmark_key_value)
-                    self.assertIsNone(second_bookmark_key_value)
+                    self.assertIsNone(first_bookmark_key_value,
+                                      logging="verify a bookmark is not saved in state")
+                    self.assertIsNone(second_bookmark_key_value,
+                                      logging="verify a bookmark is not saved in state")
 
-                    self.assertGreater(first_sync_count, 0)
-                    self.assertGreater(second_sync_count, 0)
+                    # Verify data is replicated for each sync (ensuring test coverage)
+                    self.assertGreater(first_sync_count, 0,
+                                       logging="verify records are replicated for the first sync")
+                    self.assertGreater(second_sync_count, 0,
+                                       logging="verify records are replicated for the second sync")
+
                     # Verify the number of records in the second sync is the same as the first
-                    self.assertEqual(first_sync_count, second_sync_count)
+                    self.assertEqual(first_sync_count, second_sync_count,
+                                     logging="verify the same number of records are replicated for each sync")

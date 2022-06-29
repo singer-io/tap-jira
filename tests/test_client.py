@@ -9,9 +9,10 @@ from abc import ABC, abstractmethod
 from requests.exceptions import HTTPError
 from requests.auth import HTTPBasicAuth
 import requests
-from singer import metrics
-import singer
 import backoff
+
+from tap_tester.logger import LOGGER
+
 
 class RateLimitException(Exception):
     pass
@@ -19,8 +20,6 @@ class RateLimitException(Exception):
 # Jira OAuth tokens last for 3600 seconds. We set it to 3500 to try to
 # come in under the limit.
 REFRESH_TOKEN_EXPIRATION_PERIOD = 3500
-
-LOGGER = singer.get_logger()
 
 def should_retry_httperror(exception):
     """ Retry 500-range errors. """
@@ -110,9 +109,7 @@ class TestClient():
                           max_tries=10,
                           interval=60)
     def request(self, tap_stream_id, *args, **kwargs):
-        with metrics.http_request_timer(tap_stream_id) as timer:
-            response = self.send(*args, **kwargs)
-            timer.tags[metrics.Tag.http_status_code] = response.status_code
+        response = self.send(*args, **kwargs)
         if response.status_code == 429:
             raise RateLimitException()
 
