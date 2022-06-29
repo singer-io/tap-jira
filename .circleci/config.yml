@@ -11,9 +11,8 @@ jobs:
   build:
     executor: docker-executor
     steps:
-      - attach_workspace:
-          at: /tmp/tap-jira
-      - run: cat /tmp/tap-jira/tap-tester.log
+      - run: echo "CI Done"
+
   ensure_env:
     executor: docker-executor
     steps:
@@ -34,6 +33,7 @@ jobs:
           paths:
             - tap-jira
             - dev_env.sh
+
   run_pylint:
     executor: docker-executor
     steps:
@@ -102,10 +102,6 @@ jobs:
           only_for_branches: master
       - store_artifacts:
           path: /tmp/tap-jira
-      - persist_to_workspace:
-          root: /tmp/tap-jira
-          paths:
-            - tap-tester.log
 
 workflows:
   version: 2
