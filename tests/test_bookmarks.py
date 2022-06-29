@@ -78,11 +78,7 @@ class BookmarkTest(BaseTapTest):
 
                     # get bookmark values from state and target data
                     stream_bookmark_key = self.expected_replication_keys().get(stream, set())
-                    LOGGER.info("Found bookmark key for {}: {}".format(stream, stream_bookmark_key))
-                    assert len(
-                        stream_bookmark_key) == 1  # There shouldn't be a compound replication key
                     stream_bookmark_key = stream_bookmark_key.pop()
-
                     state_value = first_sync_state.get("bookmarks", {}).get(
                         stream, {None: None}).get(stream_bookmark_key)
                     target_value = first_max_bookmarks.get(
@@ -94,7 +90,7 @@ class BookmarkTest(BaseTapTest):
                     self.assertGreaterEqual(
                         target_value, target_min_value,
                         msg="Data isn't set up to be able to test bookmarks",
-                        logging="verify test data is setup with different replication key values"
+                        logging="verify test data is setup with different replication key value"
                     )
 
                     # verify state agrees with target data after 1st sync

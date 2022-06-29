@@ -62,7 +62,7 @@ class FullReplicationTest(BaseTapTest):
 
                 # verify that there is more than 1 record of data - setup necessary
                 self.assertGreater(first_sync_record_count.get(stream, 0), 1,
-                                   msg="verify multiple records are replicatied")
+                                   logging="verify multiple records are replicatied")
 
                 # verify that you get the same or more data the 2nd time around
                 self.assertGreaterEqual(
