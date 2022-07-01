@@ -17,8 +17,8 @@ class TestOutOfRangeDate(unittest.TestCase):
             {"updated": "2001-13-05T19:51:03.159000", "id": "3","id2": "13"},  # month out of range
             {"updated": "2007-09-45T19:51:03.159000z", "id": "4","id2": "14"},  # day out of range
             {"updated": "2006-01-29T01:62:01.99999", "id": "5","id2": "16"},  # minutes out of range
-            {"updated": "2011-09-05T19:51:03.159000", "id": "6","id2": "15"},  # Correct record
-            {"updated": "2009-09-10T26:51:03.159000Z", "id": "7","id2": "17"},  # hour out of range
+            {"updated": "2009-09-10T26:51:03.159000Z", "id": "6","id2": "17"},  # hour out of range
+            {"updated": "2011-09-05T19:51:03.159000", "id": "7","id2": "15"},  # Correct record
         ]
         mock_schema ={
             "properties": {
@@ -46,7 +46,7 @@ class TestOutOfRangeDate(unittest.TestCase):
             ),
             mock.call(
                 "stream_id",
-                {"updated": "2011-09-05T19:51:03.159000Z", "id": "6","id2": "15"},
+                {"updated": "2011-09-05T19:51:03.159000Z", "id": "7","id2": "15"},
                 time_extracted="2022-05-23T09:16:11.356670Z",
             ),
         ]
