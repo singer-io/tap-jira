@@ -11,7 +11,8 @@ jobs:
   build:
     executor: docker-executor
     steps:
-      - run: echo 'CI done'
+      - run: echo "CI Done"
+
   ensure_env:
     executor: docker-executor
     steps:
@@ -32,6 +33,7 @@ jobs:
           paths:
             - tap-jira
             - dev_env.sh
+
   run_pylint:
     executor: docker-executor
     steps:
@@ -85,16 +87,21 @@ jobs:
           no_output_timeout: 30m
           command: |
             source /usr/local/share/virtualenvs/dev_env.sh
+            mkdir /tmp/${CIRCLE_PROJECT_REPONAME}
+            export STITCH_CONFIG_DIR=/tmp/${CIRCLE_PROJECT_REPONAME}
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
-            circleci tests glob "tests/*.py" | circleci tests split > ./tests-to-run
+            circleci tests glob "tests/test_*.py" | circleci tests split > ./tests-to-run
             if [ -s ./tests-to-run ]; then
               for test_file in $(cat ./tests-to-run)
               do
+                echo $test_file > $STITCH_CONFIG_DIR/tap_test.txt
                 run-test --tap=${CIRCLE_PROJECT_REPONAME} $test_file
               done
             fi
       - slack/notify-on-failure:
           only_for_branches: master
+      - store_artifacts:
+          path: /tmp/tap-jira
 
 workflows:
   version: 2
