@@ -83,7 +83,7 @@ def save_artifacts(repo):
     3) Save file(s) to folder in s3 QA bucket
        Ensure saving file was succesful
     """
-    artifacts_path = f"tests/artifacts/{repo}"
+    artifacts_path = f"./artifacts/{repo}"
     uuids = os.listdir(artifacts_path)
     date = str(today)
     try:
