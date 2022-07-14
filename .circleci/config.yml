@@ -18,7 +18,7 @@ jobs:
           command: |
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
             aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/vm vm_env.sh
-            ./bin/save_artifacts.py --repo $CIRCLE_PROJECT_REPONAME --workflow $CIRCLE_WORKFLOW_JOB_ID
+            ./tests/save_artifacts.py --repo $CIRCLE_PROJECT_REPONAME --workflow $CIRCLE_WORKFLOW_JOB_ID
       - run: echo "CI Done"
 
   ensure_env:

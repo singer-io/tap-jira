@@ -32,7 +32,7 @@ def setUp(repo):
         print(f"Couldn't create an object in {name}. Reason: "
               f"{err.response['Error']}")
 
-def get_artifacts(repo):
+def get_artifacts(repo, workflow_id):
     """
     2) Gather files to save.
       - Look for yesterday's jobs on master (or main) in CircleCI
@@ -42,72 +42,41 @@ def get_artifacts(repo):
     base_url = "https://circleci.com/api/v2"
     gh_org = "stitchdata" if repo == "ui-automation" else "singer-io"
 
-    # get all pipelines
-    url = f"{base_url}/project/gh/{gh_org}/{repo}/pipeline"
-    additional_params = {"branch": "master",
-                         "page_token": None}
-    additional_params.update(PARAMS)
-    response = requests.get(url, params=additional_params)
+
+    # get the job(s) from the workflow
+    url = f"{base_url}/workflow/{workflow_id}/job"
+    response = requests.get(url, params=PARAMS)
     print(f"GET url={url} STATUS: {response.status_code}")
     response.raise_for_status()
     results = response.json()
-    pipeline_ids = []
-    for item in results['items']:
-        pipeline_updated_at = datetime.datetime.strptime(
-            item['updated_at'], "%Y-%m-%dT%H:%M:%S.%fZ").date()
-        if yesterday == pipeline_updated_at:
-            pipeline_ids.append(item['id'])
+    job_numbers = [item['job_number']
+                   for item in results['items']
+                   if 'test' in item.get('name')
+                   and item.get('job_number')]
 
-    # get the workflow_id of the latest pipeline
-    workflow_ids = []
-    for pipeline_id in pipeline_ids:
-        url = f"{base_url}/pipeline/{pipeline_id}/workflow"
-        response = requests.get(url, params=PARAMS)
+    # get the artifact urls from the job
+    artifacts = []
+    for job_number in job_numbers:
+        artifacts_endpoint = f"{base_url}/project/gh/{gh_org}/{repo}/{job_number}/artifacts"
+        response = requests.get(artifacts_endpoint, params=PARAMS)
         print(f"GET url={url} STATUS: {response.status_code}")
         response.raise_for_status()
         results = response.json()
-        for item in results['items']:
-            workflow_stopped_at = datetime.datetime.strptime(
-                item['stopped_at'], "%Y-%m-%dT%H:%M:%SZ").date()
-            if yesterday == workflow_stopped_at:
-                workflow_ids.append(item['id'])
+        urls = [item['url']
+                for item in results['items']
+                if item['path'].endswith('.log')]
+        artifacts += urls
 
-    for workflow_id in workflow_ids:
-
-        # get the job(s) from the workflow
-        url = f"{base_url}/workflow/{workflow_id}/job"
-        response = requests.get(url, params=PARAMS)
-        print(f"GET url={url} STATUS: {response.status_code}")
-        response.raise_for_status()
-        results = response.json()
-        job_numbers = [item['job_number']
-                       for item in results['items']
-                       if 'test' in item.get('name')
-                       and item.get('job_number')]
-
-        # get the artifact urls from the job
-        artifacts = []
-        for job_number in job_numbers:
-            artifacts_endpoint = f"{base_url}/project/gh/{gh_org}/{repo}/{job_number}/artifacts"
-            response = requests.get(artifacts_endpoint, params=PARAMS)
-            print(f"GET url={url} STATUS: {response.status_code}")
-            response.raise_for_status()
-            results = response.json()
-            urls = [item['url']
-                    for item in results['items']
-                    if item['path'].endswith('.log')]
-            artifacts += urls
-
-        # pull down the artifacts
-        for artifact in artifacts:
-            cmd = ["tests/artifacts.sh", artifact, repo, workflow_id]
-            print("**************************************************")
-            proc = subprocess.run(cmd, capture_output=True)
-            print(f"executing subprocess: {' '.join(cmd)}")
-            print(proc.stdout.decode('utf8'))
-            print(proc.stderr.decode('utf8'))
-            print(f"Finished with exit_code {proc.returncode}")
-            print("**************************************************")
+    # pull down the artifacts
+    for artifact in artifacts:
+        cmd = ["tests/artifacts.sh", artifact, repo, workflow_id]
+        print("**************************************************")
+        proc = subprocess.run(cmd, capture_output=True)
+        print(f"executing subprocess: {' '.join(cmd)}")
+        print(proc.stdout.decode('utf8'))
+        print(proc.stderr.decode('utf8'))
+        print(f"Finished with exit_code {proc.returncode}")
+        print("**************************************************")
 
 def save_artifacts(repo):
     """
@@ -148,7 +117,7 @@ def main():
         setUp(args.repo)
 
         # step 2) get the log artifacts from yesterday's master builds
-        get_artifacts(args.repo, args)
+        get_artifacts(args.repo, args.workflow)
 
         # step 3) upload artifacts to qa bucket
         save_artifacts(args.repo)
