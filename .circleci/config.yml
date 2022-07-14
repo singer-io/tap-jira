@@ -97,7 +97,12 @@ jobs:
           name: 'Run Integration Tests'
           no_output_timeout: 30m
           command: |
-            echo " Integration Tests Done"
+            source /usr/local/share/virtualenvs/dev_env.sh
+            mkdir /tmp/${CIRCLE_PROJECT_REPONAME}
+            export STITCH_CONFIG_DIR=/tmp/${CIRCLE_PROJECT_REPONAME}
+            source /usr/local/share/virtualenvs/tap-tester/bin/activate
+            echo "tests/test_discovery.py" > $STITCH_CONFIG_DIR/tap_test.txt
+            run-test --tap=${CIRCLE_PROJECT_REPONAME} tests/test_discovery.py
           # command: |
           #   source /usr/local/share/virtualenvs/dev_env.sh
           #   mkdir /tmp/${CIRCLE_PROJECT_REPONAME}
