@@ -6,6 +6,7 @@ import os
 import requests
 import subprocess
 
+today = datetime.date.today()
 yesterday = datetime.date.today() - datetime.timedelta(days=1)
 PARAMS = {"circle-token": os.getenv("CIRCLE_USER_TOKEN")}
 name = 'com-stitchdata-dev-qa-artifacts'
@@ -41,7 +42,6 @@ def get_artifacts(repo, workflow_id):
     """
     base_url = "https://circleci.com/api/v2"
     gh_org = "stitchdata" if repo == "ui-automation" else "singer-io"
-
 
     # get the job(s) from the workflow
     url = f"{base_url}/workflow/{workflow_id}/job"
@@ -83,9 +83,9 @@ def save_artifacts(repo):
     3) Save file(s) to folder in s3 QA bucket
        Ensure saving file was succesful
     """
-    artifacts_path = f"/opt/code/tap-tester/artifacts/{repo}"
+    artifacts_path = f"tests/artifacts/{repo}"
     uuids = os.listdir(artifacts_path)
-    date = str(yesterday)
+    date = str(today)
     try:
         client = boto3.client('s3')
         for uuid in uuids:
