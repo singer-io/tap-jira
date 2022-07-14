@@ -11,6 +11,14 @@ jobs:
   build:
     executor: docker-executor
     steps:
+      - checkout
+      - attach_workspace:
+          at: /usr/local/share/virtualenvs
+      - run:
+          command: |
+            source /usr/local/share/virtualenvs/tap-tester/bin/activate
+            aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/vm vm_env.sh
+            ./bin/save_artifacts.py --repo $CIRCLE_PROJECT_REPONAME --workflow $CIRCLE_WORKFLOW_JOB_ID
       - run: echo "CI Done"
 
   ensure_env:
@@ -86,7 +94,6 @@ jobs:
           name: 'Run Integration Tests'
           no_output_timeout: 30m
           command: |
-            source /usr/local/share/virtualenvs/dev_env.sh
             mkdir /tmp/${CIRCLE_PROJECT_REPONAME}
             export STITCH_CONFIG_DIR=/tmp/${CIRCLE_PROJECT_REPONAME}
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
