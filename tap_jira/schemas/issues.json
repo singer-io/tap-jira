@@ -626,6 +626,12 @@
             "string"
           ]
         },
+        "entityId": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
         "description": {
           "type": [
             "null",
@@ -937,6 +943,12 @@
           ]
         },
         "projectTypeKey": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "projectCategory": {
           "type": [
             "null",
             "string"
