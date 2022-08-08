@@ -151,6 +151,16 @@ class ProjectTypes(Stream):
         self.write_page(types)
 
 
+class Boards(Stream):
+    def sync(self):
+        path = "/rest/agile/1.0/board"
+        # Just do full sync each time for now
+        params = {}
+        pager = Paginator(Context.client, items_key='values')
+        for page in pager.pages(self.tap_stream_id, "GET", path, params=params):
+            self.write_page(page)
+
+
 class Users(Stream):
     def sync(self):
         max_results = 2
@@ -333,6 +343,7 @@ ALL_STREAMS = [
     VERSIONS,
     COMPONENTS,
     ProjectTypes("project_types", ["key"]),
+    Boards("boards", ["id"]),
     Stream("project_categories", ["id"], path="/rest/api/2/projectCategory"),
     Stream("resolutions", ["id"], path="/rest/api/2/resolution"),
     Stream("roles", ["id"], path="/rest/api/2/role"),
