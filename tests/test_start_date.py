@@ -6,7 +6,9 @@ from datetime import datetime as dt
 from datetime import timedelta
 
 from tap_tester import menagerie, runner
-from tap_tester.logger import LOGGER
+# from tap_tester.logger import LOGGER
+import singer
+LOGGER = singer.get_logger()
 
 from base import BaseTapTest
 
@@ -49,7 +51,7 @@ class StartDateTest(BaseTapTest):
     def test_run(self):
         """Test we get a lot of data back based on the start date configured in base"""
 
-        streams_under_test = self.streams_under_test()
+        streams_under_test = {"worklogs"} # self.streams_under_test()
 
         conn_id = self.create_connection_with_initial_discovery()
 
@@ -75,8 +77,7 @@ class StartDateTest(BaseTapTest):
 
         # grab the most recent bookmark from state
         greatest_bookmark_value = sorted(bookmarked_values)[-1].split("T")[0]
-        start_date = self.timedelta_formatted(greatest_bookmark_value, days=-1, str_format="%Y-%m-%d") # BUG_TDL-19582
-        # start_date = self.timedelta_formatted(greatest_bookmark_value, days=0, str_format="%Y-%m-%d")  # BUG_TDL-19582
+        start_date = self.timedelta_formatted(greatest_bookmark_value, days=0, str_format="%Y-%m-%d")
         self.start_date = start_date + "T00:00:00Z"
 
         # create a new connection with the new  more recent start_date
