@@ -93,6 +93,9 @@ def sync():
     # data for the second stream, but the second stream hasn't output its
     # schema yet
     for stream in streams_.ALL_STREAMS:
+        # Update pk for users stream to key for on prem jira instance
+        if stream.tap_stream_id == "users" and Context.client.is_on_prem_instance:
+            stream.pk_fields = ["key"]
         output_schema(stream)
 
     for stream in streams_.ALL_STREAMS:
