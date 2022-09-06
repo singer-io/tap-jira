@@ -64,11 +64,11 @@ def discover():
 def generate_metadata(stream, schema):
     mdata = metadata.new()
 
-    mdata = metadata.write(mdata, (), 'table-key-properties', stream.pk_fields)
-
     # Update pk for users stream to key for on-prem Jira instance
     if stream.tap_stream_id == "users" and Context.client.is_on_prem_instance:
         stream.pk_fields = ["key"]
+
+    mdata = metadata.write(mdata, (), 'table-key-properties', stream.pk_fields)
 
     for field_name in schema.properties.keys():
         if field_name in stream.pk_fields:
