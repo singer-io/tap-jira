@@ -66,6 +66,10 @@ def generate_metadata(stream, schema):
 
     mdata = metadata.write(mdata, (), 'table-key-properties', stream.pk_fields)
 
+    # Update pk for users stream to key for on-prem Jira instance
+    if stream.tap_stream_id == "users" and Context.client.is_on_prem_instance:
+        stream.pk_fields = ["key"]
+
     for field_name in schema.properties.keys():
         if field_name in stream.pk_fields:
             mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
@@ -105,14 +109,6 @@ def sync():
     Context.state["currently_syncing"] = None
     singer.write_state(Context.state)
 
-def switch_pk_for_users_stream():
-    """
-    Update pk for users stream to key for on-prem Jira instance.
-    """
-    if Context.client.is_on_prem_instance:
-        # ALL_STREAMS contains `Users` object at index 7
-        streams_.ALL_STREAMS[7].pk_fields = ["key"]
-
 @singer.utils.handle_top_exception(LOGGER)
 def main():
     args = get_args()
@@ -125,16 +121,17 @@ def main():
     Context.client = jira_client
 
     # Update pk for users
-    switch_pk_for_users_stream()
-    catalog = Catalog.from_dict(args.properties) \
-        if args.properties else discover()
+    catalog = discover()
+    if args.properties:
+        catalog = Catalog.from_dict(args.properties)
+
     Context.config = jira_config
     Context.state = args.state
     Context.catalog = catalog
 
     try:
         if args.discover:
-            discover().dump()
+            catalog.dump()
             print()
         else:
             sync()
