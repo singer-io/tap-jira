@@ -79,9 +79,14 @@ def generate_metadata(stream, schema):
     return metadata.to_list(mdata)
 
 
-def output_schema(stream):
-    schema = load_schema(stream.tap_stream_id)
-    singer.write_schema(stream.tap_stream_id, schema, stream.pk_fields)
+def write_schema(stream_obj):
+    stream = Context.catalog.get_stream(stream_obj.tap_stream_id)
+    schema = stream.schema.to_dict()
+    try:
+        singer.write_schema(stream_obj.tap_stream_id, schema, stream.key_properties)
+    except OSError as err:
+        LOGGER.info('OS Error writing schema for: %s', stream_obj.tap_stream_id)
+        raise err
 
 
 def sync():
@@ -93,7 +98,7 @@ def sync():
     # data for the second stream, but the second stream hasn't output its
     # schema yet
     for stream in streams_.ALL_STREAMS:
-        output_schema(stream)
+        write_schema(stream)
 
     for stream in streams_.ALL_STREAMS:
         if not Context.is_selected(stream.tap_stream_id):
@@ -119,12 +124,8 @@ def main():
 
     # Setup Context
     Context.client = jira_client
-
-    # Update pk for users
-    catalog = discover()
-    if args.properties:
-        catalog = Catalog.from_dict(args.properties)
-
+    catalog = Catalog.from_dict(args.properties) \
+        if args.properties else discover()
     Context.config = jira_config
     Context.state = args.state
     Context.catalog = catalog
