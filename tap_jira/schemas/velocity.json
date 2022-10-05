@@ -1,0 +1,56 @@
+{
+    "title": "Velocity",
+    "type": [
+      "null",
+      "object"
+    ],
+    "properties":{
+        "sprints":{
+            "type":[
+                "array",
+                "null"
+            ],
+            "items":{
+                "type":"object",
+                "properties":{
+                    "id":{
+                        "type":[
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "sequence":{
+                        "type":[
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "name":{
+                        "type":[
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "state":{
+                        "type":[
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "linkedPagesCount":{
+                        "type":[
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "goal":{
+                        "type":[
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            }
+        }
+    }
+}
