@@ -293,6 +293,27 @@ class Issues(Stream):
         Context.set_bookmark(updated_bookmark, last_updated)
         singer.write_state(Context.state)
 
+class Velocity(Stream):
+    def sync(self):
+        print("1")
+        if Context.config.get("boards"):
+            print(2)
+            boards = Context.config.get("boards").split(",")
+        else:
+            print(3)
+            boards = [39,37]
+
+        for board in boards:
+            print(4)
+            params = {"rapidViewId": board}
+            print(5)
+            velocities = Context.client.request(
+                self.tap_stream_id, "GET",
+                    "/rest/greenhopper/1.0/rapid/charts/velocity.json",
+                    params=params)
+            print(6)
+            self.write_page(velocities)
+            print(7)
 
 class Worklogs(Stream):
     def _fetch_ids(self, last_updated):
@@ -338,7 +359,6 @@ class Worklogs(Stream):
             if last_page:
                 break
 
-
 VERSIONS = Stream("versions", ["id"], indirect_stream=True)
 COMPONENTS = Stream("components", ["id"], indirect_stream=True)
 ISSUES = Issues("issues", ["id"])
@@ -347,6 +367,9 @@ ISSUE_TRANSITIONS = Stream("issue_transitions", ["id","issueId"], # Composite pr
                            indirect_stream=True)
 PROJECTS = Projects("projects", ["id"])
 CHANGELOGS = Stream("changelogs", ["id"], indirect_stream=True)
+VELOCITY = Velocity("velocity",["id"])
+
+print("0")
 
 ALL_STREAMS = [
     PROJECTS,
@@ -362,6 +385,7 @@ ALL_STREAMS = [
     CHANGELOGS,
     ISSUE_TRANSITIONS,
     Worklogs("worklogs", ["id"]),
+    VELOCITY,
 ]
 
 ALL_STREAM_IDS = [s.tap_stream_id for s in ALL_STREAMS]
