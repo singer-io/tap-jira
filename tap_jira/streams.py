@@ -352,9 +352,9 @@ class Worklogs(Stream):
             if last_page:
                 break
 
-VELOCITY = Velocity("velocity",["id"])
 VERSIONS = Stream("versions", ["id"], indirect_stream=True)
 COMPONENTS = Stream("components", ["id"], indirect_stream=True)
+VELOCITY = Velocity("velocity",["id"])
 ISSUES = Issues("issues", ["id"])
 ISSUE_COMMENTS = Stream("issue_comments", ["id"], indirect_stream=True)
 ISSUE_TRANSITIONS = Stream("issue_transitions", ["id","issueId"], # Composite primary key
