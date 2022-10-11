@@ -354,17 +354,16 @@ class Worklogs(Stream):
 
 VERSIONS = Stream("versions", ["id"], indirect_stream=True)
 COMPONENTS = Stream("components", ["id"], indirect_stream=True)
-VELOCITY = Velocity("velocity",["id"])
 ISSUES = Issues("issues", ["id"])
 ISSUE_COMMENTS = Stream("issue_comments", ["id"], indirect_stream=True)
 ISSUE_TRANSITIONS = Stream("issue_transitions", ["id","issueId"], # Composite primary key
                            indirect_stream=True)
 PROJECTS = Projects("projects", ["id"])
 CHANGELOGS = Stream("changelogs", ["id"], indirect_stream=True)
+VELOCITY = Velocity("velocity",["id"])
 
 ALL_STREAMS = [
     PROJECTS,
-    VELOCITY,
     VERSIONS,
     COMPONENTS,
     ProjectTypes("project_types", ["key"]),
@@ -377,6 +376,7 @@ ALL_STREAMS = [
     CHANGELOGS,
     ISSUE_TRANSITIONS,
     Worklogs("worklogs", ["id"]),
+    VELOCITY,
 ]
 
 ALL_STREAM_IDS = [s.tap_stream_id for s in ALL_STREAMS]
