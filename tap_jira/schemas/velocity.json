@@ -1,134 +1,177 @@
 {
     "title": "Velocity",
     "type": [
-      "null",
-      "object"
+        "null",
+        "object"
     ],
-    "properties":{
-        "sprints":{
-            "type":[
-                "array",
-                "null"
-            ],
-            "items":{
-                "type":"object",
-                "properties":{
-                    "id":{
-                        "type":[
-                            "integer",
-                            "null"
+    "properties": {
+        "sprints": {
+            "items": {
+                "properties": {
+                    "id": {
+                        "type": [
+                            "null",
+                            "number"
                         ]
                     },
-                    "sequence":{
-                        "type":[
-                            "integer",
-                            "null"
+                    "sequence": {
+                        "type": [
+                            "null",
+                            "number"
                         ]
                     },
-                    "name":{
-                        "type":[
-                            "string",
-                            "null"
+                    "name": {
+                        "type": [
+                            "null",
+                            "string"
                         ]
                     },
-                    "state":{
-                        "type":[
-                            "string",
-                            "null"
+                    "state": {
+                        "type": [
+                            "null",
+                            "string"
                         ]
                     },
-                    "linkedPagesCount":{
-                        "type":[
-                            "integer",
-                            "null"
+                    "linkedPagesCount": {
+                        "type": [
+                            "null",
+                            "string"
                         ]
                     },
-                    "goal":{
-                        "type":[
-                            "string",
-                            "null"
+                    "goal": {
+                        "type": [
+                            "null",
+                            "string"
                         ]
                     }
-                }
-            }
+                },
+                "type": [
+                    "null",
+                    "object"
+                ]
+            },
+            "type": [
+                "null",
+                "array"
+            ]
         },
-        "velocityStatEntries":{
-            "type":[
-                "object",
-                "null"
+        "velocityStatEntries": {
+            "type": [
+                "null",
+                "object"
             ],
-            "properties":{
-                "estimated":{
-                    "type":[
-                        "object",
-                        "null"
+            "additionalProperties": true,
+            "patternProperties": {
+                ".+": {
+                    "type": [
+                        "null",
+                        "object"
                     ],
-                    "properties":{
-                        "value":{
-                            "type":[
-                                "string",
-                                "null"
-                            ]
+                    "properties": {
+                        "estimated": {
+                            "type": [
+                                "null",
+                                "object"
+                            ],
+                            "properties": {
+                                "value": {
+                                    "type": [
+                                        "null",
+                                        "number"
+                                    ]
+                                },
+                                "text": {
+                                    "type": [
+                                        "null",
+                                        "string"
+                                    ]
+                                }
+                            }
                         },
-                        "key":{
-                            "type":[
-                                "string",
-                                "null"
-                            ]
-                        }
-                    }
-                },
-                "completed":{
-                    "type":[
-                        "object",
-                        "null"
-                    ],
-                    "properties":{
-                        "value":{
-                            "type":[
-                                "string",
-                                "null"
-                            ]
+                        "completed": {
+                            "type": [
+                                "null",
+                                "object"
+                            ],
+                            "properties": {
+                                "value": {
+                                    "type": [
+                                        "null",
+                                        "number"
+                                    ]
+                                },
+                                "text": {
+                                    "type": [
+                                        "null",
+                                        "string"
+                                    ]
+                                }
+                            }
                         },
-                        "key":{
-                            "type":[
-                                "string",
-                                "null"
-                            ]
+                        "allConsideredIssueKeys": {
+                            "type": [
+                                "null",
+                                "array"
+                            ],
+                            "items": {
+                                "type": [
+                                    "null",
+                                    "string"
+                                ]
+                            }
+                        },
+                        "estimatedEntries": {
+                            "type": [
+                                "null",
+                                "array"
+                            ],
+                            "items": {
+                                "type": [
+                                    "null",
+                                    "object"
+                                ],
+                                "properties": {
+                                    "issueKey": {
+                                        "type": [
+                                            "null",
+                                            "string"
+                                        ]
+                                    },
+                                    "value": {
+                                        "type": [
+                                            "null",
+                                            "number"
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        "completedEntries": {
+                            "type": [
+                                "null",
+                                "array"
+                            ],
+                            "items": {
+                                "type": [
+                                    "null",
+                                    "object"
+                                ],
+                                "properties": {
+                                    "issueKey": {
+                                        "type": [
+                                            "null",
+                                            "string"
+                                        ]
+                                    },
+                                    "value": {
+                                        "type": [
+                                            "null",
+                                            "number"
+                                        ]
+                                    }
+                                }
+                            }
                         }
-                    }
-                },
-                "allConsideredIssueKeys":{
-                    "type":[
-                        "array",
-                        "null"
-                    ],
-                    "items":{
-                        "type":[
-                            "string"
-                        ]
-                    }
-                },
-                "estimatedEntries":{
-                    "type":[
-                        "array",
-                        "null"
-                    ],
-                    "items":{
-                        "type":[
-                            "string"
-                        ]
-                    }
-                },
-                "completedEntries":{
-                    "type":[
-                        "array",
-                        "null"
-                    ],
-                    "items":{
-                        "type":[
-                            "string"
-                        ]
                     }
                 }
             }
