@@ -128,6 +128,16 @@ def update_user_date(page):
         page['userStartDate'] = transform_user_date(page['userStartDate'])
 
     return page
+
+class Boards(Stream):
+    def sync(self):
+            boards = Context.client.request(
+                self.tap_stream_id,
+                "GET",
+                "/rest/greenhopper/1.0/rapidview"
+            )
+            self.write_page(boards)
+
 class Projects(Stream):
     def sync_on_prem(self):
         """ Sync function for the on prem instances"""
@@ -219,7 +229,6 @@ class ProjectTypes(Stream):
             type_.pop("icon")
         self.write_page(types)
 
-
 class Users(Stream):
     def sync(self):
         max_results = 2
@@ -249,7 +258,6 @@ class Users(Stream):
 
 
 class Issues(Stream):
-
     def sync(self):
         updated_bookmark = [self.tap_stream_id, "updated"]
         page_num_offset = [self.tap_stream_id, "offset", "page_num"]
@@ -353,6 +361,7 @@ class Worklogs(Stream):
                 break
 
 VERSIONS = Stream("versions", ["id"], indirect_stream=True)
+BOARDS = Boards("boards",["id"])
 COMPONENTS = Stream("components", ["id"], indirect_stream=True)
 VELOCITY = Velocity("velocity",["id"])
 ISSUES = Issues("issues", ["id"])
@@ -364,6 +373,7 @@ CHANGELOGS = Stream("changelogs", ["id"], indirect_stream=True)
 
 ALL_STREAMS = [
     PROJECTS,
+    BOARDS,
     VELOCITY,
     VERSIONS,
     COMPONENTS,
