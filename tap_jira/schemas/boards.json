@@ -1,0 +1,98 @@
+{
+  "title": "Boards",
+  "type": [
+    "null",
+    "object"
+  ],
+  "properties": {
+    "views": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": [
+          "null",
+          "object"
+        ],
+        "properties": {
+          "id": {
+            "type": [
+              "null",
+              "integer"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "canEdit": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "sprintSupportEnabled": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "showDaysInColumn": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "kanPlanEnabled": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "showEpicAsPanel": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "isSimpleBoard": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "savedFilterId": {
+            "type": [
+              "null",
+              "integer"
+            ]
+          },
+          "oldDoneIssuesCutoff": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "canEdit",
+          "sprintSupportEnabled",
+          "showDaysInColumn",
+          "kanPlanEnabled",
+          "showEpicAsPanel",
+          "isSimpleBoard",
+          "savedFilterId",
+          "oldDoneIssuesCutoff"
+        ]
+      }
+    }
+  },
+  "required": [
+    "views"
+  ]
+}
