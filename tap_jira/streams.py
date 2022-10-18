@@ -134,7 +134,7 @@ class Boards(Stream):
             boards = Context.client.request(
                 self.tap_stream_id,
                 "GET",
-                "/rest/greenhopper/1.0/rapidview"
+                "/rest/agile/1.0/board"
             )
             self.write_page(boards)
 
@@ -301,21 +301,6 @@ class Issues(Stream):
         Context.set_bookmark(updated_bookmark, last_updated)
         singer.write_state(Context.state)
 
-class Velocity(Stream):
-    def sync(self):
-        if Context.config.get("boards"):
-            boards = Context.config.get("boards").split(",")
-        else:
-            boards = [39,37]
-
-        for board in boards:
-            params = {"rapidViewId": board}
-            velocities = Context.client.request(
-                self.tap_stream_id, "GET",
-                    "/rest/greenhopper/1.0/rapid/charts/velocity.json",
-                    params=params)
-            self.write_page(velocities)
-
 class Worklogs(Stream):
     def _fetch_ids(self, last_updated):
         # since_ts uses millisecond precision
@@ -363,7 +348,6 @@ class Worklogs(Stream):
 VERSIONS = Stream("versions", ["id"], indirect_stream=True)
 BOARDS = Boards("boards",["id"])
 COMPONENTS = Stream("components", ["id"], indirect_stream=True)
-VELOCITY = Velocity("velocity",["id"])
 ISSUES = Issues("issues", ["id"])
 ISSUE_COMMENTS = Stream("issue_comments", ["id"], indirect_stream=True)
 ISSUE_TRANSITIONS = Stream("issue_transitions", ["id","issueId"], # Composite primary key
@@ -374,7 +358,6 @@ CHANGELOGS = Stream("changelogs", ["id"], indirect_stream=True)
 ALL_STREAMS = [
     PROJECTS,
     BOARDS,
-    VELOCITY,
     VERSIONS,
     COMPONENTS,
     ProjectTypes("project_types", ["key"]),

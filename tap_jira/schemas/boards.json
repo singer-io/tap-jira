@@ -5,7 +5,31 @@
     "object"
   ],
   "properties": {
-    "views": {
+    "maxResults": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "startAt": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "total": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "isLast": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "values": {
       "type": [
         "null",
         "array"
@@ -21,78 +45,9 @@
               "null",
               "integer"
             ]
-          },
-          "name": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "canEdit": {
-            "type": [
-              "null",
-              "boolean"
-            ]
-          },
-          "sprintSupportEnabled": {
-            "type": [
-              "null",
-              "boolean"
-            ]
-          },
-          "showDaysInColumn": {
-            "type": [
-              "null",
-              "boolean"
-            ]
-          },
-          "kanPlanEnabled": {
-            "type": [
-              "null",
-              "boolean"
-            ]
-          },
-          "showEpicAsPanel": {
-            "type": [
-              "null",
-              "boolean"
-            ]
-          },
-          "isSimpleBoard": {
-            "type": [
-              "null",
-              "boolean"
-            ]
-          },
-          "savedFilterId": {
-            "type": [
-              "null",
-              "integer"
-            ]
-          },
-          "oldDoneIssuesCutoff": {
-            "type": [
-              "null",
-              "string"
-            ]
           }
-        },
-        "required": [
-          "id",
-          "name",
-          "canEdit",
-          "sprintSupportEnabled",
-          "showDaysInColumn",
-          "kanPlanEnabled",
-          "showEpicAsPanel",
-          "isSimpleBoard",
-          "savedFilterId",
-          "oldDoneIssuesCutoff"
-        ]
+        }
       }
     }
-  },
-  "required": [
-    "views"
-  ]
+  }
 }
