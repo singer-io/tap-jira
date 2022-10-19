@@ -240,6 +240,7 @@ class ProjectTypes(Stream):
             type_.pop("icon")
         self.write_page(types)
 
+
 class Users(Stream):
     def sync(self):
         max_results = 2
@@ -266,6 +267,7 @@ class Users(Stream):
                     self.write_page(page)
             except JiraNotFoundError:
                 LOGGER.info("Could not find group \"%s\", skipping", group)
+
 
 class Issues(Stream):
     def sync(self):
@@ -311,6 +313,7 @@ class Issues(Stream):
         Context.set_bookmark(updated_bookmark, last_updated)
         singer.write_state(Context.state)
 
+
 class Worklogs(Stream):
     def _fetch_ids(self, last_updated):
         # since_ts uses millisecond precision
@@ -354,6 +357,7 @@ class Worklogs(Stream):
             last_page = ids_page.get("lastPage")
             if last_page:
                 break
+
 
 VERSIONS = Stream("versions", ["id"], indirect_stream=True)
 BOARDS = BoardsGreenhopper("boardsGreenhopper",["id"])
