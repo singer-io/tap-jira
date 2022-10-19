@@ -5,32 +5,61 @@
     "object"
   ],
   "properties": {
-    "expand": {
-      "type": [
-        "null",
-        "string"
-      ]
-    },
     "id": {
       "type": [
         "null",
-        "string"
+        "integer"
       ]
     },
-    "self": {
-      "type": [
-        "null",
-        "string"
-      ],
-      "format": "uri"
-    },
-    "key": {
+    "name": {
       "type": [
         "null",
         "string"
       ]
     },
-    "locations": {
+    "canEdit": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "sprintSupportEnabled": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "showDaysInColumn": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "kanPlanEnabled": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "showEpicAsPanel": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "isSimpleBoard": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "savedFilterId": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "oldDoneIssuesCutoff": {
       "type": [
         "null",
         "string"

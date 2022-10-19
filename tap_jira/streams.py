@@ -247,7 +247,7 @@ class Users(Stream):
             except JiraNotFoundError:
                 LOGGER.info("Could not find group \"%s\", skipping", group)
 
-class Boards(Stream):
+class BoardsAgile(Stream):
     def sync(self):
         page_num_offset = [self.tap_stream_id, "offset", "page_num"]
         page_num = Context.bookmark(page_num_offset) or 0
@@ -260,6 +260,12 @@ class Boards(Stream):
             singer.write_state(Context.state)
         Context.set_bookmark(page_num_offset, None)
         singer.write_state(Context.state)
+
+class BoardsGreenhopper(Stream):
+    def sync(self):
+        path = "/rest/greenhopper/1.0/rapidview"
+        boards = Context.client.request(self.tap_stream_id, "GET", path)
+        self.write_page(boards)
 
 class Issues(Stream):
     def sync(self):
@@ -350,7 +356,7 @@ class Worklogs(Stream):
                 break
 
 VERSIONS = Stream("versions", ["id"], indirect_stream=True)
-BOARDS = Boards("boards",["id"])
+BOARDS = BoardsGreenhopper("boards",["id"])
 COMPONENTS = Stream("components", ["id"], indirect_stream=True)
 ISSUES = Issues("issues", ["id"])
 ISSUE_COMMENTS = Stream("issue_comments", ["id"], indirect_stream=True)
