@@ -264,7 +264,7 @@ class BoardsAgile(Stream):
 class BoardsGreenhopper(Stream):
     def sync(self):
         path = "/rest/greenhopper/1.0/rapidview"
-        boards = Context.client.request(self.tap_stream_id, "GET", path)
+        boards = Context.client.request(self.tap_stream_id, "GET", path)['views']
         self.write_page(boards)
 
 class Issues(Stream):
