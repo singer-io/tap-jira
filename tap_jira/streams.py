@@ -129,15 +129,6 @@ def update_user_date(page):
 
     return page
 
-class Boards(Stream):
-    def sync(self):
-            boards = Context.client.request(
-                self.tap_stream_id,
-                "GET",
-                "/rest/agile/1.0/board"
-            )
-            self.write_page(boards)
-
 class Projects(Stream):
     def sync_on_prem(self):
         """ Sync function for the on prem instances"""
@@ -256,6 +247,19 @@ class Users(Stream):
             except JiraNotFoundError:
                 LOGGER.info("Could not find group \"%s\", skipping", group)
 
+class Boards(Stream):
+    def sync(self):
+        page_num_offset = [self.tap_stream_id, "offset", "page_num"]
+        page_num = Context.bookmark(page_num_offset) or 0
+        pager = Paginator(Context.client, items_key="values", page_num=page_num)
+        for page in pager.pages(self.tap_stream_id
+                                ,"GET"
+                                , "/rest/agile/1.0/board"):
+            self.write_page(page)
+            Context.set_bookmark(page_num_offset, pager.next_page_num)
+            singer.write_state(Context.state)
+        Context.set_bookmark(page_num_offset, None)
+        singer.write_state(Context.state)
 
 class Issues(Stream):
     def sync(self):
