@@ -5,73 +5,36 @@
     "object"
   ],
   "properties": {
-    "maxResults": {
+    "expand": {
       "type": [
         "null",
-        "integer"
+        "string"
       ]
     },
-    "startAt": {
+    "id": {
       "type": [
         "null",
-        "integer"
+        "string"
       ]
     },
-    "total": {
+    "self": {
       "type": [
         "null",
-        "integer"
-      ]
-    },
-    "isLast": {
-      "type": [
-        "null",
-        "boolean"
-      ]
-    },
-    "values": {
-      "type": [
-        "null",
-        "array"
+        "string"
       ],
-      "items": {
-        "type": [
-          "null",
-          "object"
-        ],
-        "properties": {
-          "id": {
-            "type": [
-              "null",
-              "integer"
-            ]
-          },
-          "self": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "name": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "type": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "locations": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      }
+      "format": "uri"
+    },
+    "key": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "locations": {
+      "type": [
+        "null",
+        "string"
+      ]
     }
   }
 }
