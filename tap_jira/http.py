@@ -36,12 +36,12 @@ def should_retry_httperror(exception):
 class Client():
     def __init__(self, config):
         self.is_cloud = 'oauth_client_id' in config.keys()
-        self.jwt_config = config.get('jwt')
+        self.jwt_client_key = config.get('jwt_client_key')
+        self.jwt_shared_secret = config.get('jwt_shared_secret')
         self.session = requests.Session()
         self.next_request_at = datetime.now()
         self.user_agent = config.get("user_agent")
         self.login_timer = None
-        self.jwt_config = None
 
         if self.is_cloud:
             LOGGER.info("Using OAuth based API authentication")
@@ -58,7 +58,7 @@ class Client():
             # likely need to be more complicated.
             self.refresh_credentials()
             self.test_credentials_are_authorized()
-        elif self.jwt_config is not None:
+        elif self.jwt_client_key is not None:
             LOGGER.info("Using JWT API authentication")
             self.base_url = config.get("base_url")
             self.auth = None
@@ -77,7 +77,7 @@ class Client():
         base_url = 'https://' + base_url
         return base_url.rstrip("/") + "/" + path.lstrip("/")
 
-    def _headers(self, headers, method, path):
+    def _headers(self, headers, method, path, params):
         headers = headers.copy()
         if self.user_agent:
             headers["User-Agent"] = self.user_agent
@@ -86,8 +86,13 @@ class Client():
             # Add OAuth Headers
             headers['Accept'] = 'application/json'
             headers['Authorization'] = 'Bearer {}'.format(self.access_token)
-        elif self.jwt_config is not None:
+        elif self.jwt_client_key is not None:
             # Add JWT headers
+            if params is not None:
+                queryParams = []
+                for key, value in params.items():
+                    queryParams.append('{}={}'.format(key, value))
+                path = '{}?{}'.format(path, '&'.join(queryParams))
             jwtToken = self._generateJwtToken(method, path)
             headers['Authorization'] = 'JWT {}'.format(jwtToken)
 
@@ -97,8 +102,8 @@ class Client():
         return atlassian_jwt.encode_token(
             method,
             path,
-            self.jwt_config['client_key'],
-            self.jwt_config['shared_secret'],
+            self.jwt_client_key,
+            self.jwt_shared_secret,
             6 * 60 * 60 # timeout in seconds = 6 hours
         )
 
@@ -108,18 +113,18 @@ class Client():
                           max_tries=6,
                           giveup=lambda e: not should_retry_httperror(e))
     def send(self, method, path, headers={}, **kwargs):
-        if self.is_cloud or self.jwt_config is not None:
+        if self.is_cloud or self.jwt_client_key is not None:
             # JWT or OAuth Path
             request = requests.Request(method,
                                        self.url(path),
-                                       headers=self._headers(headers, method, path),
+                                       headers=self._headers(headers, method, path, kwargs.get('params')),
                                        **kwargs)
         else:
             # Basic Auth Path
             request = requests.Request(method,
                                        self.url(path),
                                        auth=self.auth,
-                                       headers=self._headers(headers, method, path),
+                                       headers=self._headers(headers, method, path, kwargs.get('params')),
                                        **kwargs)
         return self.session.send(request.prepare())
 
