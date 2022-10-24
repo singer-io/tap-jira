@@ -10,6 +10,7 @@ setup(name="tap-jira",
       py_modules=["tap_jira"],
       install_requires=[
           "singer-python==5.4.1",
+          "atlassian-jwt==3.0.0",
           "requests==2.20.0",
       ],
       extras_require={
