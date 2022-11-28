@@ -1,3 +1,4 @@
+from dataclasses import replace
 import json
 import pytz
 import singer
@@ -128,6 +129,28 @@ def update_user_date(page):
         page['userStartDate'] = transform_user_date(page['userStartDate'])
 
     return page
+
+class BoardsAgile(Stream):
+    def sync(self):
+        page_num_offset = [self.tap_stream_id, "offset", "page_num"]
+        page_num = Context.bookmark(page_num_offset) or 0
+        pager = Paginator(Context.client, items_key="values", page_num=page_num)
+        for page in pager.pages(self.tap_stream_id
+                                ,"GET"
+                                , "/rest/agile/1.0/board"):
+            self.write_page(page)
+            Context.set_bookmark(page_num_offset, pager.next_page_num)
+            singer.write_state(Context.state)
+        Context.set_bookmark(page_num_offset, None)
+        singer.write_state(Context.state)
+
+class BoardsGreenhopper(Stream):
+    def sync(self):
+        if Context.is_selected(BOARDS.tap_stream_id):
+            path = "/rest/greenhopper/1.0/rapidview"
+            boards = Context.client.request(self.tap_stream_id, "GET", path)['views']
+            self.write_page(boards)
+
 class Projects(Stream):
     def sync_on_prem(self):
         """ Sync function for the on prem instances"""
@@ -249,7 +272,6 @@ class Users(Stream):
 
 
 class Issues(Stream):
-
     def sync(self):
         updated_bookmark = [self.tap_stream_id, "updated"]
         page_num_offset = [self.tap_stream_id, "offset", "page_num"]
@@ -340,6 +362,7 @@ class Worklogs(Stream):
 
 
 VERSIONS = Stream("versions", ["id"], indirect_stream=True)
+BOARDS = BoardsGreenhopper("boardsGreenhopper",["id"])
 COMPONENTS = Stream("components", ["id"], indirect_stream=True)
 ISSUES = Issues("issues", ["id"])
 ISSUE_COMMENTS = Stream("issue_comments", ["id"], indirect_stream=True)
@@ -350,6 +373,7 @@ CHANGELOGS = Stream("changelogs", ["id"], indirect_stream=True)
 
 ALL_STREAMS = [
     PROJECTS,
+    BOARDS,
     VERSIONS,
     COMPONENTS,
     ProjectTypes("project_types", ["key"]),
