@@ -1,13 +1,15 @@
+from dataclasses import replace
 import json
 import pytz
 import singer
 import dateparser
 
 from singer import metrics, utils, metadata, Transformer
-from .http import Paginator,JiraNotFoundError
+from .http import Paginator, JiraNotFoundError
 from .context import Context
 
 DEFAULT_PAGE_SIZE = 50
+
 
 def raise_if_bookmark_cannot_advance(worklogs):
     # Worklogs can only be queried with a `since` timestamp and
@@ -39,17 +41,19 @@ def raise_if_bookmark_cannot_advance(worklogs):
     # through you'll see 1000 worklogs at T2 which will fail
     # validation (because we can't tell whether there would be more
     # that should've been returned).
-    LOGGER.debug('Worklog page count: `%s`', len(worklogs))
-    worklog_updatedes = [utils.strptime_to_utc(w['updated'])
-                         for w in worklogs]
+    LOGGER.debug("Worklog page count: `%s`", len(worklogs))
+    worklog_updatedes = [utils.strptime_to_utc(w["updated"]) for w in worklogs]
     min_updated = min(worklog_updatedes)
     max_updated = max(worklog_updatedes)
-    LOGGER.debug('Worklog min updated: `%s`', min_updated)
-    LOGGER.debug('Worklog max updated: `%s`', max_updated)
+    LOGGER.debug("Worklog min updated: `%s`", min_updated)
+    LOGGER.debug("Worklog max updated: `%s`", max_updated)
     if len(worklogs) == 1000 and min_updated == max_updated:
-        raise Exception(("Worklogs bookmark can't safely advance."
-                         "Every `updated` field is `{}`")
-                        .format(worklog_updatedes[0]))
+        raise Exception(
+            (
+                "Worklogs bookmark can't safely advance."
+                "Every `updated` field is `{}`"
+            ).format(worklog_updatedes[0])
+        )
 
 
 def sync_sub_streams(page):
@@ -73,15 +77,14 @@ def sync_sub_streams(page):
 
 def advance_bookmark(worklogs):
     raise_if_bookmark_cannot_advance(worklogs)
-    new_last_updated = max(utils.strptime_to_utc(w["updated"])
-                           for w in worklogs)
+    new_last_updated = max(utils.strptime_to_utc(w["updated"]) for w in worklogs)
     return new_last_updated
 
 
 LOGGER = singer.get_logger()
 
 
-class Stream():
+class Stream:
     """Information about and functions for syncing streams for the Jira API.
 
     Important class properties:
@@ -90,6 +93,7 @@ class Stream():
     :var pk_fields: A list of primary key fields
     :var indirect_stream: If True, this indicates the stream cannot be synced
     directly, but instead has its data generated via a separate stream."""
+
     def __init__(self, tap_stream_id, pk_fields, indirect_stream=False, path=None):
         self.tap_stream_id = tap_stream_id
         self.pk_fields = pk_fields
@@ -110,10 +114,13 @@ class Stream():
         extraction_time = singer.utils.now()
         for rec in page:
             with Transformer() as transformer:
-                rec = transformer.transform(rec, stream.schema.to_dict(), stream_metadata)
+                rec = transformer.transform(
+                    rec, stream.schema.to_dict(), stream_metadata
+                )
             singer.write_record(self.tap_stream_id, rec, time_extracted=extraction_time)
         with metrics.record_counter(self.tap_stream_id) as counter:
             counter.increment(len(page))
+
 
 def update_user_date(page):
     """
@@ -122,33 +129,33 @@ def update_user_date(page):
     Dateparser library handles locale value and converts Abbreviation month to number.
     For example, if userReleaseDate is 12/abr/2022 then we are converting it to 2022-04-12.
     """
-    if page.get('userReleaseDate'):
-        page['userReleaseDate'] = transform_user_date(page['userReleaseDate'])
-    if page.get('userStartDate'):
-        page['userStartDate'] = transform_user_date(page['userStartDate'])
+    if page.get("userReleaseDate"):
+        page["userReleaseDate"] = transform_user_date(page["userReleaseDate"])
+    if page.get("userStartDate"):
+        page["userStartDate"] = transform_user_date(page["userStartDate"])
 
     return page
-    
+
+
 class BoardsAgile(Stream):
     def sync(self):
         page_num_offset = [self.tap_stream_id, "offset", "page_num"]
         page_num = Context.bookmark(page_num_offset) or 0
         pager = Paginator(Context.client, items_key="values", page_num=page_num)
-        for page in pager.pages(self.tap_stream_id
-                                ,"GET"
-                                , "/rest/agile/1.0/board"):
+        for page in pager.pages(self.tap_stream_id, "GET", "/rest/agile/1.0/board"):
             self.write_page(page)
             Context.set_bookmark(page_num_offset, pager.next_page_num)
             singer.write_state(Context.state)
         Context.set_bookmark(page_num_offset, None)
         singer.write_state(Context.state)
 
+
 class BoardsGreenhopper(Stream):
     def sync(self):
         # BOARDS endpoint
         if Context.is_selected(BOARDS.tap_stream_id):
             path = "/rest/greenhopper/1.0/rapidview"
-            boards = Context.client.request(self.tap_stream_id, "GET", path)['views']
+            boards = Context.client.request(self.tap_stream_id, "GET", path)["views"]
             self.write_page(boards)
 
         if Context.is_selected(VELOCITY.tap_stream_id):
@@ -156,28 +163,40 @@ class BoardsGreenhopper(Stream):
             for board in boards:
 
                 # VELOCITY endpoint
-                boardId = str(board['id'])
-                path = "/rest/greenhopper/1.0/rapid/charts/velocity.json?rapidViewId=" + boardId
+                boardId = str(board["id"])
+                path = (
+                    "/rest/greenhopper/1.0/rapid/charts/velocity.json?rapidViewId="
+                    + boardId
+                )
                 # get data from the Velocity endpoint
                 velocity = Context.client.request(VELOCITY.tap_stream_id, "GET", path)
-                sprintData = velocity['sprints']
+                sprintData = velocity["sprints"]
                 # per Sprint in the Sprint-section of the data, add the Board id, Estimated value & Completed value from the VelocityStatEntries-section
                 for sprint in sprintData:
-                    sprintId = str(sprint['id'])
+                    sprintId = str(sprint["id"])
                     velocitystats = {
-                        "boardId"          : board['id']
-                       ,"velocityEstimated": velocity['velocityStatEntries'][sprintId]['estimated']['value']
-                       ,"velocityCompleted": velocity['velocityStatEntries'][sprintId]['completed']['value']
-                        }
+                        "boardId": board["id"],
+                        "velocityEstimated": velocity["velocityStatEntries"][sprintId][
+                            "estimated"
+                        ]["value"],
+                        "velocityCompleted": velocity["velocityStatEntries"][sprintId][
+                            "completed"
+                        ]["value"],
+                    }
                     sprint.update(velocitystats)
                 VELOCITY.write_page(sprintData)
 
                 # SPRINTS endpoint
-                if Context.is_selected(SPRINTS.tap_stream_id) and board['sprintSupportEnabled']:
+                if (
+                    Context.is_selected(SPRINTS.tap_stream_id)
+                    and board["sprintSupportEnabled"]
+                ):
                     path = "/rest/agile/1.0/board/{}/sprint".format(board["id"])
                     page_num_offset = [SPRINTS.tap_stream_id, "offset", "page_num"]
                     page_num = Context.bookmark(page_num_offset) or 0
-                    pager = Paginator(Context.client, items_key="values", page_num=page_num)
+                    pager = Paginator(
+                        Context.client, items_key="values", page_num=page_num
+                    )
                     for page in pager.pages(SPRINTS.tap_stream_id, "GET", path):
                         SPRINTS.write_page(page)
                         Context.set_bookmark(page_num_offset, pager.next_page_num)
@@ -185,12 +204,16 @@ class BoardsGreenhopper(Stream):
                     Context.set_bookmark(page_num_offset, None)
                     singer.write_state(Context.state)
 
+
 class Projects(Stream):
     def sync_on_prem(self):
-        """ Sync function for the on prem instances"""
+        """Sync function for the on prem instances"""
         projects = Context.client.request(
-            self.tap_stream_id, "GET", "/rest/api/2/project",
-            params={"expand": "description,lead,url,projectKeys"})
+            self.tap_stream_id,
+            "GET",
+            "/rest/api/2/project",
+            params={"expand": "description,lead,url,projectKeys"},
+        )
         for project in projects:
             # The Jira documentation suggests that a "versions" key may appear
             # in the project, but from my testing that hasn't been the case
@@ -216,27 +239,27 @@ class Projects(Stream):
                     COMPONENTS.write_page(page)
 
     def sync_cloud(self):
-        """ Sync function for the cloud instances"""
+        """Sync function for the cloud instances"""
         offset = 0
         while True:
             params = {
                 "expand": "description,lead,url,projectKeys",
-                "maxResults": DEFAULT_PAGE_SIZE, # maximum number of results to fetch in a page.
-                "startAt": offset #the offset to start at for the next page
+                "maxResults": DEFAULT_PAGE_SIZE,  # maximum number of results to fetch in a page.
+                "startAt": offset,  # the offset to start at for the next page
             }
             projects = Context.client.request(
-                self.tap_stream_id, "GET", "/rest/api/2/project/search",
-                params=params)
-            for project in projects.get('values'):
+                self.tap_stream_id, "GET", "/rest/api/2/project/search", params=params
+            )
+            for project in projects.get("values"):
                 # The Jira documentation suggests that a "versions" key may appear
                 # in the project, but from my testing that hasn't been the case
                 # (even when projects do have versions). Since we are already
                 # syncing versions separately, pop this key just in case it
                 # appears.
                 project.pop("versions", None)
-            self.write_page(projects.get('values'))
+            self.write_page(projects.get("values"))
             if Context.is_selected(VERSIONS.tap_stream_id):
-                for project in projects.get('values'):
+                for project in projects.get("values"):
                     path = "/rest/api/2/project/{}/version".format(project["id"])
                     pager = Paginator(Context.client, order_by="sequence")
                     for page in pager.pages(VERSIONS.tap_stream_id, "GET", path):
@@ -246,7 +269,7 @@ class Projects(Stream):
 
                         VERSIONS.write_page(page)
             if Context.is_selected(COMPONENTS.tap_stream_id):
-                for project in projects.get('values'):
+                for project in projects.get("values"):
                     path = "/rest/api/2/project/{}/component".format(project["id"])
                     pager = Paginator(Context.client)
                     for page in pager.pages(COMPONENTS.tap_stream_id, "GET", path):
@@ -255,7 +278,7 @@ class Projects(Stream):
             # `isLast` corresponds to whether it is the last page or not.
             if projects.get("isLast"):
                 break
-            offset = offset + DEFAULT_PAGE_SIZE # next offset to start from
+            offset = offset + DEFAULT_PAGE_SIZE  # next offset to start from
 
     def sync(self):
         # The documentation https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-projects/#api-rest-api-3-project-get
@@ -267,6 +290,7 @@ class Projects(Stream):
             self.sync_on_prem()
         else:
             self.sync_cloud()
+
 
 class ProjectTypes(Stream):
     def sync(self):
@@ -284,51 +308,58 @@ class Users(Stream):
         if Context.config.get("groups"):
             groups = Context.config.get("groups").split(",")
         else:
-            groups = ["jira-administrators",
-                      "jira-software-users",
-                      "jira-core-users",
-                      "jira-users",
-                      "users"]
+            groups = [
+                "jira-administrators",
+                "jira-software-users",
+                "jira-core-users",
+                "jira-users",
+                "users",
+            ]
 
         for group in groups:
             group = group.strip()
             try:
-                params = {"groupname": group,
-                          "maxResults": max_results,
-                          "includeInactiveUsers": True}
-                pager = Paginator(Context.client, items_key='values')
-                for page in pager.pages(self.tap_stream_id, "GET",
-                                        "/rest/api/2/group/member",
-                                        params=params):
+                params = {
+                    "groupname": group,
+                    "maxResults": max_results,
+                    "includeInactiveUsers": True,
+                }
+                pager = Paginator(Context.client, items_key="values")
+                for page in pager.pages(
+                    self.tap_stream_id, "GET", "/rest/api/2/group/member", params=params
+                ):
                     self.write_page(page)
             except JiraNotFoundError:
-                LOGGER.info("Could not find group \"%s\", skipping", group)
+                LOGGER.info('Could not find group "%s", skipping', group)
 
 
 class Issues(Stream):
-
     def sync(self):
         updated_bookmark = [self.tap_stream_id, "updated"]
         page_num_offset = [self.tap_stream_id, "offset", "page_num"]
 
         last_updated = Context.update_start_date_bookmark(updated_bookmark)
         timezone = Context.retrieve_timezone()
-        start_date = last_updated.astimezone(pytz.timezone(timezone)).strftime("%Y-%m-%d %H:%M")
+        start_date = last_updated.astimezone(pytz.timezone(timezone)).strftime(
+            "%Y-%m-%d %H:%M"
+        )
 
         jql = "updated >= '{}' order by updated asc".format(start_date)
-        params = {"fields": "*all",
-                  "expand": "changelog,transitions",
-                  "validateQuery": "strict",
-                  "jql": jql}
+        params = {
+            "fields": "*all",
+            "expand": "changelog,transitions",
+            "validateQuery": "strict",
+            "jql": jql,
+        }
         page_num = Context.bookmark(page_num_offset) or 0
         pager = Paginator(Context.client, items_key="issues", page_num=page_num)
-        for page in pager.pages(self.tap_stream_id,
-                                "GET", "/rest/api/2/search",
-                                params=params):
+        for page in pager.pages(
+            self.tap_stream_id, "GET", "/rest/api/2/search", params=params
+        ):
             # sync comments and changelogs for each issue
             sync_sub_streams(page)
             for issue in page:
-                issue['fields'].pop('worklog', None)
+                issue["fields"].pop("worklog", None)
                 # The JSON schema for the search endpoint indicates an "operations"
                 # field can be present. This field is self-referential, making it
                 # difficult to deal with - we would have to flatten the operations
@@ -337,7 +368,7 @@ class Issues(Stream):
                 # with the UI within Jira - I believe the operations are parts of
                 # the "menu" bar for each issue. This is of questionable utility,
                 # so we decided to just strip the field out for now.
-                issue['fields'].pop('operations', None)
+                issue["fields"].pop("operations", None)
 
             # Grab last_updated before transform in write_page
             last_updated = utils.strptime_to_utc(page[-1]["fields"]["updated"])
@@ -366,7 +397,9 @@ class Worklogs(Stream):
         if not ids:
             return []
         return Context.client.request(
-            self.tap_stream_id, "POST", "/rest/api/2/worklog/list",
+            self.tap_stream_id,
+            "POST",
+            "/rest/api/2/worklog/list",
             headers={"Content-Type": "application/json"},
             data=json.dumps({"ids": ids}),
         )
@@ -397,14 +430,17 @@ class Worklogs(Stream):
 
 
 VERSIONS = Stream("versions", ["id"], indirect_stream=True)
-BOARDS = BoardsGreenhopper("boardsGreenhopper",["id"])
-VELOCITY = Stream("velocity",["id"], indirect_stream=True)
-SPRINTS = Stream("sprints",["id"], indirect_stream=True)
+BOARDS = BoardsGreenhopper("boardsGreenhopper", ["id"])
+VELOCITY = Stream("velocity", ["id"], indirect_stream=True)
+SPRINTS = Stream("sprints", ["id"], indirect_stream=True)
 COMPONENTS = Stream("components", ["id"], indirect_stream=True)
 ISSUES = Issues("issues", ["id"])
 ISSUE_COMMENTS = Stream("issue_comments", ["id"], indirect_stream=True)
-ISSUE_TRANSITIONS = Stream("issue_transitions", ["id","issueId"], # Composite primary key
-                           indirect_stream=True)
+ISSUE_TRANSITIONS = Stream(
+    "issue_transitions",
+    ["id", "issueId"],  # Composite primary key
+    indirect_stream=True,
+)
 PROJECTS = Projects("projects", ["id"])
 CHANGELOGS = Stream("changelogs", ["id"], indirect_stream=True)
 
@@ -412,7 +448,7 @@ ALL_STREAMS = [
     PROJECTS,
     BOARDS,
     VELOCITY,
-    SPRINTS,    
+    SPRINTS,
     VERSIONS,
     COMPONENTS,
     ProjectTypes("project_types", ["key"]),
@@ -436,10 +472,15 @@ class DependencyException(Exception):
 
 def validate_dependencies():
     errs = []
-    selected = [s.tap_stream_id for s in Context.catalog.streams
-                if Context.is_selected(s.tap_stream_id)]
-    msg_tmpl = ("Unable to extract {0} data. "
-                "To receive {0} data, you also need to select {1}.")
+    selected = [
+        s.tap_stream_id
+        for s in Context.catalog.streams
+        if Context.is_selected(s.tap_stream_id)
+    ]
+    msg_tmpl = (
+        "Unable to extract {0} data. "
+        "To receive {0} data, you also need to select {1}."
+    )
     if VERSIONS.tap_stream_id in selected and PROJECTS.tap_stream_id not in selected:
         errs.append(msg_tmpl.format("Versions", "Projects"))
     if COMPONENTS.tap_stream_id in selected and PROJECTS.tap_stream_id not in selected:
@@ -454,6 +495,7 @@ def validate_dependencies():
     if errs:
         raise DependencyException(" ".join(errs))
 
+
 def transform_user_date(user_date):
     """
     Transform date value to 'yyyy-mm-dd' format.
@@ -465,4 +507,4 @@ def transform_user_date(user_date):
     All the locales are supported except following below locales,
     Chinese, Italia, Japanese, Korean, Polska, Brasil.
     """
-    return dateparser.parse(user_date).strftime('%Y-%m-%d')
+    return dateparser.parse(user_date).strftime("%Y-%m-%d")
