@@ -169,9 +169,6 @@ class BoardsGreenhopper(Stream):
                 LOGGER.info('##PR## -- board')
                 LOGGER.info(board)
 
-                boardId_two = board['id']
-                LOGGER.info('##PR## -- boardId_two')
-                LOGGER.info(boardId_two)
                 # VELOCITY endpoint
                 boardId = str(board['id'])
                 LOGGER.info('##PR## -- boardId')
@@ -196,6 +193,11 @@ class BoardsGreenhopper(Stream):
 
                     for sprint in sprintData:
                         sprintId = str(sprint["id"])
+
+                        LOGGER.info('##PR## -- sprintId')
+                        LOGGER.info(sprintId)
+
+
                         velocitystats = {
                             "boardId": board["id"],
                             "velocityEstimated": velocity["velocityStatEntries"][sprintId]["estimated"]["value"],
