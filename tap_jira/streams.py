@@ -159,6 +159,7 @@ class BoardsGreenhopper(Stream):
             self.write_page(boards)
 
         if Context.is_selected(VELOCITY.tap_stream_id):
+            #TODO: remove unused var 
             starttime = singer.utils.now()
             for board in boards:
 
@@ -485,6 +486,13 @@ def validate_dependencies():
         errs.append(msg_tmpl.format("Versions", "Projects"))
     if COMPONENTS.tap_stream_id in selected and PROJECTS.tap_stream_id not in selected:
         errs.append(msg_tmpl.format("Components", "Projects"))
+    if COMPONENTS.tap_stream_id in selected and PROJECTS.tap_stream_id not in selected:
+        errs.append(msg_tmpl.format("Components", "Projects"))
+    if BOARDS.tap_stream_id not in selected:
+        if VELOCITY.tap_stream_id in selected:
+            errs.append(msg_tmpl.format("Velocity", "boardsGreenhopper"))
+        if SPRINTS.tap_stream_id in selected:
+            errs.append(msg_tmpl.format("Sprints", "boardsGreenhopper"))
     if ISSUES.tap_stream_id not in selected:
         if CHANGELOGS.tap_stream_id in selected:
             errs.append(msg_tmpl.format("Changelog", "Issues"))
@@ -492,6 +500,7 @@ def validate_dependencies():
             errs.append(msg_tmpl.format("Issue Comments", "Issues"))
         if ISSUE_TRANSITIONS.tap_stream_id in selected:
             errs.append(msg_tmpl.format("Issue Transitions", "Issues"))
+    #TODO: Add velocity logic here
     if errs:
         raise DependencyException(" ".join(errs))
 
