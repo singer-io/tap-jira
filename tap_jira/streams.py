@@ -162,6 +162,9 @@ class BoardsGreenhopper(Stream):
             #TODO: remove unused var 
             starttime = singer.utils.now()
             for board in boards:
+                
+                LOGGER.info('##PR##')
+                LOGGER.info(board)
 
                 # VELOCITY endpoint
                 boardId = str(board["id"])
