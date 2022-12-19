@@ -171,12 +171,16 @@ class BoardsGreenhopper(Stream):
 
                 # VELOCITY endpoint
                 boardId = str(board["id"])
+                LOGGER.info('##PR## -- boardId')
+                LOGGER.info(boardId)
                 path = (
                     "/rest/greenhopper/1.0/rapid/charts/velocity.json?rapidViewId="
                     + boardId
                 )
                 # get data from the Velocity endpoint
                 velocity = Context.client.request(VELOCITY.tap_stream_id, "GET", path)
+                LOGGER.info('##PR## -- velocity line 181')
+                LOGGER.info(velocity)
                 sprintData = velocity["sprints"]
                 # per Sprint in the Sprint-section of the data, add the Board id, Estimated value & Completed value from the VelocityStatEntries-section
                 for sprint in sprintData:
