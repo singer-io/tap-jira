@@ -204,6 +204,10 @@ class BoardsGreenhopper(Stream):
                             "velocityCompleted": velocity["velocityStatEntries"][sprintId]["completed"]["value"]
                         }
                         sprint.update(velocitystats)
+
+
+                    LOGGER.info('##PR## -- sprintData')
+                    LOGGER.info(sprintData)
                     VELOCITY.write_page(sprintData)
 
                 # SPRINTS endpoint
