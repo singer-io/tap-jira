@@ -184,17 +184,25 @@ class BoardsGreenhopper(Stream):
                 velocity = Context.client.request(VELOCITY.tap_stream_id, "GET", path)
                 LOGGER.info('##PR## -- velocity line 181')
                 LOGGER.info(velocity)
-                sprintData = velocity["sprints"]
-                # per Sprint in the Sprint-section of the data, add the Board id, Estimated value & Completed value from the VelocityStatEntries-section
-                for sprint in sprintData:
-                    sprintId = str(sprint["id"])
-                    velocitystats = {
-                        "boardId": board["id"],
-                        "velocityEstimated": velocity["velocityStatEntries"][sprintId]["estimated"]["value"],
-                        "velocityCompleted": velocity["velocityStatEntries"][sprintId]["completed"]["value"]
-                    }
-                    sprint.update(velocitystats)
-                VELOCITY.write_page(sprintData)
+
+                if velocity.get('sprints'):
+                    LOGGER.info('##PR## -- Sprint data exists')
+
+                    sprintData = velocity["sprints"]
+                    # per Sprint in the Sprint-section of the data, add the Board id, Estimated value & Completed value from the VelocityStatEntries-section
+                
+        
+
+
+                    for sprint in sprintData:
+                        sprintId = str(sprint["id"])
+                        velocitystats = {
+                            "boardId": board["id"],
+                            "velocityEstimated": velocity["velocityStatEntries"][sprintId]["estimated"]["value"],
+                            "velocityCompleted": velocity["velocityStatEntries"][sprintId]["completed"]["value"]
+                        }
+                        sprint.update(velocitystats)
+                    VELOCITY.write_page(sprintData)
 
                 # SPRINTS endpoint
                 if (
