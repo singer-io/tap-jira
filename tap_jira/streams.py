@@ -158,12 +158,15 @@ class BoardsGreenhopper(Stream):
             boards = Context.client.request(self.tap_stream_id, "GET", path)["views"]
             self.write_page(boards)
 
+            LOGGER.info('##PR## -- boards:')
+            LOGGER.info(boards)
+
         if Context.is_selected(VELOCITY.tap_stream_id):
             #TODO: remove unused var 
             starttime = singer.utils.now()
             for board in boards:
                 
-                LOGGER.info('##PR##')
+                LOGGER.info('##PR## -- board')
                 LOGGER.info(board)
 
                 # VELOCITY endpoint
@@ -180,12 +183,8 @@ class BoardsGreenhopper(Stream):
                     sprintId = str(sprint["id"])
                     velocitystats = {
                         "boardId": board["id"],
-                        "velocityEstimated": velocity["velocityStatEntries"][sprintId][
-                            "estimated"
-                        ]["value"],
-                        "velocityCompleted": velocity["velocityStatEntries"][sprintId][
-                            "completed"
-                        ]["value"],
+                        "velocityEstimated": velocity["velocityStatEntries"][sprintId]["estimated"]["value"],
+                        "velocityCompleted": velocity["velocityStatEntries"][sprintId]["completed"]["value"]
                     }
                     sprint.update(velocitystats)
                 VELOCITY.write_page(sprintData)
@@ -201,6 +200,9 @@ class BoardsGreenhopper(Stream):
                     pager = Paginator(
                         Context.client, items_key="values", page_num=page_num
                     )
+
+                    LOGGER.info('##PR## -- pager:')
+                    LOGGER.info(pager)
                     for page in pager.pages(SPRINTS.tap_stream_id, "GET", path):
                         SPRINTS.write_page(page)
                         Context.set_bookmark(page_num_offset, pager.next_page_num)
