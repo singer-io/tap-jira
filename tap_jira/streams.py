@@ -169,8 +169,11 @@ class BoardsGreenhopper(Stream):
                 LOGGER.info('##PR## -- board')
                 LOGGER.info(board)
 
+                boardId_two = board['id']
+                LOGGER.info('##PR## -- boardId_two')
+                LOGGER.info(boardId_two)
                 # VELOCITY endpoint
-                boardId = str(board["id"])
+                boardId = str(board['id'])
                 LOGGER.info('##PR## -- boardId')
                 LOGGER.info(boardId)
                 path = (
