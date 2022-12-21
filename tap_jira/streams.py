@@ -5,7 +5,7 @@ import singer
 import dateparser
 
 from singer import metrics, utils, metadata, Transformer
-from .http import Paginator, JiraNotFoundError
+from .http import Paginator,JiraNotFoundError
 from .context import Context
 
 DEFAULT_PAGE_SIZE = 50
@@ -92,7 +92,6 @@ class Stream():
     :var pk_fields: A list of primary key fields
     :var indirect_stream: If True, this indicates the stream cannot be synced
     directly, but instead has its data generated via a separate stream."""
-
     def __init__(self, tap_stream_id, pk_fields, indirect_stream=False, path=None):
         self.tap_stream_id = tap_stream_id
         self.pk_fields = pk_fields
@@ -118,7 +117,6 @@ class Stream():
         with metrics.record_counter(self.tap_stream_id) as counter:
             counter.increment(len(page))
 
-
 def update_user_date(page):
     """
     Transform date value to 'yyyy-mm-dd' format.
@@ -133,7 +131,6 @@ def update_user_date(page):
 
     return page
 
-
 class BoardsAgile(Stream):
     def sync(self):
         page_num_offset = [self.tap_stream_id, "offset", "page_num"]
@@ -147,7 +144,6 @@ class BoardsAgile(Stream):
             singer.write_state(Context.state)
         Context.set_bookmark(page_num_offset, None)
         singer.write_state(Context.state)
-
 
 class BoardsGreenhopper(Stream):
     def sync(self):
@@ -199,8 +195,7 @@ class Projects(Stream):
         """ Sync function for the on prem instances"""
         projects = Context.client.request(
             self.tap_stream_id, "GET", "/rest/api/2/project",
-            params={"expand": "description,lead,url,projectKeys"},
-        )
+            params={"expand": "description,lead,url,projectKeys"})
 
         for project in projects:
             # The Jira documentation suggests that a "versions" key may appear
@@ -257,7 +252,7 @@ class Projects(Stream):
 
                         VERSIONS.write_page(page)
             if Context.is_selected(COMPONENTS.tap_stream_id):
-                for project in projects.get("values"):
+                for project in projects.get('values'):
                     path = "/rest/api/2/project/{}/component".format(project["id"])
                     pager = Paginator(Context.client)
                     for page in pager.pages(COMPONENTS.tap_stream_id, "GET", path):
@@ -338,7 +333,7 @@ class Issues(Stream):
             # sync comments and changelogs for each issue
             sync_sub_streams(page)
             for issue in page:
-                issue['fields'].pop("worklog", None)
+                issue['fields'].pop('worklog', None)
                 # The JSON schema for the search endpoint indicates an "operations"
                 # field can be present. This field is self-referential, making it
                 # difficult to deal with - we would have to flatten the operations
@@ -347,10 +342,10 @@ class Issues(Stream):
                 # with the UI within Jira - I believe the operations are parts of
                 # the "menu" bar for each issue. This is of questionable utility,
                 # so we decided to just strip the field out for now.
-                issue['fields'].pop("operations", None)
+                issue['fields'].pop('operations', None)
 
             # Grab last_updated before transform in write_page
-            last_updated = utils.strptime_to_utc(page[-1]['fields']["updated"])
+            last_updated = utils.strptime_to_utc(page[-1]["fields"]["updated"])
 
             self.write_page(page)
 
@@ -413,31 +408,28 @@ SPRINTS = Stream("sprints", ["id"], indirect_stream=True)
 COMPONENTS = Stream("components", ["id"], indirect_stream=True)
 ISSUES = Issues("issues", ["id"])
 ISSUE_COMMENTS = Stream("issue_comments", ["id"], indirect_stream=True)
-ISSUE_TRANSITIONS = Stream(
-    "issue_transitions",
-    ["id", "issueId"],  # Composite primary key
-    indirect_stream=True,
-)
+ISSUE_TRANSITIONS = Stream("issue_transitions", ["id","issueId"], # Composite primary key
+                           indirect_stream=True)
 PROJECTS = Projects("projects", ["id"])
 CHANGELOGS = Stream("changelogs", ["id"], indirect_stream=True)
 
 ALL_STREAMS = [
-    # PROJECTS,
+    PROJECTS,
     BOARDS,
     VELOCITY,
     SPRINTS,
-    # VERSIONS,
-    # COMPONENTS,
-    # ProjectTypes("project_types", ["key"]),
-    # Stream("project_categories", ["id"], path="/rest/api/2/projectCategory"),
-    # Stream("resolutions", ["id"], path="/rest/api/2/resolution"),
-    # Stream("roles", ["id"], path="/rest/api/2/role"),
-    # Users("users", ["accountId"]),
-    # ISSUES,
-    # ISSUE_COMMENTS,
-    # CHANGELOGS,
-    # ISSUE_TRANSITIONS,
-    # Worklogs("worklogs", ["id"]),
+    VERSIONS,
+    COMPONENTS,
+    ProjectTypes("project_types", ["key"]),
+    Stream("project_categories", ["id"], path="/rest/api/2/projectCategory"),
+    Stream("resolutions", ["id"], path="/rest/api/2/resolution"),
+    Stream("roles", ["id"], path="/rest/api/2/role"),
+    Users("users", ["accountId"]),
+    ISSUES,
+    ISSUE_COMMENTS,
+    CHANGELOGS,
+    ISSUE_TRANSITIONS,
+    Worklogs("worklogs", ["id"]),
 ]
 
 ALL_STREAM_IDS = [s.tap_stream_id for s in ALL_STREAMS]
@@ -473,7 +465,6 @@ def validate_dependencies():
             errs.append(msg_tmpl.format("Issue Transitions", "Issues"))
     if errs:
         raise DependencyException(" ".join(errs))
-
 
 def transform_user_date(user_date):
     """
