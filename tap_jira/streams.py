@@ -10,7 +10,6 @@ from .context import Context
 
 DEFAULT_PAGE_SIZE = 50
 
-
 def raise_if_bookmark_cannot_advance(worklogs):
     # Worklogs can only be queried with a `since` timestamp and
     # provides no way to page through the results. The `since`
@@ -150,7 +149,7 @@ class BoardsGreenhopper(Stream):
         # BOARDS endpoint
         if Context.is_selected(BOARDS.tap_stream_id):
             path = "/rest/greenhopper/1.0/rapidview"
-            boards = Context.client.request(self.tap_stream_id, "GET", path)["views"]
+            boards = Context.client.request(self.tap_stream_id, "GET", path)['views']
             self.write_page(boards)
 
         if Context.is_selected(VELOCITY.tap_stream_id):
@@ -196,7 +195,6 @@ class Projects(Stream):
         projects = Context.client.request(
             self.tap_stream_id, "GET", "/rest/api/2/project",
             params={"expand": "description,lead,url,projectKeys"})
-
         for project in projects:
             # The Jira documentation suggests that a "versions" key may appear
             # in the project, but from my testing that hasn't been the case
@@ -447,8 +445,6 @@ def validate_dependencies():
                 "To receive {0} data, you also need to select {1}.")
     if VERSIONS.tap_stream_id in selected and PROJECTS.tap_stream_id not in selected:
         errs.append(msg_tmpl.format("Versions", "Projects"))
-    if COMPONENTS.tap_stream_id in selected and PROJECTS.tap_stream_id not in selected:
-        errs.append(msg_tmpl.format("Components", "Projects"))
     if COMPONENTS.tap_stream_id in selected and PROJECTS.tap_stream_id not in selected:
         errs.append(msg_tmpl.format("Components", "Projects"))
     if BOARDS.tap_stream_id not in selected:
