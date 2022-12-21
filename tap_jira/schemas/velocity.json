@@ -5,73 +5,59 @@
     "object"
   ],
   "properties": {
-    "sprints": {
+    "id": {
       "type": [
         "null",
-        "array"
-      ],
-      "items": {
-        "type": [
-          "null",
-          "object"
-        ],
-        "properties": {
-          "id": {
-            "type": [
-              "null",
-              "integer"
-            ]
-          },
-          "sequence": {
-            "type": [
-              "null",
-              "integer"
-            ]
-          },
-          "name": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "state": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "linkedPagesCount": {
-            "type": [
-              "null",
-              "integer"
-            ]
-          },
-          "goal": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "boardId": {
-            "type": [
-              "null",
-              "integer"
-            ]
-          },
-          "velocityEstimated": {
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "velocityCompleted": {
-            "type": [
-              "null",
-              "number"
-            ]
-          }
-        }
-      }
+        "integer"
+      ]
+    },
+    "sequence": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "name": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "state": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "linkedPagesCount": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "goal": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "boardId": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "velocityEstimated": {
+      "type": [
+        "null",
+        "number"
+      ]
+    },
+    "velocityCompleted": {
+      "type": [
+        "null",
+        "number"
+      ]
     }
   }
 }

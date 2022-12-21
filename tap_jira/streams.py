@@ -109,15 +109,33 @@ class Stream:
         self.write_page(page)
 
     def write_page(self, page):
+        LOGGER.info('##PR## -- page')
+        LOGGER.info(page)
+
         stream = Context.get_catalog_entry(self.tap_stream_id)
+        LOGGER.info('##PR## -- stream')
+        LOGGER.info(stream)
+
         stream_metadata = metadata.to_map(stream.metadata)
+        LOGGER.info('##PR## -- stream_metadata')
+        LOGGER.info(stream_metadata)
+
         extraction_time = singer.utils.now()
         for rec in page:
+            LOGGER.info('##PR## -- rec - for')
+            LOGGER.info(rec)
+
             with Transformer() as transformer:
                 rec = transformer.transform(
                     rec, stream.schema.to_dict(), stream_metadata
                 )
+            LOGGER.info('##PR## -- rec - end')
+            LOGGER.info(rec)
+
             singer.write_record(self.tap_stream_id, rec, time_extracted=extraction_time)
+            LOGGER.info('##PR## -- write_record - rec')
+            LOGGER.info(rec)
+
         with metrics.record_counter(self.tap_stream_id) as counter:
             counter.increment(len(page))
 
@@ -158,53 +176,30 @@ class BoardsGreenhopper(Stream):
             boards = Context.client.request(self.tap_stream_id, "GET", path)["views"]
             self.write_page(boards)
 
-            LOGGER.info('##PR## -- boards:')
-            LOGGER.info(boards)
-
         if Context.is_selected(VELOCITY.tap_stream_id):
             #TODO: remove unused var 
-            starttime = singer.utils.now()
             for board in boards:
-                
-                LOGGER.info('##PR## -- board')
-                LOGGER.info(board)
-
                 # VELOCITY endpoint
                 boardId = str(board['id'])
-                LOGGER.info('##PR## -- boardId')
-                LOGGER.info(boardId)
                 path = (
                     "/rest/greenhopper/1.0/rapid/charts/velocity.json?rapidViewId="
                     + boardId
                 )
                 # get data from the Velocity endpoint
                 velocity = Context.client.request(VELOCITY.tap_stream_id, "GET", path)
-                LOGGER.info('##PR## -- velocity line 181')
-                LOGGER.info(velocity)
 
                 if velocity.get('sprints'):
-                    LOGGER.info('##PR## -- Sprint data exists')
-
                     sprintData = velocity["sprints"]
+
                     # per Sprint in the Sprint-section of the data, add the Board id, Estimated value & Completed value from the VelocityStatEntries-section
-                
-        
-
-
                     for sprint in sprintData:
                         sprintId = str(sprint["id"])
-
-                        LOGGER.info('##PR## -- sprintId')
-                        LOGGER.info(sprintId)
-
-
                         velocitystats = {
                             "boardId": board["id"],
                             "velocityEstimated": velocity["velocityStatEntries"][sprintId]["estimated"]["value"],
                             "velocityCompleted": velocity["velocityStatEntries"][sprintId]["completed"]["value"]
                         }
                         sprint.update(velocitystats)
-
 
                     LOGGER.info('##PR## -- sprintData')
                     LOGGER.info(sprintData)
@@ -222,8 +217,6 @@ class BoardsGreenhopper(Stream):
                         Context.client, items_key="values", page_num=page_num
                     )
 
-                    LOGGER.info('##PR## -- pager:')
-                    LOGGER.info(pager)
                     for page in pager.pages(SPRINTS.tap_stream_id, "GET", path):
                         SPRINTS.write_page(page)
                         Context.set_bookmark(page_num_offset, pager.next_page_num)
@@ -472,12 +465,12 @@ PROJECTS = Projects("projects", ["id"])
 CHANGELOGS = Stream("changelogs", ["id"], indirect_stream=True)
 
 ALL_STREAMS = [
-    PROJECTS,
+    #PROJECTS,
     BOARDS,
     VELOCITY,
     SPRINTS,
-    VERSIONS,
-    COMPONENTS,
+    #VERSIONS,
+    #COMPONENTS,
     ProjectTypes("project_types", ["key"]),
     Stream("project_categories", ["id"], path="/rest/api/2/projectCategory"),
     Stream("resolutions", ["id"], path="/rest/api/2/resolution"),
