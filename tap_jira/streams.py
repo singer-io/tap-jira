@@ -109,33 +109,15 @@ class Stream:
         self.write_page(page)
 
     def write_page(self, page):
-        LOGGER.info('##PR## -- page')
-        LOGGER.info(page)
-
         stream = Context.get_catalog_entry(self.tap_stream_id)
-        LOGGER.info('##PR## -- stream')
-        LOGGER.info(stream)
-
         stream_metadata = metadata.to_map(stream.metadata)
-        LOGGER.info('##PR## -- stream_metadata')
-        LOGGER.info(stream_metadata)
-
         extraction_time = singer.utils.now()
         for rec in page:
-            LOGGER.info('##PR## -- rec - for')
-            LOGGER.info(rec)
-
             with Transformer() as transformer:
                 rec = transformer.transform(
                     rec, stream.schema.to_dict(), stream_metadata
                 )
-            LOGGER.info('##PR## -- rec - end')
-            LOGGER.info(rec)
-
             singer.write_record(self.tap_stream_id, rec, time_extracted=extraction_time)
-            LOGGER.info('##PR## -- write_record - rec')
-            LOGGER.info(rec)
-
         with metrics.record_counter(self.tap_stream_id) as counter:
             counter.increment(len(page))
 
@@ -194,15 +176,12 @@ class BoardsGreenhopper(Stream):
                     # per Sprint in the Sprint-section of the data, add the Board id, Estimated value & Completed value from the VelocityStatEntries-section
                     for sprint in sprintData:
                         sprintId = str(sprint["id"])
-                        velocitystats = {
+                        velocityStats = {
                             "boardId": board["id"],
                             "velocityEstimated": velocity["velocityStatEntries"][sprintId]["estimated"]["value"],
                             "velocityCompleted": velocity["velocityStatEntries"][sprintId]["completed"]["value"]
                         }
-                        sprint.update(velocitystats)
-
-                    LOGGER.info('##PR## -- sprintData')
-                    LOGGER.info(sprintData)
+                        sprint.update(velocityStats)
                     VELOCITY.write_page(sprintData)
 
                 # SPRINTS endpoint
