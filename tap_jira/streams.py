@@ -152,42 +152,42 @@ class BoardsGreenhopper(Stream):
             boards = Context.client.request(self.tap_stream_id, "GET", path)['views']
             self.write_page(boards)
 
-        if Context.is_selected(VELOCITY.tap_stream_id):
-            for board in boards:
+        for board in boards:
+            if Context.is_selected(VELOCITY.tap_stream_id):
                 # VELOCITY endpoint
-                boardId = str(board["id"])
-                path = ("/rest/greenhopper/1.0/rapid/charts/velocity.json?rapidViewId=" + boardId)
+                board_id = str(board["id"])
+                path = ("/rest/greenhopper/1.0/rapid/charts/velocity.json?rapidViewId=" + board_id)
                 # get data from the Velocity endpoint
                 velocity = Context.client.request(VELOCITY.tap_stream_id, "GET", path)
 
                 if velocity.get("sprints"):
-                    sprintData = velocity["sprints"]
+                    sprint_data = velocity["sprints"]
 
                     # per Sprint in the Sprint-section of the data, add the Board id, Estimated value & Completed value from the VelocityStatEntries-section
-                    for sprint in sprintData:
-                        sprintId = str(sprint["id"])
-                        velocityStats = {
+                    for sprint in sprint_data:
+                        sprint_id = str(sprint["id"])
+                        velocity_stats = {
                             "boardId": board["id"],
-                            "velocityEstimated": velocity["velocityStatEntries"][sprintId]["estimated"]["value"],
-                            "velocityCompleted": velocity["velocityStatEntries"][sprintId]["completed"]["value"]
+                            "velocityEstimated": velocity["velocityStatEntries"][sprint_id]["estimated"]["value"],
+                            "velocityCompleted": velocity["velocityStatEntries"][sprint_id]["completed"]["value"]
                             }
-                        sprint.update(velocityStats)
-                    VELOCITY.write_page(sprintData)
+                        sprint.update(velocity_stats)
+                    VELOCITY.write_page(sprint_data)
 
-                # SPRINTS endpoint
-                if (Context.is_selected(SPRINTS.tap_stream_id) and board["sprintSupportEnabled"]):
+            # SPRINTS endpoint
+            if (Context.is_selected(SPRINTS.tap_stream_id) and board["sprintSupportEnabled"]):
 
-                    path = "/rest/agile/1.0/board/{}/sprint".format(board["id"])
-                    page_num_offset = [SPRINTS.tap_stream_id, "offset", "page_num"]
-                    page_num = Context.bookmark(page_num_offset) or 0
-                    pager = Paginator(Context.client, items_key="values", page_num=page_num)
+                path = "/rest/agile/1.0/board/{}/sprint".format(board["id"])
+                page_num_offset = [SPRINTS.tap_stream_id, "offset", "page_num"]
+                page_num = Context.bookmark(page_num_offset) or 0
+                pager = Paginator(Context.client, items_key="values", page_num=page_num)
 
-                    for page in pager.pages(SPRINTS.tap_stream_id, "GET", path):
-                        SPRINTS.write_page(page)
-                        Context.set_bookmark(page_num_offset, pager.next_page_num)
-                        singer.write_state(Context.state)
-                    Context.set_bookmark(page_num_offset, None)
+                for page in pager.pages(SPRINTS.tap_stream_id, "GET", path):
+                    SPRINTS.write_page(page)
+                    Context.set_bookmark(page_num_offset, pager.next_page_num)
                     singer.write_state(Context.state)
+                Context.set_bookmark(page_num_offset, None)
+                singer.write_state(Context.state)
 
 class Projects(Stream):
     def sync_on_prem(self):
