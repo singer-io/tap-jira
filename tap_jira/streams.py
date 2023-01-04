@@ -152,54 +152,55 @@ class BoardsGreenhopper(Stream):
             boards = Context.client.request(self.tap_stream_id, "GET", path)['views']
             self.write_page(boards)
 
-        if Context.is_selected(VELOCITY.tap_stream_id):
-            starttime = singer.utils.now()
-            for board in boards:
-
+        for board in boards:
+            if Context.is_selected(VELOCITY.tap_stream_id):
                 # VELOCITY endpoint
-                boardId = str(board['id'])
-                path = "/rest/greenhopper/1.0/rapid/charts/velocity.json?rapidViewId=" + boardId
+                board_id = str(board["id"])
+                path = ("/rest/greenhopper/1.0/rapid/charts/velocity.json?rapidViewId=" + board_id)
                 # get data from the Velocity endpoint
                 velocity = Context.client.request(VELOCITY.tap_stream_id, "GET", path)
-                sprintData = velocity['sprints']
-                # per Sprint in the Sprint-section of the data, add the Board id, Estimated value & Completed value from the VelocityStatEntries-section
-                for sprint in sprintData:
-                    sprintId = str(sprint['id'])
-                    velocitystats = {
-                        "boardId"          : board['id']
-                       ,"velocityEstimated": velocity['velocityStatEntries'][sprintId]['estimated']['value']
-                       ,"velocityCompleted": velocity['velocityStatEntries'][sprintId]['completed']['value']
-                        }
-                    sprint.update(velocitystats)
-                VELOCITY.write_page(sprintData)
 
-                # SPRINTS endpoint
-                if Context.is_selected(SPRINTS.tap_stream_id) and board['sprintSupportEnabled']:
-                    path = "/rest/agile/1.0/board/{}/sprint".format(board["id"])
-                    page_num_offset = [SPRINTS.tap_stream_id, "offset", "page_num"]
-                    page_num = Context.bookmark(page_num_offset) or 0
-                    pager = Paginator(Context.client, items_key="values", page_num=page_num)
-                    for page in pager.pages(SPRINTS.tap_stream_id, "GET", path):
-                        SPRINTS.write_page(page)
-                        Context.set_bookmark(page_num_offset, pager.next_page_num)
-                        singer.write_state(Context.state)
-                    Context.set_bookmark(page_num_offset, None)
+                if velocity.get("sprints"):
+                    sprint_data = velocity["sprints"]
+
+                    # per Sprint in the Sprint-section of the data, add the Board id, Estimated value & Completed value from the VelocityStatEntries-section
+                    for sprint in sprint_data:
+                        sprint_id = str(sprint["id"])
+                        velocity_stats = {
+                            "boardId": board["id"],
+                            "velocityEstimated": velocity["velocityStatEntries"][sprint_id]["estimated"]["value"],
+                            "velocityCompleted": velocity["velocityStatEntries"][sprint_id]["completed"]["value"]
+                            }
+                        sprint.update(velocity_stats)
+                    VELOCITY.write_page(sprint_data)
+
+            # SPRINTS endpoint
+            if (Context.is_selected(SPRINTS.tap_stream_id) and board["sprintSupportEnabled"]):
+
+                path = "/rest/agile/1.0/board/{}/sprint".format(board["id"])
+                page_num_offset = [SPRINTS.tap_stream_id, "offset", "page_num"]
+                page_num = Context.bookmark(page_num_offset) or 0
+                pager = Paginator(Context.client, items_key="values", page_num=page_num)
+
+                for page in pager.pages(SPRINTS.tap_stream_id, "GET", path):
+                    SPRINTS.write_page(page)
+                    Context.set_bookmark(page_num_offset, pager.next_page_num)
                     singer.write_state(Context.state)
+                Context.set_bookmark(page_num_offset, None)
+                singer.write_state(Context.state)
 
                 # SPRINTREPORTS endpoint
-                for sprint in sprintData:
-                    if Context.is_selected(SPRINTREPORTS.tap_stream_id):
-                        sprintId = str(sprint['id'])
-                        path = "/rest/greenhopper/1.0/rapid/charts/sprintreport?rapidViewId=" + boardId + "&sprintId=" + sprintId
+                if Context.is_selected(SPRINTREPORTS.tap_stream_id):
+                    for sprint in sprint_data:
+                        sprint_id = str(sprint['id'])
+                        path = "/rest/greenhopper/1.0/rapid/charts/sprintreport?rapidViewId=" + board_id + "&sprintId=" + sprint_id
                         output_dict = Context.client.request(SPRINTREPORTS.tap_stream_id, "GET", path)["contents"]["issueKeysAddedDuringSprint"]
                         # modify the issueKeysAddedDuringSprint output into something processable: change key into a value, and add the identifiers
                         if len(output_dict) != 0: 
                             modify_json = json.dumps(output_dict)
-                            modify_json = modify_json.replace('{','[{"boardId":' + boardId + ', "sprintId": ' + sprintId + ', "issueId": ').replace(': true,','}, {"boardId":' + boardId + ', "sprintId": ' + sprintId + ', "issueId":').replace(': true}','}]')
+                            modify_json = modify_json.replace('{','[{"boardId":' + board_id + ', "sprintId": ' + sprint_id + ', "issueId": ').replace(': true,','}, {"boardId":' + board_id + ', "sprintId": ' + sprint_id + ', "issueId":').replace(': true}','}]')
                             modified_dict = json.loads(modify_json)
                             SPRINTREPORTS.write_page(modified_dict)
-
-            LOGGER.info("Execution duration for Velocity endpoint: %s", singer.utils.now() - starttime)
 
 class Projects(Stream):
     def sync_on_prem(self):
@@ -412,10 +413,10 @@ class Worklogs(Stream):
 
 
 VERSIONS = Stream("versions", ["id"], indirect_stream=True)
-BOARDS = BoardsGreenhopper("boardsGreenhopper",["id"])
-VELOCITY = Stream("velocity",["id"], indirect_stream=True)
+BOARDS = BoardsGreenhopper("boardsGreenhopper", ["id"])
+VELOCITY = Stream("velocity", ["id"], indirect_stream=True)
+SPRINTS = Stream("sprints", ["id"], indirect_stream=True)
 SPRINTREPORTS = Stream("sprintreports",["sprintId","boardId","issueId"], indirect_stream=True)
-SPRINTS = Stream("sprints",["id"], indirect_stream=True)
 COMPONENTS = Stream("components", ["id"], indirect_stream=True)
 ISSUES = Issues("issues", ["id"])
 ISSUE_COMMENTS = Stream("issue_comments", ["id"], indirect_stream=True)
@@ -461,6 +462,13 @@ def validate_dependencies():
         errs.append(msg_tmpl.format("Versions", "Projects"))
     if COMPONENTS.tap_stream_id in selected and PROJECTS.tap_stream_id not in selected:
         errs.append(msg_tmpl.format("Components", "Projects"))
+    if BOARDS.tap_stream_id not in selected:
+        if VELOCITY.tap_stream_id in selected:
+            errs.append(msg_tmpl.format("Velocity", "boardsGreenhopper"))
+        if SPRINTS.tap_stream_id in selected:
+            errs.append(msg_tmpl.format("Sprints", "boardsGreenhopper"))
+        if SPRINTS.tap_stream_id in selected:
+            errs.append(msg_tmpl.format("Sprintreports", "boardsGreenhopper"))
     if ISSUES.tap_stream_id not in selected:
         if CHANGELOGS.tap_stream_id in selected:
             errs.append(msg_tmpl.format("Changelog", "Issues"))
