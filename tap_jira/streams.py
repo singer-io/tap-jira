@@ -467,7 +467,7 @@ def validate_dependencies():
             errs.append(msg_tmpl.format("Velocity", "boardsGreenhopper"))
         if SPRINTS.tap_stream_id in selected:
             errs.append(msg_tmpl.format("Sprints", "boardsGreenhopper"))
-        if SPRINTS.tap_stream_id in selected:
+        if SPRINTREPORTS.tap_stream_id in selected:
             errs.append(msg_tmpl.format("Sprintreports", "boardsGreenhopper"))
     if ISSUES.tap_stream_id not in selected:
         if CHANGELOGS.tap_stream_id in selected:
