@@ -146,10 +146,48 @@ class BoardsAgile(Stream):
 
 class BoardsGreenhopper(Stream):
     def sync(self):
+        # BOARDS endpoint
         if Context.is_selected(BOARDS.tap_stream_id):
             path = "/rest/greenhopper/1.0/rapidview"
             boards = Context.client.request(self.tap_stream_id, "GET", path)['views']
             self.write_page(boards)
+
+        for board in boards:
+            if Context.is_selected(VELOCITY.tap_stream_id):
+                # VELOCITY endpoint
+                board_id = str(board["id"])
+                path = ("/rest/greenhopper/1.0/rapid/charts/velocity.json?rapidViewId=" + board_id)
+                # get data from the Velocity endpoint
+                velocity = Context.client.request(VELOCITY.tap_stream_id, "GET", path)
+
+                if velocity.get("sprints"):
+                    sprint_data = velocity["sprints"]
+
+                    # per Sprint in the Sprint-section of the data, add the Board id, Estimated value & Completed value from the VelocityStatEntries-section
+                    for sprint in sprint_data:
+                        sprint_id = str(sprint["id"])
+                        velocity_stats = {
+                            "boardId": board["id"],
+                            "velocityEstimated": velocity["velocityStatEntries"][sprint_id]["estimated"]["value"],
+                            "velocityCompleted": velocity["velocityStatEntries"][sprint_id]["completed"]["value"]
+                            }
+                        sprint.update(velocity_stats)
+                    VELOCITY.write_page(sprint_data)
+
+            # SPRINTS endpoint
+            if (Context.is_selected(SPRINTS.tap_stream_id) and board["sprintSupportEnabled"]):
+
+                path = "/rest/agile/1.0/board/{}/sprint".format(board["id"])
+                page_num_offset = [SPRINTS.tap_stream_id, "offset", "page_num"]
+                page_num = Context.bookmark(page_num_offset) or 0
+                pager = Paginator(Context.client, items_key="values", page_num=page_num)
+
+                for page in pager.pages(SPRINTS.tap_stream_id, "GET", path):
+                    SPRINTS.write_page(page)
+                    Context.set_bookmark(page_num_offset, pager.next_page_num)
+                    singer.write_state(Context.state)
+                Context.set_bookmark(page_num_offset, None)
+                singer.write_state(Context.state)
 
 class Projects(Stream):
     def sync_on_prem(self):
@@ -362,7 +400,9 @@ class Worklogs(Stream):
 
 
 VERSIONS = Stream("versions", ["id"], indirect_stream=True)
-BOARDS = BoardsGreenhopper("boardsGreenhopper",["id"])
+BOARDS = BoardsGreenhopper("boardsGreenhopper", ["id"])
+VELOCITY = Stream("velocity", ["id"], indirect_stream=True)
+SPRINTS = Stream("sprints", ["id"], indirect_stream=True)
 COMPONENTS = Stream("components", ["id"], indirect_stream=True)
 ISSUES = Issues("issues", ["id"])
 ISSUE_COMMENTS = Stream("issue_comments", ["id"], indirect_stream=True)
@@ -374,6 +414,8 @@ CHANGELOGS = Stream("changelogs", ["id"], indirect_stream=True)
 ALL_STREAMS = [
     PROJECTS,
     BOARDS,
+    VELOCITY,
+    SPRINTS,
     VERSIONS,
     COMPONENTS,
     ProjectTypes("project_types", ["key"]),
@@ -405,6 +447,11 @@ def validate_dependencies():
         errs.append(msg_tmpl.format("Versions", "Projects"))
     if COMPONENTS.tap_stream_id in selected and PROJECTS.tap_stream_id not in selected:
         errs.append(msg_tmpl.format("Components", "Projects"))
+    if BOARDS.tap_stream_id not in selected:
+        if VELOCITY.tap_stream_id in selected:
+            errs.append(msg_tmpl.format("Velocity", "boardsGreenhopper"))
+        if SPRINTS.tap_stream_id in selected:
+            errs.append(msg_tmpl.format("Sprints", "boardsGreenhopper"))
     if ISSUES.tap_stream_id not in selected:
         if CHANGELOGS.tap_stream_id in selected:
             errs.append(msg_tmpl.format("Changelog", "Issues"))
