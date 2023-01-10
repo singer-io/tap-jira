@@ -189,6 +189,19 @@ class BoardsGreenhopper(Stream):
                 Context.set_bookmark(page_num_offset, None)
                 singer.write_state(Context.state)
 
+                # SPRINTREPORTS endpoint
+                if Context.is_selected(SPRINTREPORTS.tap_stream_id):
+                    for sprint in sprint_data:
+                        sprint_id = str(sprint['id'])
+                        path = "/rest/greenhopper/1.0/rapid/charts/sprintreport?rapidViewId=" + board_id + "&sprintId=" + sprint_id
+                        output_dict = Context.client.request(SPRINTREPORTS.tap_stream_id, "GET", path)["contents"]["issueKeysAddedDuringSprint"]
+                        # modify the issueKeysAddedDuringSprint output into something processable: change key into a value, and add the identifiers
+                        if len(output_dict) != 0: 
+                            modify_json = json.dumps(output_dict)
+                            modify_json = modify_json.replace('{','[{"boardId":' + board_id + ', "sprintId": ' + sprint_id + ', "issueId": ').replace(': true,','}, {"boardId":' + board_id + ', "sprintId": ' + sprint_id + ', "issueId":').replace(': true}','}]')
+                            modified_dict = json.loads(modify_json)
+                            SPRINTREPORTS.write_page(modified_dict)
+
 class Projects(Stream):
     def sync_on_prem(self):
         """ Sync function for the on prem instances"""
@@ -403,6 +416,7 @@ VERSIONS = Stream("versions", ["id"], indirect_stream=True)
 BOARDS = BoardsGreenhopper("boardsGreenhopper", ["id"])
 VELOCITY = Stream("velocity", ["id"], indirect_stream=True)
 SPRINTS = Stream("sprints", ["id"], indirect_stream=True)
+SPRINTREPORTS = Stream("sprintreports",["sprintId","boardId","issueId"], indirect_stream=True)
 COMPONENTS = Stream("components", ["id"], indirect_stream=True)
 ISSUES = Issues("issues", ["id"])
 ISSUE_COMMENTS = Stream("issue_comments", ["id"], indirect_stream=True)
@@ -416,6 +430,7 @@ ALL_STREAMS = [
     BOARDS,
     VELOCITY,
     SPRINTS,
+    SPRINTREPORTS,
     VERSIONS,
     COMPONENTS,
     ProjectTypes("project_types", ["key"]),
@@ -452,6 +467,8 @@ def validate_dependencies():
             errs.append(msg_tmpl.format("Velocity", "boardsGreenhopper"))
         if SPRINTS.tap_stream_id in selected:
             errs.append(msg_tmpl.format("Sprints", "boardsGreenhopper"))
+        if SPRINTREPORTS.tap_stream_id in selected:
+            errs.append(msg_tmpl.format("Sprintreports", "boardsGreenhopper"))
     if ISSUES.tap_stream_id not in selected:
         if CHANGELOGS.tap_stream_id in selected:
             errs.append(msg_tmpl.format("Changelog", "Issues"))
