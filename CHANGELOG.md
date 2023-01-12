@@ -1,5 +1,7 @@
 # Changelog
 
+## [v2.1.5]
+  * Skipped the record for out of range date values [#87](https://github.com/singer-io/tap-jira/pull/87)
 ## [v2.1.4]
   * Updated README [#88](https://github.com/singer-io/tap-jira/pull/88)
 ## [v2.1.3]
