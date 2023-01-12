@@ -4,10 +4,47 @@ import singer
 import dateparser
 
 from singer import metrics, utils, metadata, Transformer
+from singer.transform import SchemaMismatch
+from dateutil.parser._parser import ParserError
 from .http import Paginator,JiraNotFoundError
 from .context import Context
 
 DEFAULT_PAGE_SIZE = 50
+
+def handle_date_time_schema_mis_match(exception, record, pk_fields): # pylint: disable=inconsistent-return-statements
+    """
+    Handling exception for date-time value out of range.
+    """
+
+    if ("{'format': 'date-time', 'type': ['string', 'null']}"
+        in exception.args[0].split("\n\t")[1]):
+        nested_keys = exception.args[0].split("\n\t")[1].split(":")[0]
+
+        obj = record.copy()
+        # Getting the date value from nested object
+        for key in nested_keys.split("."):
+            # Convert list index of nested object to integer
+            obj = obj[int(key) if key.isnumeric() else key]
+
+        try:
+            # Parsing date to catch 'out of range' error
+            utils.strptime_to_utc(obj)
+        except ParserError as err:
+
+            # Check the error message if the 'year' or 'day' is out of range
+            # For Example: year 51502 is out of range: 51502-06-08T14:46:42.000000
+            if ("out of range" in str(err)) or (
+                # Check the error message if 'month' or ['hours','minutes','seconds'] given in date is not in range
+                # example: month must be in 1..12: 5150-33-08T14:46:42.000000
+                "must be in" in str(err)):
+                LOGGER.warning("Skipping record of: %s due to Date out of range, DATE: %s", dict((pk, record.get(pk)) for pk in pk_fields), obj)
+                return True
+            else:
+                # Raise an error for exception except 'out of range' date
+                raise err
+    else:
+        # Raise a schema mismatch error, other than date out of range values
+        raise exception
 
 def raise_if_bookmark_cannot_advance(worklogs):
     # Worklogs can only be queried with a `since` timestamp and
@@ -105,15 +142,24 @@ class Stream():
         self.write_page(page)
 
     def write_page(self, page):
+        rec_count = 0
         stream = Context.get_catalog_entry(self.tap_stream_id)
         stream_metadata = metadata.to_map(stream.metadata)
         extraction_time = singer.utils.now()
         for rec in page:
             with Transformer() as transformer:
-                rec = transformer.transform(rec, stream.schema.to_dict(), stream_metadata)
+                try:
+                    rec = transformer.transform(rec, stream.schema.to_dict(), stream_metadata)
+                except SchemaMismatch as ex:
+                    # Checking if schema-mismatch is occurring for datetime value
+                    # TDL-19174: Transformation issue for "date out of range"
+                    if handle_date_time_schema_mis_match(ex, rec, self.pk_fields):
+                        continue    # skipping record for this error
             singer.write_record(self.tap_stream_id, rec, time_extracted=extraction_time)
+            rec_count += 1 # increment counter only after the record is written
+
         with metrics.record_counter(self.tap_stream_id) as counter:
-            counter.increment(len(page))
+            counter.increment(rec_count) # Do not increment counter for skipped records
 
 def update_user_date(page):
     """
