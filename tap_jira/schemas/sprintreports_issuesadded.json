@@ -1,5 +1,5 @@
 {
-  "title": "sprintreports",
+  "title": "sprintreports_issuesadded",
   "type": [
     "null",
     "object"
@@ -17,7 +17,7 @@
         "integer"
       ]
     },
-    "issueId": {
+    "issueKeyAddedDuringSprint": {
       "type": [
         "null",
         "string"

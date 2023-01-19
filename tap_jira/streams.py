@@ -190,17 +190,24 @@ class BoardsGreenhopper(Stream):
                 singer.write_state(Context.state)
 
                 # SPRINTREPORTS endpoint
-                if Context.is_selected(SPRINTREPORTS.tap_stream_id):
+                if (Context.is_selected(SPRINTREPORTS_ISSUESADDED.tap_stream_id) or Context.is_selected(SPRINTREPORTS_SCALAR.tap_stream_id)):
                     for sprint in sprint_data:
                         sprint_id = str(sprint['id'])
                         path = "/rest/greenhopper/1.0/rapid/charts/sprintreport?rapidViewId=" + board_id + "&sprintId=" + sprint_id
-                        output_dict = Context.client.request(SPRINTREPORTS.tap_stream_id, "GET", path)["contents"]["issueKeysAddedDuringSprint"]
+                        sprint_report = Context.client.request(SPRINTREPORTS_ISSUESADDED.tap_stream_id, "GET", path)
+
+                        if sprint_report["contents"]["puntedIssuesEstimateSum"]["text"] != 'null':
+                            scalarvalues_json = '[{"boardId": ' + board_id + ', "sprintId": ' + sprint_id + ', "puntedIssuesEstimateSum": ' + sprint_report["contents"]["puntedIssuesEstimateSum"]["text"] + '}]'
+                            scalarvalues_dict = json.loads(scalarvalues_json)
+                            SPRINTREPORTS_SCALAR.write_page(scalarvalues_dict)
+
                         # modify the issueKeysAddedDuringSprint output into something processable: change key into a value, and add the identifiers
-                        if len(output_dict) != 0: 
-                            modify_json = json.dumps(output_dict)
+                        issuekeys_added_during_sprint = sprint_report["contents"]["issueKeysAddedDuringSprint"]
+                        if len(issuekeys_added_during_sprint) != 0: 
+                            modify_json = json.dumps(issuekeys_added_during_sprint)
                             modify_json = modify_json.replace('{','[{"boardId":' + board_id + ', "sprintId": ' + sprint_id + ', "issueKeyAddedDuringSprint": ').replace(': true,','}, {"boardId":' + board_id + ', "sprintId": ' + sprint_id + ', "issueKeyAddedDuringSprint":').replace(': true}','}]')
                             modified_dict = json.loads(modify_json)
-                            SPRINTREPORTS.write_page(modified_dict)
+                            SPRINTREPORTS_ISSUESADDED.write_page(modified_dict)
 
 class Projects(Stream):
     def sync_on_prem(self):
@@ -416,7 +423,8 @@ VERSIONS = Stream("versions", ["id"], indirect_stream=True)
 BOARDS = BoardsGreenhopper("boardsGreenhopper", ["id"])
 VELOCITY = Stream("velocity", ["id"], indirect_stream=True)
 SPRINTS = Stream("sprints", ["id"], indirect_stream=True)
-SPRINTREPORTS = Stream("sprintreports",["sprintId","boardId","issueKeyAddedDuringSprint"], indirect_stream=True)
+SPRINTREPORTS_SCALAR = Stream("sprintreports_scalar",["sprintId","boardId"], indirect_stream=True)
+SPRINTREPORTS_ISSUESADDED = Stream("sprintreports_issuesadded",["sprintId","boardId","issueKeyAddedDuringSprint"], indirect_stream=True)
 COMPONENTS = Stream("components", ["id"], indirect_stream=True)
 ISSUES = Issues("issues", ["id"])
 ISSUE_COMMENTS = Stream("issue_comments", ["id"], indirect_stream=True)
@@ -430,7 +438,8 @@ ALL_STREAMS = [
     BOARDS,
     VELOCITY,
     SPRINTS,
-    SPRINTREPORTS,
+    SPRINTREPORTS_SCALAR,
+    SPRINTREPORTS_ISSUESADDED,
     VERSIONS,
     COMPONENTS,
     ProjectTypes("project_types", ["key"]),
@@ -467,8 +476,10 @@ def validate_dependencies():
             errs.append(msg_tmpl.format("Velocity", "boardsGreenhopper"))
         if SPRINTS.tap_stream_id in selected:
             errs.append(msg_tmpl.format("Sprints", "boardsGreenhopper"))
-        if SPRINTREPORTS.tap_stream_id in selected:
-            errs.append(msg_tmpl.format("Sprintreports", "boardsGreenhopper"))
+        if SPRINTREPORTS_SCALAR.tap_stream_id in selected:
+            errs.append(msg_tmpl.format("Sprintreports_Scalar", "boardsGreenhopper"))
+        if SPRINTREPORTS_ISSUESADDED.tap_stream_id in selected:
+            errs.append(msg_tmpl.format("Sprintreports_IssuesAdded", "boardsGreenhopper"))
     if ISSUES.tap_stream_id not in selected:
         if CHANGELOGS.tap_stream_id in selected:
             errs.append(msg_tmpl.format("Changelog", "Issues"))
