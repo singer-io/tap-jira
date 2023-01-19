@@ -198,7 +198,7 @@ class BoardsGreenhopper(Stream):
                         # modify the issueKeysAddedDuringSprint output into something processable: change key into a value, and add the identifiers
                         if len(output_dict) != 0: 
                             modify_json = json.dumps(output_dict)
-                            modify_json = modify_json.replace('{','[{"boardId":' + board_id + ', "sprintId": ' + sprint_id + ', "issueId": ').replace(': true,','}, {"boardId":' + board_id + ', "sprintId": ' + sprint_id + ', "issueId":').replace(': true}','}]')
+                            modify_json = modify_json.replace('{','[{"boardId":' + board_id + ', "sprintId": ' + sprint_id + ', "issueKeyAddedDuringSprint": ').replace(': true,','}, {"boardId":' + board_id + ', "sprintId": ' + sprint_id + ', "issueKeyAddedDuringSprint":').replace(': true}','}]')
                             modified_dict = json.loads(modify_json)
                             SPRINTREPORTS.write_page(modified_dict)
 
@@ -416,7 +416,7 @@ VERSIONS = Stream("versions", ["id"], indirect_stream=True)
 BOARDS = BoardsGreenhopper("boardsGreenhopper", ["id"])
 VELOCITY = Stream("velocity", ["id"], indirect_stream=True)
 SPRINTS = Stream("sprints", ["id"], indirect_stream=True)
-SPRINTREPORTS = Stream("sprintreports",["sprintId","boardId","issueId"], indirect_stream=True)
+SPRINTREPORTS = Stream("sprintreports",["sprintId","boardId","issueKeyAddedDuringSprint"], indirect_stream=True)
 COMPONENTS = Stream("components", ["id"], indirect_stream=True)
 ISSUES = Issues("issues", ["id"])
 ISSUE_COMMENTS = Stream("issue_comments", ["id"], indirect_stream=True)
