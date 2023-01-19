@@ -1,0 +1,51 @@
+{
+  "title": "sprintissues",
+  "type": [
+    "null",
+    "object"
+  ],
+  "properties": {
+    "expand": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "self": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "key": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "fields": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "fixVersions": {
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "type": [
+          "null",
+          "object"
+        ]
+      }
+    }
+  }
+}
