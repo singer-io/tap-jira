@@ -185,9 +185,7 @@ class BoardsGreenhopper(Stream):
                 for page in pager.pages(SPRINTS.tap_stream_id, "GET", path):
                     SPRINTS.write_page(page)
                     Context.set_bookmark(page_num_offset, pager.next_page_num)
-                    singer.write_state(Context.state)
                 Context.set_bookmark(page_num_offset, None)
-                singer.write_state(Context.state)
 
                 # SPRINTREPORTS endpoint
                 if (Context.is_selected(SPRINTREPORTS_ISSUESADDED.tap_stream_id) or Context.is_selected(SPRINTREPORTS_SCALAR.tap_stream_id)):
@@ -209,6 +207,7 @@ class BoardsGreenhopper(Stream):
                             modified_dict = json.loads(modify_json)
                             SPRINTREPORTS_ISSUESADDED.write_page(modified_dict)
 
+
                 # SPRINTISSUES endpoint
                 if Context.is_selected(SPRINTISSUES.tap_stream_id):
                     for sprint in sprint_data:
@@ -221,11 +220,13 @@ class BoardsGreenhopper(Stream):
                         pager = Paginator(Context.client, items_key="issues", page_num=page_num)
 
                         for page in pager.pages(SPRINTISSUES.tap_stream_id, "GET", path):
+                            # the calling parameters (the identifiers) are missing in the output, let's add those
+                            page[0]['boardId'] = board_id
+                            page[0]['sprintId'] = sprint_id
                             SPRINTISSUES.write_page(page)
                             Context.set_bookmark(page_num_offset, pager.next_page_num)
-                            singer.write_state(Context.state)
                         Context.set_bookmark(page_num_offset, None)
-                        singer.write_state(Context.state)
+            singer.write_state(Context.state)
 
 class Projects(Stream):
     def sync_on_prem(self):
@@ -453,7 +454,6 @@ PROJECTS = Projects("projects", ["id"])
 CHANGELOGS = Stream("changelogs", ["id"], indirect_stream=True)
 
 ALL_STREAMS = [
-    PROJECTS,
     BOARDS,
     VELOCITY,
     SPRINTS,

@@ -5,19 +5,19 @@
     "object"
   ],
   "properties": {
-    "expand": {
+    "boardId": {
       "type": [
         "null",
-        "string"
+        "integer"
+      ]
+    },
+    "sprintId": {
+      "type": [
+        "null",
+        "integer"
       ]
     },
     "id": {
-      "type": [
-        "null",
-        "string"
-      ]
-    },
-    "self": {
       "type": [
         "null",
         "string"
