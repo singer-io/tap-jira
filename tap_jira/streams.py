@@ -151,8 +151,12 @@ class BoardsGreenhopper(Stream):
             path = "/rest/greenhopper/1.0/rapidview"
             boards = Context.client.request(self.tap_stream_id, "GET", path)['views']
             self.write_page(boards)
-
+            LOGGER.info("##PR## Boards:")
+            LOGGER.info(boards)
         for board in boards:
+
+            LOGGER.info("##PR## Board:")
+            LOGGER.info(board)
             if Context.is_selected(VELOCITY.tap_stream_id):
                 # VELOCITY endpoint
                 board_id = str(board["id"])
