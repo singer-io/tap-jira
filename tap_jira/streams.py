@@ -454,6 +454,7 @@ PROJECTS = Projects("projects", ["id"])
 CHANGELOGS = Stream("changelogs", ["id"], indirect_stream=True)
 
 ALL_STREAMS = [
+    PROJECTS,
     BOARDS,
     VELOCITY,
     SPRINTS,
