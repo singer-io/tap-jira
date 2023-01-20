@@ -220,9 +220,10 @@ class BoardsGreenhopper(Stream):
                         pager = Paginator(Context.client, items_key="issues", page_num=page_num)
 
                         for page in pager.pages(SPRINTISSUES.tap_stream_id, "GET", path):
-                            # the calling parameters (the identifiers) are missing in the output, let's add those
-                            page[0]['boardId'] = board_id
-                            page[0]['sprintId'] = sprint_id
+                            # the calling parameters (the identifiers) are missing in the output, let's add those to all records
+                            for record in page:
+                                record['boardId'] = board_id
+                                record['sprintId'] = sprint_id
                             SPRINTISSUES.write_page(page)
                             Context.set_bookmark(page_num_offset, pager.next_page_num)
                         Context.set_bookmark(page_num_offset, None)
