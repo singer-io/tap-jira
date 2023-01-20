@@ -39,12 +39,28 @@
           "type": [
             "null",
             "array"
-          ]
-        },
-        "type": [
-          "null",
-          "object"
-        ]
+          ],
+          "items": {
+            "properties": {
+              "id": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "name": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              }
+            },
+            "type": [
+              "null",
+              "object"
+            ]
+          }
+        }
       }
     }
   }
