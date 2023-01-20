@@ -441,8 +441,8 @@ class Worklogs(Stream):
 
 VERSIONS = Stream("versions", ["id"], indirect_stream=True)
 BOARDS = BoardsGreenhopper("boardsGreenhopper", ["id"])
-VELOCITY = Stream("velocity", ["id"], indirect_stream=True)
-SPRINTS = Stream("sprints", ["id"], indirect_stream=True)
+VELOCITY = Stream("velocity", ["id","boardId"], indirect_stream=True)
+SPRINTS = Stream("sprints", ["id","originBoardId"], indirect_stream=True)
 SPRINTREPORTS_SCALAR = Stream("sprintreports_scalar",["sprintId","boardId"], indirect_stream=True)
 SPRINTREPORTS_ISSUESADDED = Stream("sprintreports_issuesadded",["sprintId","boardId","issueKeyAddedDuringSprint"], indirect_stream=True)
 SPRINTISSUES = Stream("sprintissues",["sprintId","boardId","id"], indirect_stream=True)
