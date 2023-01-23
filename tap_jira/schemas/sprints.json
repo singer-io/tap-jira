@@ -50,7 +50,7 @@
       ],
       "format": "date-time"
     },
-    "originBoardId": {
+    "boardId": {
       "type": [
         "null",
         "integer"
