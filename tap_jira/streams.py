@@ -183,6 +183,9 @@ class BoardsGreenhopper(Stream):
                 pager = Paginator(Context.client, items_key="values", page_num=page_num)
 
                 for page in pager.pages(SPRINTS.tap_stream_id, "GET", path):
+                    # BoardId 242 of this API call somehow doesn't return the originBoardId, add it anyway
+                    for record in page:
+                        record['boardId'] = board_id
                     SPRINTS.write_page(page)
                     Context.set_bookmark(page_num_offset, pager.next_page_num)
                 Context.set_bookmark(page_num_offset, None)
@@ -442,7 +445,7 @@ class Worklogs(Stream):
 VERSIONS = Stream("versions", ["id"], indirect_stream=True)
 BOARDS = BoardsGreenhopper("boardsGreenhopper", ["id"])
 VELOCITY = Stream("velocity", ["id","boardId"], indirect_stream=True)
-SPRINTS = Stream("sprints", ["id","originBoardId"], indirect_stream=True)
+SPRINTS = Stream("sprints", ["id","boardId"], indirect_stream=True)
 SPRINTREPORTS_SCALAR = Stream("sprintreports_scalar",["sprintId","boardId"], indirect_stream=True)
 SPRINTREPORTS_ISSUESADDED = Stream("sprintreports_issuesadded",["sprintId","boardId","issueKeyAddedDuringSprint"], indirect_stream=True)
 SPRINTISSUES = Stream("sprintissues",["sprintId","boardId","id"], indirect_stream=True)
