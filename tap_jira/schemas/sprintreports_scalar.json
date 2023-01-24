@@ -1,0 +1,27 @@
+{
+  "title": "sprintreports_scalar",
+  "type": [
+    "null",
+    "object"
+  ],
+  "properties": {
+    "boardId": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "sprintId": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "puntedIssuesEstimateSum": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  }
+}

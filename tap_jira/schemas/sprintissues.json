@@ -1,0 +1,67 @@
+{
+  "title": "sprintissues",
+  "type": [
+    "null",
+    "object"
+  ],
+  "properties": {
+    "boardId": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "sprintId": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "key": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "fields": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "fixVersions": {
+          "type": [
+            "null",
+            "array"
+          ],
+          "items": {
+            "properties": {
+              "id": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "name": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              }
+            },
+            "type": [
+              "null",
+              "object"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
