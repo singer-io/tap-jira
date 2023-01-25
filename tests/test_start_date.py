@@ -10,7 +10,6 @@ from tap_tester.logger import LOGGER
 
 from base import BaseTapTest
 
-# BUG_TDL-19582 [tap-jira] tap does not replicate incremental records inclusive of start date
 
 
 class StartDateTest(BaseTapTest):
@@ -73,10 +72,9 @@ class StartDateTest(BaseTapTest):
             replication_key = list(expected_replication_keys_by_stream[stream])[0]
             bookmarked_values.append(state['bookmarks'][stream][replication_key])
 
-        # grab the most recent bookmark from state
-        greatest_bookmark_value = sorted(bookmarked_values)[-1].split("T")[0]
-        start_date = self.timedelta_formatted(greatest_bookmark_value, days=-1, str_format="%Y-%m-%d") # BUG_TDL-19582
-        # start_date = self.timedelta_formatted(greatest_bookmark_value, days=0, str_format="%Y-%m-%d")  # BUG_TDL-19582
+        # Grab the minimum bookmark from the state to fetch data from all the streams in sync2
+        minium_bookmark_value = sorted(bookmarked_values)[0].split("T")[0]
+        start_date = self.timedelta_formatted(minium_bookmark_value, days=0, str_format="%Y-%m-%d")
         self.start_date = start_date + "T00:00:00Z"
 
         # create a new connection with the new  more recent start_date
