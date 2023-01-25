@@ -28,7 +28,8 @@ class AllFieldsTest(BaseTapTest):
         "issue_transitions": ["fields", "expand"],
         # iconUrl: not found in the doc
         "resolutions": ["iconUrl"],
-        "changelogs": ["historyMetadata"]
+        # historyMetadata started showing up 01/24/2023 so commenting this out for now
+        # "changelogs": ["historyMetadata"]
     }
 
     @staticmethod
