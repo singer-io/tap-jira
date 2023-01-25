@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import time
 import threading
 import re
+import json
 from requests.exceptions import (HTTPError, Timeout)
 from requests.auth import HTTPBasicAuth
 import requests
@@ -157,13 +158,14 @@ def get_request_timeout(config):
     return request_timeout
 
 class Client():
-    def __init__(self, config):
+    def __init__(self, config_path, config, dev_mode = False):
         self.is_cloud = 'oauth_client_id' in config.keys()
         self.session = requests.Session()
         self.next_request_at = datetime.now()
         self.user_agent = config.get("user_agent")
         self.login_timer = None
         self.timeout = get_request_timeout(config)
+        self.config_path = config_path
 
         # Assign False for cloud Jira instance
         self.is_on_prem_instance = False
@@ -178,10 +180,14 @@ class Client():
             self.oauth_client_id = config.get('oauth_client_id')
             self.oauth_client_secret = config.get('oauth_client_secret')
 
+            if dev_mode and not self.access_token:
+                raise Exception("Access token config property is missing")
+
             # Only appears to be needed once for any 6 hour period. If
             # running the tap for more than 6 hours is needed this will
             # likely need to be more complicated.
-            self.refresh_credentials()
+            if not dev_mode:
+                self.refresh_credentials()
             self.test_credentials_are_authorized()
         else:
             LOGGER.info("Using Basic Auth API authentication")
@@ -262,6 +268,8 @@ class Client():
                 timeout=self.timeout)
             resp.raise_for_status()
             self.access_token = resp.json()['access_token']
+            self.refresh_token = resp.json()['refresh_token']
+            self._write_config(resp.json())
         except Exception as ex:
             error_message = str(ex)
             if resp:
@@ -283,6 +291,19 @@ class Client():
         # Here, we are retrieving serverInfo for the Jira instance by which credentials will also be verified.
         # Assign True value to is_on_prem_instance property for on-prem Jira instance
         self.is_on_prem_instance = self.request("users","GET","/rest/api/2/serverInfo").get('deploymentType') == "Server"
+
+    def _write_config(self, token):
+        LOGGER.info("Credentials Refreshed")
+
+        # Update config at config_path
+        with open(self.config_path) as file:
+            config = json.load(file)
+
+        config['refresh_token'] = token['refresh_token']
+        config['access_token'] = token['access_token']
+
+        with open(self.config_path, 'w') as file:
+            json.dump(config, file, indent=2)
 
 class Paginator():
     def __init__(self, client, page_num=0, order_by=None, items_key="values"):
