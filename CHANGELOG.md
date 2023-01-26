@@ -1,5 +1,7 @@
 # Changelog
 
+## [v2.2.0]
+  * Add support for dev mode [#104](https://github.com/singer-io/tap-jira/pull/104)
 ## [v2.1.5]
   * Skipped the record for out of range date values [#87](https://github.com/singer-io/tap-jira/pull/87)
 ## [v2.1.4]
