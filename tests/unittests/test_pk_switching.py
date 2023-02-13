@@ -34,8 +34,10 @@ class TestPkSwitchingForUserStream(unittest.TestCase):
             is `Cloud` in the response
         '''
         mocked_send.return_value = get_mock_http_response(200, {"deploymentType": "Cloud"})
+        mock_config_path = "mock_config.json"
+        mock_dev_mode = False
 
-        jira_client = Client(JIRA_CONFIG)
+        jira_client = Client(mock_config_path ,JIRA_CONFIG , mock_dev_mode)
 
         self.assertEqual(jira_client.is_on_prem_instance, False)
 
@@ -45,8 +47,10 @@ class TestPkSwitchingForUserStream(unittest.TestCase):
             is `Server` in the response
         '''
         mocked_send.return_value = get_mock_http_response(200, {"deploymentType": "Server"})
+        mock_config_path = "mock_config.json"
+        mock_dev_mode = False
 
-        jira_client = Client(JIRA_CONFIG)
+        jira_client = Client(mock_config_path ,JIRA_CONFIG , mock_dev_mode)
 
         self.assertEqual(jira_client.is_on_prem_instance, True)
 
@@ -57,8 +61,10 @@ class TestPkSwitchingForUserStream(unittest.TestCase):
             of Client is True(on prem jira account)
         '''
         mocked_send.return_value = get_mock_http_response(200, {})
+        mock_config_path = "mock_config.json"
+        mock_dev_mode = False
 
-        jira_client = Client(JIRA_CONFIG)
+        jira_client = Client(mock_config_path ,JIRA_CONFIG , mock_dev_mode)
         jira_client.is_on_prem_instance = True
         Context.client = jira_client
         # `users` stream
@@ -80,8 +86,10 @@ class TestPkSwitchingForUserStream(unittest.TestCase):
             of Client is False(cloud jira account)
         '''
         mocked_send.return_value = get_mock_http_response(200, {})
+        mock_config_path = "mock_config.json"
+        mock_dev_mode = False
 
-        jira_client = Client(JIRA_CONFIG)
+        jira_client = Client(mock_config_path ,JIRA_CONFIG , mock_dev_mode)
         jira_client.is_on_prem_instance = False
         Context.client = jira_client
 
@@ -103,8 +111,10 @@ class TestPkSwitchingForUserStream(unittest.TestCase):
             Verify primary key of all other streams remain unchanged.
         '''
         mocked_send.return_value = get_mock_http_response(200, {})
+        mock_config_path = "mock_config.json"
+        mock_dev_mode = False
 
-        jira_client = Client(JIRA_CONFIG)
+        jira_client = Client(mock_config_path ,JIRA_CONFIG , mock_dev_mode)
 
         # `resolutions` stream(other than users stream)
         users_stream = ALL_STREAMS[5]

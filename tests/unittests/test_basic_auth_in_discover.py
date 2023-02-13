@@ -13,6 +13,8 @@ class Args():
         self.properties = False
         self.config = {}
         self.state = False
+        self.dev = False
+        self.config_path = "mock_config.json"
 
 # Mock response
 def get_mock_http_response(status_code, content={}):

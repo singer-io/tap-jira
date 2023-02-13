@@ -269,7 +269,7 @@ class Client():
             resp.raise_for_status()
             self.access_token = resp.json()['access_token']
             self.refresh_token = resp.json()['refresh_token']
-            self._write_config(resp.json())
+            self._write_config()
         except Exception as ex:
             error_message = str(ex)
             if resp:
@@ -292,15 +292,15 @@ class Client():
         # Assign True value to is_on_prem_instance property for on-prem Jira instance
         self.is_on_prem_instance = self.request("users","GET","/rest/api/2/serverInfo").get('deploymentType') == "Server"
 
-    def _write_config(self, token):
+    def _write_config(self):
         LOGGER.info("Credentials Refreshed")
 
         # Update config at config_path
         with open(self.config_path) as file:
             config = json.load(file)
 
-        config['refresh_token'] = token['refresh_token']
-        config['access_token'] = token['access_token']
+        config['refresh_token'] = self.refresh_token
+        config['access_token'] = self.access_token
 
         with open(self.config_path, 'w') as file:
             json.dump(config, file, indent=2)

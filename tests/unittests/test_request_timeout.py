@@ -20,7 +20,10 @@ class TestRequestTimeoutValue(unittest.TestCase):
         """
             Verify that if request_timeout is not provided in config then default value is used
         """
-        jira_client = Client({"base_url": "https://your-jira-domain"}) # No request_timeout in config
+        mock_config_path = "mock_config.json"
+        mock_dev_mode = False
+        mock_config = {"base_url": "https://your-jira-domain"}
+        jira_client = Client(mock_config_path, mock_config, mock_dev_mode) # No request_timeout in config
         jira_client.refresh_token = "test"
 
         # Call request method which call Session.send with timeout
@@ -34,10 +37,13 @@ class TestRequestTimeoutValue(unittest.TestCase):
         """
             Verify that if request_timeout is provided in config (integer value) then it should be used
         """
-        jira_client = Client({
+        mock_config_path = "mock_config.json"
+        mock_dev_mode = False
+        mock_config = {
             "base_url": "https://your-jira-domain",
             "request_timeout": 100 # integer timeout in config
-            })
+        }
+        jira_client = Client(mock_config_path, mock_config, mock_dev_mode)
         jira_client.refresh_token = "test"
 
         # Call request method which call Session.send with timeout
@@ -51,10 +57,13 @@ class TestRequestTimeoutValue(unittest.TestCase):
         """
             Verify that if request_timeout is provided in config (float value) then it should be used
         """
-        jira_client = Client({
+        mock_config_path = "mock_config.json"
+        mock_dev_mode = False
+        mock_config = {
             "base_url": "https://your-jira-domain",
             "request_timeout": 100.5 # float timeout in config
-            })
+        }
+        jira_client = Client(mock_config_path, mock_config, mock_dev_mode)
         jira_client.refresh_token = "test"
 
         # Call request method which call Session.send with timeout
@@ -68,10 +77,13 @@ class TestRequestTimeoutValue(unittest.TestCase):
         """
             Verify that if request_timeout is provided in config (string value) then it should be use
         """
-        jira_client = Client({
+        mock_config_path = "mock_config.json"
+        mock_dev_mode = False
+        mock_config = {
             "base_url": "https://your-jira-domain",
             "request_timeout": "100" # string format timeout in config
-            })
+        }
+        jira_client = Client(mock_config_path, mock_config, mock_dev_mode)
         jira_client.refresh_token = "test"
 
         # Call request method which call Session.send with timeout
@@ -85,10 +97,13 @@ class TestRequestTimeoutValue(unittest.TestCase):
         """
             Verify that if request_timeout is provided in config with empty string then default value is used
         """
-        jira_client = Client({
+        mock_config_path = "mock_config.json"
+        mock_dev_mode = False
+        mock_config = {
             "base_url": "https://your-jira-domain",
             "request_timeout": "" # empty string in config
-            })
+        }
+        jira_client = Client(mock_config_path, mock_config, mock_dev_mode)
         jira_client.refresh_token = "test"
 
         # Call request method which call Session.send with timeout
@@ -102,10 +117,13 @@ class TestRequestTimeoutValue(unittest.TestCase):
         """
             Verify that if request_timeout is provided in config with zero value then default value is used
         """
-        jira_client = Client({
+        mock_config_path = "mock_config.json"
+        mock_dev_mode = False
+        mock_config = {
             "base_url": "https://your-jira-domain",
             "request_timeout": 0.0 # zero value in config
-            })
+        }
+        jira_client = Client(mock_config_path, mock_config, mock_dev_mode)
         jira_client.refresh_token = "test"
 
         # Call request method which call Session.send with timeout
@@ -119,10 +137,13 @@ class TestRequestTimeoutValue(unittest.TestCase):
         """
             Verify that if request_timeout is provided in config with zero in string format then default value is used
         """
-        jira_client = Client({
+        mock_config_path = "mock_config.json"
+        mock_dev_mode = False
+        mock_config = {
             "base_url": "https://your-jira-domain",
             "request_timeout": '0.0' # zero value in config
-            })
+        }
+        jira_client = Client(mock_config_path, mock_config, mock_dev_mode)
         jira_client.refresh_token = "test"
 
         # Call request method which call Session.send with timeout
@@ -145,7 +166,10 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """
             Verify request function is backoff for 6 times on Timeout exception
         """
-        jira_client = Client({"base_url": "https://your-jira-domain"})
+        mock_config_path = "mock_config.json"
+        mock_dev_mode = False
+        mock_config = {"base_url": "https://your-jira-domain"}
+        jira_client = Client(mock_config_path, mock_config, mock_dev_mode)
         jira_client.refresh_token = "test"
 
         try:
@@ -164,16 +188,18 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """
             Verify refresh_credentials method backoff's for 3 times on Timeout exception
         """
-        config = {
+        mock_config_path = "mock_config.json"
+        mock_dev_mode = False
+        mock_config = {
             "base_url": "https://your-jira-domain",
             "oauth_client_id": "test",
             "oauth_client_secret": "test",
             "refresh_token": "test"
-            }
+        }
 
         try:
             # init Client with `oauth_client_id` in config calls refresh_credentials
-            Client(config)
+            Client(mock_config_path, mock_config, mock_dev_mode)
         except Exception:
             pass
 

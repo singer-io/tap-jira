@@ -42,7 +42,9 @@ class TestProjectsPagination(unittest.TestCase):
     def test_projects_stream_pagination(self, mock_catalog_entry, mock_request):
         '''Verify that the pagination works correctly with correct page size and breaks when breaking condition occurs'''
         mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
-        Context.client = http.Client(mock_config)
+        mock_config_path = "mock_config.json"
+        mock_dev_mode = False
+        Context.client = http.Client(mock_config_path ,mock_config, mock_dev_mode)
         mock_stream = MockStreams()
         MockStreams.streams = "projects"
         Context.catalog = [mock_stream] # setting the context catalog
@@ -61,7 +63,9 @@ class TestProjectsEndpointForSync(unittest.TestCase):
     def test_projects_sync_cloud(self, mock_catalog_entry, mock_request):
         '''Verify that project/search endpoint is called for cloud server'''
         mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
-        Context.client = http.Client(mock_config)
+        mock_config_path = "mock_config.json"
+        mock_dev_mode = False
+        Context.client = http.Client(mock_config_path ,mock_config, mock_dev_mode)
         mock_stream = MockStreams()
         MockStreams.streams = "projects"
         Context.catalog = [mock_stream] # setting the context catalog
@@ -79,7 +83,9 @@ class TestProjectsEndpointForSync(unittest.TestCase):
     def test_projects_sync_on_prem(self, mock_catalog_entry, mock_request):
         '''Verify that the project endpoint is called for on_prem server'''
         mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
-        Context.client = http.Client(mock_config)
+        mock_config_path = "mock_config.json"
+        mock_dev_mode = False
+        Context.client = http.Client(mock_config_path ,mock_config, mock_dev_mode)
         mock_stream = MockStreams()
         MockStreams.streams = "projects"
         Context.catalog = [mock_stream] # setting the context catalog
