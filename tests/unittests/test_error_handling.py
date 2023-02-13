@@ -5,7 +5,7 @@ from tap_jira import http
 from tap_jira import streams
 from tap_jira.context import Context
 
-# mock responce
+# mock response
 class Mockresponse:
     def __init__(self, resp, status_code, content=[], headers=None, raise_error=False):
         self.json_data = resp
@@ -25,6 +25,9 @@ class Mockresponse:
 
     def json(self):
         return self.text
+
+def get_client(config={}):
+    return http.Client(config_path="mock_config.json", config=config)
 
 class TestJiraErrorHandling(unittest.TestCase):
 
@@ -72,7 +75,7 @@ class TestJiraErrorHandling(unittest.TestCase):
         try:
             tap_stream_id = "tap_jira"
             mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
-            mock_client = http.Client(mock_config)
+            mock_client = get_client(mock_config)
             mock_client.request(tap_stream_id)
         except http.JiraBadRequestError as e:
             expected_error_message = "HTTP-error-code: 400, Error: A validation exception has occurred."
@@ -85,7 +88,7 @@ class TestJiraErrorHandling(unittest.TestCase):
         try:
             tap_stream_id = "tap_jira"
             mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
-            mock_client = http.Client(mock_config)
+            mock_client = get_client(mock_config)
             mock_client.request(tap_stream_id)
         except http.JiraUnauthorizedError as e:
             expected_error_message = "HTTP-error-code: 401, Error: Invalid authorization credentials."
@@ -98,7 +101,7 @@ class TestJiraErrorHandling(unittest.TestCase):
         try:
             tap_stream_id = "tap_jira"
             mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
-            mock_client = http.Client(mock_config)
+            mock_client = get_client(mock_config)
             mock_client.request(tap_stream_id)
         except http.JiraForbiddenError as e:
             expected_error_message = "HTTP-error-code: 403, Error: User does not have permission to access the resource."
@@ -112,7 +115,7 @@ class TestJiraErrorHandling(unittest.TestCase):
         try:
             tap_stream_id = "tap_jira"
             mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
-            mock_client = http.Client(mock_config)
+            mock_client = get_client(mock_config)
             mock_client.request(tap_stream_id)
         except http.JiraNotFoundError as e:
             expected_error_message = "HTTP-error-code: 404, Error: The resource you have specified cannot be found."
@@ -124,7 +127,7 @@ class TestJiraErrorHandling(unittest.TestCase):
         try:
             tap_stream_id = "tap_jira"
             mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
-            mock_client = http.Client(mock_config)
+            mock_client = get_client(mock_config)
             mock_client.request(tap_stream_id)
         except http.JiraConflictError as e:
             expected_error_message = "HTTP-error-code: 409, Error: The request does not match our state in some way."
@@ -136,7 +139,7 @@ class TestJiraErrorHandling(unittest.TestCase):
         try:
             tap_stream_id = "tap_jira"
             mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
-            mock_client = http.Client(mock_config)
+            mock_client = get_client(mock_config)
             mock_client.request(tap_stream_id)
         except http.JiraRateLimitError as e:
             expected_error_message = "HTTP-error-code: 429, Error: The API rate limit for your organisation/application pairing has been exceeded."
@@ -149,7 +152,7 @@ class TestJiraErrorHandling(unittest.TestCase):
         try:
             tap_stream_id = "tap_jira"
             mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
-            mock_client = http.Client(mock_config)
+            mock_client = get_client(mock_config)
             mock_client.request(tap_stream_id)
         except http.JiraSubRequestFailedError as e:
             expected_error_message = "HTTP-error-code: 449, Error: The API was unable to process every part of the request."
@@ -162,7 +165,7 @@ class TestJiraErrorHandling(unittest.TestCase):
         try:
             tap_stream_id = "tap_jira"
             mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
-            mock_client = http.Client(mock_config)
+            mock_client = get_client(mock_config)
             mock_client.request(tap_stream_id)
         except http.JiraInternalServerError as e:
             expected_error_message = "HTTP-error-code: 500, Error: The server encountered an unexpected condition which prevented it from fulfilling the request."
@@ -175,7 +178,7 @@ class TestJiraErrorHandling(unittest.TestCase):
         try:
             tap_stream_id = "tap_jira"
             mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
-            mock_client = http.Client(mock_config)
+            mock_client = get_client(config=mock_config)
             mock_client.request(tap_stream_id)
         except http.JiraNotImplementedError as e:
             expected_error_message = "HTTP-error-code: 501, Error: The server does not support the functionality required to fulfill the request."
@@ -188,7 +191,7 @@ class TestJiraErrorHandling(unittest.TestCase):
         try:
             tap_stream_id = "tap_jira"
             mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
-            mock_client = http.Client(mock_config)
+            mock_client = get_client(mock_config)
             mock_client.request(tap_stream_id)
         except http.JiraBadGatewayError as e:
             expected_error_message = "HTTP-error-code: 502, Error: Server received an invalid response."
@@ -201,7 +204,7 @@ class TestJiraErrorHandling(unittest.TestCase):
         try:
             tap_stream_id = "tap_jira"
             mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
-            mock_client = http.Client(mock_config)
+            mock_client = get_client(mock_config)
             mock_client.request(tap_stream_id)
         except http.JiraServiceUnavailableError as e:
             expected_error_message = "HTTP-error-code: 503, Error: API service is currently unavailable."
@@ -214,7 +217,7 @@ class TestJiraErrorHandling(unittest.TestCase):
         try:
             tap_stream_id = "tap_jira"
             mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
-            mock_client = http.Client(mock_config)
+            mock_client = get_client(mock_config)
             mock_client.request(tap_stream_id)
         except http.JiraGatewayTimeoutError as e:
             expected_error_message = "HTTP-error-code: 504, Error: API service time out, please check Jira server."
@@ -227,7 +230,7 @@ class TestJiraErrorHandling(unittest.TestCase):
         try:
             tap_stream_id = "tap_jira"
             mock_config = {"username":"mock_username","password":"mock_password","base_url": "mock_base_url"}
-            mock_client = http.Client(mock_config)
+            mock_client = get_client(mock_config)
             mock_client.request(tap_stream_id)
         except http.JiraError as e:
             expected_error_message = "HTTP-error-code: 505, Error: Unknown Error"

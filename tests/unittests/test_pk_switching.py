@@ -25,6 +25,9 @@ def get_mock_http_response(status_code, content={}):
     response._content = contents.encode()
     return response
 
+def get_client(config={}):
+    return Client(config_path="mock_config.json", config=config)
+
 @mock.patch('tap_jira.http.Client.send')
 class TestPkSwitchingForUserStream(unittest.TestCase):
 
@@ -35,7 +38,7 @@ class TestPkSwitchingForUserStream(unittest.TestCase):
         '''
         mocked_send.return_value = get_mock_http_response(200, {"deploymentType": "Cloud"})
 
-        jira_client = Client(JIRA_CONFIG)
+        jira_client = get_client(JIRA_CONFIG)
 
         self.assertEqual(jira_client.is_on_prem_instance, False)
 
@@ -46,7 +49,7 @@ class TestPkSwitchingForUserStream(unittest.TestCase):
         '''
         mocked_send.return_value = get_mock_http_response(200, {"deploymentType": "Server"})
 
-        jira_client = Client(JIRA_CONFIG)
+        jira_client = get_client(JIRA_CONFIG)
 
         self.assertEqual(jira_client.is_on_prem_instance, True)
 
@@ -58,7 +61,7 @@ class TestPkSwitchingForUserStream(unittest.TestCase):
         '''
         mocked_send.return_value = get_mock_http_response(200, {})
 
-        jira_client = Client(JIRA_CONFIG)
+        jira_client = get_client(JIRA_CONFIG)
         jira_client.is_on_prem_instance = True
         Context.client = jira_client
         # `users` stream
@@ -81,7 +84,7 @@ class TestPkSwitchingForUserStream(unittest.TestCase):
         '''
         mocked_send.return_value = get_mock_http_response(200, {})
 
-        jira_client = Client(JIRA_CONFIG)
+        jira_client = get_client(JIRA_CONFIG)
         jira_client.is_on_prem_instance = False
         Context.client = jira_client
 
@@ -104,7 +107,7 @@ class TestPkSwitchingForUserStream(unittest.TestCase):
         '''
         mocked_send.return_value = get_mock_http_response(200, {})
 
-        jira_client = Client(JIRA_CONFIG)
+        jira_client = get_client(JIRA_CONFIG)
 
         # `resolutions` stream(other than users stream)
         users_stream = ALL_STREAMS[5]

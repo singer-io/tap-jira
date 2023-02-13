@@ -13,7 +13,6 @@ LOGGER = singer.get_logger()
 REQUIRED_CONFIG_KEYS_CLOUD = ["start_date",
                               "user_agent",
                               "cloud_id",
-                              "access_token",
                               "refresh_token",
                               "oauth_client_id",
                               "oauth_client_secret"]
@@ -113,10 +112,12 @@ def sync():
 @singer.utils.handle_top_exception(LOGGER)
 def main():
     args = get_args()
+    if args.dev:
+        LOGGER.warning("Executing Tap in Dev mode")
 
     jira_config = args.config
     # jira client instance
-    jira_client = Client(jira_config)
+    jira_client = Client(args.config_path, jira_config, args.dev)
 
     # Setup Context
     Context.client = jira_client
