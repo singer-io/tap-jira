@@ -11,6 +11,9 @@ def get_mock_http_response(*args, **kwargs):
     response._content = contents.encode()
     return response
 
+def get_client(config={}):
+    return Client(config_path="mock_config.json", config=config)
+
 
 @mock.patch('requests.Session.send', side_effect = get_mock_http_response)
 @mock.patch("requests.Request.prepare")
@@ -20,9 +23,7 @@ class TestRequestTimeoutValue(unittest.TestCase):
         """
             Verify that if request_timeout is not provided in config then default value is used
         """
-        jira_client = Client("mock_config.json", {
-            "base_url": "https://your-jira-domain"
-        }) # No request_timeout in config
+        jira_client = get_client({"base_url": "https://your-jira-domain"}) # No request_timeout in config
         jira_client.refresh_token = "test"
 
         # Call request method which call Session.send with timeout
@@ -36,7 +37,7 @@ class TestRequestTimeoutValue(unittest.TestCase):
         """
             Verify that if request_timeout is provided in config (integer value) then it should be used
         """
-        jira_client = Client("mock_config.json", {
+        jira_client = get_client({
             "base_url": "https://your-jira-domain",
             "request_timeout": 100 # integer timeout in config
         })
@@ -53,7 +54,7 @@ class TestRequestTimeoutValue(unittest.TestCase):
         """
             Verify that if request_timeout is provided in config (float value) then it should be used
         """
-        jira_client = Client("mock_config.json", {
+        jira_client = get_client({
             "base_url": "https://your-jira-domain",
             "request_timeout": 100.5 # float timeout in config
         })
@@ -70,7 +71,7 @@ class TestRequestTimeoutValue(unittest.TestCase):
         """
             Verify that if request_timeout is provided in config (string value) then it should be use
         """
-        jira_client = Client("mock_config.json", {
+        jira_client = get_client({
             "base_url": "https://your-jira-domain",
             "request_timeout": "100" # string format timeout in config
         })
@@ -87,7 +88,7 @@ class TestRequestTimeoutValue(unittest.TestCase):
         """
             Verify that if request_timeout is provided in config with empty string then default value is used
         """
-        jira_client = Client("mock_config.json", {
+        jira_client = get_client({
             "base_url": "https://your-jira-domain",
             "request_timeout": "" # empty string in config
         })
@@ -104,7 +105,7 @@ class TestRequestTimeoutValue(unittest.TestCase):
         """
             Verify that if request_timeout is provided in config with zero value then default value is used
         """
-        jira_client = Client("mock_config.json", {
+        jira_client = get_client({
             "base_url": "https://your-jira-domain",
             "request_timeout": 0.0 # zero value in config
         })
@@ -121,7 +122,7 @@ class TestRequestTimeoutValue(unittest.TestCase):
         """
             Verify that if request_timeout is provided in config with zero in string format then default value is used
         """
-        jira_client = Client("mock_config.json", {
+        jira_client = get_client({
             "base_url": "https://your-jira-domain",
             "request_timeout": '0.0' # zero value in config
         })
@@ -147,7 +148,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
         """
             Verify request function is backoff for 6 times on Timeout exception
         """
-        jira_client = Client("mock_config.json", {"base_url": "https://your-jira-domain"})
+        jira_client = get_client({"base_url": "https://your-jira-domain"})
         jira_client.refresh_token = "test"
 
         try:
@@ -175,7 +176,7 @@ class TestRequestTimeoutBackoff(unittest.TestCase):
 
         try:
             # init Client with `oauth_client_id` in config calls refresh_credentials
-            Client("mock_config.json", config)
+            get_client(config)
         except Exception:
             pass
 

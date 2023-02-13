@@ -33,7 +33,7 @@ class TestClientDevMode(unittest.TestCase):
 
         # Serializing json
         json_object = json.dumps(self.mock_config, indent=4)
-        # Writing to sample_quickbooks_config.json
+        # Writing to sample_jira_config.json
         with open(self.tmp_config_filename, "w") as outfile:
             outfile.write(json_object)
 
