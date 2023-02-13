@@ -183,9 +183,6 @@ class Client():
             if dev_mode and not self.access_token:
                 raise Exception("Access token config property is missing")
 
-            # Only appears to be needed once for any 6 hour period. If
-            # running the tap for more than 6 hours is needed this will
-            # likely need to be more complicated.
             if not dev_mode:
                 self.refresh_credentials()
             self.test_credentials_are_authorized()
