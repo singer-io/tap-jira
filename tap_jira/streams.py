@@ -62,9 +62,14 @@ def sync_sub_streams(page):
             ISSUE_COMMENTS.write_page(comments)
         changelogs = issue.pop("changelog")["histories"]
         if changelogs and Context.is_selected(CHANGELOGS.tap_stream_id):
+            changelogs_to_store = []
+            # filter changelogs which we're interested in
+            interesting_changelog_fields = set(["status", "priority"])
             for changelog in changelogs:
                 changelog["issueId"] = issue["id"]
-            CHANGELOGS.write_page(changelogs)
+                if len([item for item in changelog["items"] if item.get("field") in interesting_changelog_fields]) > 0:
+                    changelogs_to_store.append(changelog)
+            CHANGELOGS.write_page(changelogs_to_store)
         transitions = issue.pop("transitions")
         if transitions and Context.is_selected(ISSUE_TRANSITIONS.tap_stream_id):
             for transition in transitions:
@@ -204,7 +209,7 @@ class BoardsGreenhopper(Stream):
 
                         # modify the issueKeysAddedDuringSprint output into something processable: change key into a value, and add the identifiers
                         issuekeys_added_during_sprint = sprint_report["contents"]["issueKeysAddedDuringSprint"]
-                        if (Context.is_selected(SPRINTREPORTS_ISSUESADDED.tap_stream_id) and len(issuekeys_added_during_sprint)) != 0: 
+                        if (Context.is_selected(SPRINTREPORTS_ISSUESADDED.tap_stream_id) and len(issuekeys_added_during_sprint)) != 0:
                             modify_json = json.dumps(issuekeys_added_during_sprint)
                             modify_json = modify_json.replace('{','[{"boardId":' + board_id + ', "sprintId": ' + sprint_id + ', "issueKeyAddedDuringSprint": ').replace(': true,','}, {"boardId":' + board_id + ', "sprintId": ' + sprint_id + ', "issueKeyAddedDuringSprint":').replace(': true}','}]')
                             modified_dict = json.loads(modify_json)
