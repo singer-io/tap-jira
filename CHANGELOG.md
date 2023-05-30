@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.1.6
+  * Dependabot update [#107](https://github.com/singer-io/tap-jira/pull/107)
+
 ## [v2.1.5]
   * Skipped the record for out of range date values [#87](https://github.com/singer-io/tap-jira/pull/87)
 ## [v2.1.4]
