@@ -230,6 +230,7 @@ class Client():
                                        auth=self.auth,
                                        headers=self._headers(headers),
                                        **kwargs)
+        LOGGER.info("Sending API request to %s with params %s", request.url, kwargs)
         return self.session.send(request.prepare(), timeout=self.timeout)
 
     @backoff.on_exception(backoff.constant,

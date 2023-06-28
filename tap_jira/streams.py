@@ -304,7 +304,14 @@ class Issues(Stream):
         timezone = Context.retrieve_timezone()
         start_date = last_updated.astimezone(pytz.timezone(timezone)).strftime("%Y-%m-%d %H:%M")
 
-        jql = "updated >= '{}' order by updated asc".format(start_date)
+        # Results cannot be ordered in ascending order because the Jira API reruns the query
+        # as we page through the results.  This means that if a record is
+        # updated after we've seen it on a page, it will jump to a later page, but a record
+        # we haven't seen yet can slip to a page we've already queried (https://github.com/singer-io/tap-jira/issues/109#issuecomment-1610335683).
+        # Querying the data in descending order works around this problem.  It's possible to get
+        # duplicates if a record is updated after it's been seen on a page, but those dupes can be
+        # removed later.
+        jql = "updated >= '{}' order by updated desc".format(start_date)
         params = {"fields": "*all",
                   "expand": "changelog,transitions",
                   "validateQuery": "strict",
@@ -329,7 +336,10 @@ class Issues(Stream):
                 issue['fields'].pop('operations', None)
 
             # Grab last_updated before transform in write_page
-            last_updated = utils.strptime_to_utc(page[-1]["fields"]["updated"])
+            last_updated = max(
+                utils.strptime_to_utc(page[0]["fields"]["updated"]),
+                last_updated
+            )
 
             self.write_page(page)
 
