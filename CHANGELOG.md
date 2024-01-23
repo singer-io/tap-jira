@@ -1,5 +1,7 @@
 # Changelog
 
+## [v2.2.0]
+  * Updates to run on python 3.11.7 [#111](https://github.com/singer-io/tap-jira/pull/111)
 ## [v2.1.5]
   * Skipped the record for out of range date values [#87](https://github.com/singer-io/tap-jira/pull/87)
 ## [v2.1.4]
