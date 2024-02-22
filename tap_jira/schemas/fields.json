@@ -1,0 +1,54 @@
+{
+  "id": "https://docs.atlassian.com/jira/REST/schema/list-of-field#",
+  "title": "Field",
+  "type": "object",
+  "properties": {
+      "id": {
+          "type": "string"
+      },
+      "name": {
+          "type": "string"
+      },
+      "custom": {
+          "type": "boolean"
+      },
+      "orderable": {
+          "type": "boolean"
+      },
+      "navigable": {
+          "type": "boolean"
+      },
+      "searchable": {
+          "type": "boolean"
+      },
+      "clauseNames": {
+          "type": "array",
+          "items": {
+              "type": "string"
+          }
+      },
+      "schema": {
+          "title": "Json Type",
+          "type": "object",
+          "properties": {
+              "type": {
+                  "type": "string"
+              },
+              "items": {
+                  "type": "string"
+              },
+              "system": {
+                  "type": "string"
+              },
+              "custom": {
+                  "type": "string"
+              },
+              "customId": {
+                  "type": "integer"
+              }
+          },
+          "additionalProperties": false
+      }
+  },
+  "additionalProperties": false
+}

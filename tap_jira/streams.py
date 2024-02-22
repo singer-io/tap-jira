@@ -395,6 +395,7 @@ PROJECTS = Projects("projects", ["id"])
 CHANGELOGS = Stream("changelogs", ["id"], indirect_stream=True)
 
 ALL_STREAMS = [
+    Stream("fields", ["id"], path="/rest/api/3/field"),
     PROJECTS,
     VERSIONS,
     COMPONENTS,
