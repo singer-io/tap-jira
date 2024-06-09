@@ -233,7 +233,7 @@ class Client():
         return self.session.send(request.prepare(), timeout=self.timeout)
 
     @backoff.on_exception(backoff.constant,
-                          JiraBackoffError,
+                          (JiraBackoffError, requests.exceptions.JSONDecodeError),
                           max_tries=10,
                           interval=60)
     def request(self, tap_stream_id, *args, **kwargs):
