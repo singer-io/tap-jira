@@ -185,8 +185,8 @@ class Client():
             self.test_credentials_are_authorized()
         else:
             LOGGER.info("Using Basic Auth API authentication")
-            self.project_id = config.get("project_id")
-            LOGGER.info(self.project_id)
+            self.project = config.get("project")
+            LOGGER.info(self.project)
             self.base_url = config.get("base_url")
             self.auth = HTTPBasicAuth(config.get("username"), config.get("password"))
             self.test_basic_credentials_are_authorized()

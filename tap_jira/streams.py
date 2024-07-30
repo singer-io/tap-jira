@@ -304,8 +304,8 @@ class Issues(Stream):
         timezone = Context.retrieve_timezone()
         start_date = last_updated.astimezone(pytz.timezone(timezone)).strftime("%Y-%m-%d %H:%M")
 
-        LOGGER.info(Context.client.project_id)
-        jql = "updated >= '{}' and project = {} order by updated asc".format(start_date, Context.client.project_id)
+        LOGGER.info(Context.client.project)
+        jql = "updated >= '{}' and project = {} order by updated asc".format(start_date, Context.client.project)
         LOGGER.info(jql)
         params = {"fields": "*all",
                   "expand": "changelog,transitions",

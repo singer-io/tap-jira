@@ -22,7 +22,7 @@ REQUIRED_CONFIG_KEYS_HOSTED = ["start_date",
                                "password",
                                "base_url",
                                "user_agent",
-                               "project_id"]
+                               "project"]
 
 
 def get_args():
