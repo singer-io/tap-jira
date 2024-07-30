@@ -21,10 +21,12 @@ REQUIRED_CONFIG_KEYS_HOSTED = ["start_date",
                                "username",
                                "password",
                                "base_url",
-                               "user_agent"]
+                               "user_agent",
+                               "project_id"]
 
 
 def get_args():
+    LOGGER.info(utils.parse_args(REQUIRED_CONFIG_KEYS_HOSTED))
     unchecked_args = utils.parse_args([])
     if 'username' in unchecked_args.config.keys():
         return utils.parse_args(REQUIRED_CONFIG_KEYS_HOSTED)
