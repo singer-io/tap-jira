@@ -17,8 +17,7 @@ class AllFieldsTest(BaseTapTest):
         # removed in the Tap
         "project_types": ["icon"],
         # name, key: properties are deprected
-        # expand: not populated in the response
-        "users": ["name", "key", "expand"],
+        "users": ["name", "key"],
         # project: not populated in the response
         "versions": ["expand", "moveUnfixedIssuesTo", "project", "remotelinks", "operations"],
         # fieldsToInclude: not found in the doc

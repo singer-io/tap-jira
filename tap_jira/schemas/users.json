@@ -74,12 +74,6 @@
         "null",
         "string"
       ]
-    },
-    "expand": {
-      "type": [
-        "null",
-        "string"
-      ]
     }
   }
 }

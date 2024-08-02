@@ -1,20 +1,29 @@
 # Changelog
 
+ [v2.2.1]
+  * Remove `expand` field from `users` stream [#115](https://github.com/singer-io/tap-jira/pull/115)
+
 ## [v2.2.0]
   * Updates to run on python 3.11.7 [#111](https://github.com/singer-io/tap-jira/pull/111)
+
 ## [v2.1.5]
   * Skipped the record for out of range date values [#87](https://github.com/singer-io/tap-jira/pull/87)
+
 ## [v2.1.4]
   * Updated README [#88](https://github.com/singer-io/tap-jira/pull/88)
+
 ## [v2.1.3]
   * Fixed Tranform Issues [#84](https://github.com/singer-io/tap-jira/pull/84)
+
 ## [v2.1.2]
   * Added Missing Test Cases [#74](https://github.com/singer-io/tap-jira/pull/74)
   * Updated Project stream with new endpoint as old one is deprecated [#75](https://github.com/singer-io/tap-jira/pull/75)
   * Primary Key Switching change for On prem JIRA [#76](https://github.com/singer-io/tap-jira/pull/76)
   * Updating primary key for issue_transition_stream [#81](https://github.com/singer-io/tap-jira/pull/81)
+
 ## [v2.1.1]
   * Request Timeout Implementation [#71](https://github.com/singer-io/tap-jira/pull/71)
+
 ## [v2.1.0]
   * Prevent connections that would yield a 401 from becoming fully_configured [#66] (https://github.com/singer-io/tap-jira/pull/66)
 
