@@ -1,6 +1,5 @@
 from datetime import datetime
 from singer import utils, metadata
-import singer
 
 
 class Context():

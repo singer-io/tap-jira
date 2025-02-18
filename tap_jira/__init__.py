@@ -8,8 +8,10 @@ from singer.catalog import Catalog, CatalogEntry, Schema
 from . import streams as streams_
 from .context import Context
 from .http import Client
+from minware_singer_utils import SecureLogger
 
-LOGGER = singer.get_logger()
+LOGGER = SecureLogger(singer.get_logger())
+
 REQUIRED_CONFIG_KEYS_CLOUD = ["start_date",
                               "user_agent",
                               "cloud_id",
@@ -28,6 +30,18 @@ REQUIRED_CONFIG_KEYS_HOSTED_JWT = ["start_date",
                                    "base_url",
                                    "user_agent"]
 
+def mask_secrets(config, logger):
+    SECRETS = [ "access_token",
+                "refresh_token",
+                "oauth_client_id",
+                "oauth_client_secret",
+                "username",
+                "password", 
+                "jwt_client_key",
+                "jwt_shared_secret"]
+    for secret in SECRETS:
+        if secret in config:
+            logger.addToken(config[secret])
 
 def get_args():
     unchecked_args = utils.parse_args([])
@@ -119,7 +133,8 @@ def sync():
 
 def main_impl():
     args = get_args()
-
+    mask_secrets(args.config, LOGGER)
+    
     # Setup Context
     catalog = Catalog.from_dict(args.properties) \
         if args.properties else discover()
@@ -127,7 +142,7 @@ def main_impl():
     Context.state = args.state
     Context.catalog = catalog
 
-    Context.client = Client(Context.config)
+    Context.client = Client(Context.config, LOGGER)
 
     try:
         if args.discover:

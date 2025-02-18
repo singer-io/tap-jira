@@ -13,6 +13,9 @@ from .context import Context
 from itertools import chain
 from concurrent.futures import ThreadPoolExecutor
 
+from minware_singer_utils import SecureLogger
+
+LOGGER = SecureLogger(singer.get_logger())
 
 def raise_if_bookmark_cannot_advance(worklogs):
     # Worklogs can only be queried with a `since` timestamp and
@@ -129,9 +132,6 @@ def advance_bookmark(worklogs):
     new_last_updated = max(utils.strptime_to_utc(w["updated"])
                            for w in worklogs)
     return new_last_updated
-
-
-LOGGER = singer.get_logger()
 
 
 class Stream():
