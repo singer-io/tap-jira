@@ -366,9 +366,19 @@ class Issues(Stream):
         project_updated_bookmark = Context.bookmark(updated_bookmark)
         project_page_num_offset = Context.bookmark(page_num_offset)
 
+        # check if project_page_num_offset is a Dict
+        # we are getting an exception below with the logger call 
+        # when the value is not iterable
+        if not isinstance(project_page_num_offset, dict):
+            project_page_num_offset_for_logger = {
+                'unknown': 'unknown'
+            }
+        else:
+            project_page_num_offset_for_logger = project_page_num_offset
+
         LOGGER.info('Checking state {}: {} and {}: {}'.format(
             '.'.join(updated_bookmark), project_updated_bookmark,
-            '.'.join(project_page_num_offset), project_page_num_offset
+            '.'.join(project_page_num_offset_for_logger), project_page_num_offset
         ))
 
         if not project_page_num_offset and not project_updated_bookmark:
