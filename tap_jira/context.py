@@ -88,9 +88,12 @@ class Context():
 
     @classmethod
     def retrieve_timezone(cls):
-        response = cls.client.send("GET", "/rest/api/2/myself")
-        response.raise_for_status()
-        return response.json()["timeZone"]
+        # Cache the timezone to avoid repeated API calls
+        if not hasattr(cls, 'timezone_cache'):
+            # Use client.request instead of client.send to respect backoff logic
+            response_json = cls.client.request("timezone", "GET", "/rest/api/2/myself")
+            cls.timezone_cache = response_json["timeZone"]
+        return cls.timezone_cache
 
     @classmethod
     def get_exclude_issue_fields(cls):
