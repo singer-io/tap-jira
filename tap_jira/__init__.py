@@ -9,7 +9,6 @@ from . import streams as streams_
 from .context import Context
 from .http import Client
 from minware_singer_utils import SecureLogger
-import requests
 
 LOGGER = SecureLogger(singer.get_logger())
 
@@ -158,20 +157,6 @@ def main_impl():
 def main():
     try:
         main_impl()
-    except requests.exceptions.HTTPError as http_err:
-        # Check if this is the specific 400 error for Jira search API
-        if http_err.response.status_code == 400 and '/rest/api/2/search' in http_err.response.url:
-            LOGGER.error("Encountered a 400 Bad Request error with Jira search API")
-            LOGGER.error(f"URL: {http_err.response.url}")
-            LOGGER.error(f"Response body: {http_err.response.text}")
-            # Continue execution without raising the exception
-        else:
-            # For other HTTP errors, log and re-raise
-            LOGGER.error(f"HTTP Error occurred: {http_err}")
-            LOGGER.error(f"URL: {http_err.response.url}")
-            LOGGER.error(f"Status code: {http_err.response.status_code}")
-            LOGGER.error(f"Response body: {http_err.response.text}")
-            raise http_err
     except Exception as exc:
         LOGGER.critical(exc)
         raise exc

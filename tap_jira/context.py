@@ -1,6 +1,6 @@
 from datetime import datetime
 from singer import utils, metadata
-
+from functools import cache
 
 class Context():
     config = None
@@ -87,13 +87,10 @@ class Context():
         return val
 
     @classmethod
+    @cache
     def retrieve_timezone(cls):
-        # Cache the timezone to avoid repeated API calls
-        if not hasattr(cls, 'timezone_cache'):
-            # Use client.request instead of client.send to respect backoff logic
-            response_json = cls.client.request("timezone", "GET", "/rest/api/2/myself")
-            cls.timezone_cache = response_json["timeZone"]
-        return cls.timezone_cache
+        response_json = cls.client.request("timezone", "GET", "/rest/api/2/myself")
+        return response_json["timeZone"]
 
     @classmethod
     def get_exclude_issue_fields(cls):

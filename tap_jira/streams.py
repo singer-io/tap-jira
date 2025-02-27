@@ -337,24 +337,43 @@ class Issues(Stream):
         projectsToSync = Context.get_projects()
         if len(projectsToSync) == 0:
             with Timer('issues_sync', { 'project': self.ALL_PROJECTS_BOOKMARK_KEY }):
-                self.sync_project(fieldNames, knownFields)
+                result = self._sync_project_with_error_handling(fieldNames, knownFields, None)
+                if result["status"] != "success":
+                    LOGGER.warning(f"Project sync for ALL_PROJECTS completed with status: {result['status']}")
         else:
+            # Process projects in parallel using ThreadPoolExecutor
             with ThreadPoolExecutor(max_workers=6) as executor:
                 func_call_futures = []
                 for project_key_or_id in projectsToSync:
                     ctx = contextvars.copy_context()
-                    func_call = functools.partial(ctx.run, self.sync_project, fieldNames, knownFields, project_key_or_id)
+                    func_call = functools.partial(ctx.run, self._sync_project_with_error_handling, fieldNames, knownFields, project_key_or_id)
                     func_call_futures.append(executor.submit(func_call))
-
-                # bubble up any exceptions discovered while syncing a project
-                try:
-                    for future in as_completed(func_call_futures):
-                        future.result()
-                except Exception as ex:
-                    LOGGER.error(
-                        "Issues.sync encountered an error in a thread: %s", ex
-                    )
-                    raise ex
+                
+                # Process results from all threads
+                success_count = 0
+                error_count = 0
+                failed_projects = []
+                
+                for future in as_completed(func_call_futures):
+                    try:
+                        result = future.result()
+                        if result["status"] == "success":
+                            success_count += 1
+                        else:
+                            # This should only happen for handled 400 errors
+                            error_count += 1
+                            failed_projects.append(result["project"])
+                    except Exception as exc:
+                        # This will happen for any re-raised exceptions from _sync_project_with_error_handling
+                        # We need to re-raise to ensure the tap fails properly
+                        LOGGER.error(f"A project sync failed with an unhandled error: {exc}")
+                        raise exc
+            
+            LOGGER.info(f"Completed processing {len(projectsToSync)} projects:")
+            LOGGER.info(f"  - {success_count} succeeded")
+            if error_count > 0:
+                LOGGER.warning(f"  - {error_count} failed with handled errors (these projects were skipped)")
+                LOGGER.warning(f"Failed projects: {', '.join(failed_projects)}")
 
         self.delete_old_state()
 
@@ -389,6 +408,31 @@ class Issues(Stream):
                 LOGGER.info('Updated being copied from previous state format')
                 Context.set_bookmark(updated_bookmark, non_project_updated_bookmark)
                 Context.set_bookmark(page_num_offset, 0)
+
+    def _sync_project_with_error_handling(self, fieldNames, knownFields, project_key_or_id):
+        """Wrapper method to handle errors during project sync in threads"""
+        try:
+            LOGGER.info(f"Starting sync for project: {project_key_or_id}")
+            with Timer('issues_sync', { 'project': project_key_or_id }):
+                self.sync_project(fieldNames, knownFields, project_key_or_id)
+            LOGGER.info(f"Successfully completed sync for project: {project_key_or_id}")
+            return {"status": "success", "project": project_key_or_id}
+        except requests.exceptions.HTTPError as http_err:
+            # Handle specific 400 errors at the project level
+            if http_err.response.status_code == 400 and '/rest/api/2/search' in http_err.response.url:
+                LOGGER.warning(f"Project {project_key_or_id}: Encountered a handled 400 error with Jira search API")
+                LOGGER.warning(f"URL: {http_err.response.url}")
+                LOGGER.warning(f"Response body: {http_err.response.text}")
+                LOGGER.warning(f"This error is being handled as non-fatal. Sync will continue with other projects.")
+                return {"status": "error", "project": project_key_or_id, "error_type": "handled_400"}
+            else:
+                # Re-raise other HTTP errors
+                LOGGER.error(f"Project {project_key_or_id}: Encountered an HTTP error: {http_err}")
+                raise http_err
+        except Exception as exc:
+            # Re-raise other exceptions
+            LOGGER.error(f"Project {project_key_or_id}: Encountered an error: {exc}")
+            raise exc
 
     def sync_project(self, fieldNames, knownFields, project_key_or_id = None):
         if project_key_or_id is None:
