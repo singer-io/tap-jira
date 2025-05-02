@@ -181,7 +181,9 @@ class Client():
             # Only appears to be needed once for any 6 hour period. If
             # running the tap for more than 6 hours is needed this will
             # likely need to be more complicated.
-            self.refresh_credentials()
+            # NOTE - we cannot use this refreshing logic for now, because Jira's rotating refresh tokens
+            # will nullify any refresh tokens we have stored whenever this is run, and ruin the next tap run
+            # self.refresh_credentials()
             self.test_credentials_are_authorized()
         else:
             LOGGER.info("Using Basic Auth API authentication")
