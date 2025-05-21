@@ -2,10 +2,13 @@ import json
 import pytz
 import singer
 import dateparser
+import concurrent.futures
+from typing import Dict, List, Any, Set
 
 from singer import metrics, utils, metadata, Transformer
 from singer.transform import SchemaMismatch
 from dateutil.parser._parser import ParserError
+from requests.exceptions import RequestException
 from .http import Paginator,JiraNotFoundError
 from .context import Context
 
@@ -179,7 +182,7 @@ class Projects(Stream):
         """ Sync function for the on prem instances"""
         projects = Context.client.request(
             self.tap_stream_id, "GET", "/rest/api/2/project",
-            params={"expand": "description,lead,url,projectKeys"})
+            params={"expand": "description,lead,url,projectKeys,permissions"})
         for project in projects:
             # The Jira documentation suggests that a "versions" key may appear
             # in the project, but from my testing that hasn't been the case
@@ -294,11 +297,131 @@ class Users(Stream):
 
 
 class Roles(Stream):
-    def __init__(self, tap_stream_id, pk_fields, indirect_stream=False):
+    # Class-level cache for group members: groups are likely to be common across projects
+    _group_members_cache: Dict[str, List[Dict[str, Any]]] = {}
+    
+    def __init__(self, tap_stream_id, pk_fields, indirect_stream=False, max_workers: int = 10):
         self.tap_stream_id = tap_stream_id
         self.pk_fields = pk_fields
         # Only used to skip streams in the main sync function
         self.indirect_stream = indirect_stream
+        # Number of worker threads for parallel processing
+        self.max_workers = max_workers
+
+    def get_group_members(self, group_name: str) -> List[Dict[str, Any]]:
+        """Fetch members for a specific group with caching"""
+        # Return from cache if available
+        if group_name in self._group_members_cache:
+            LOGGER.debug(f"Using cached members for group {group_name}")
+            return self._group_members_cache[group_name]
+            
+        LOGGER.debug(f"Fetching members for group {group_name}")
+        group_members = []
+        try:
+            start_at = 0
+            max_results = 50
+            while True:
+                # Request group members
+                members_response = Context.client.request(
+                    self.tap_stream_id,
+                    "GET",
+                    f"/rest/api/3/group/member",
+                    params={
+                        "groupname": group_name,
+                        "startAt": start_at,
+                        "maxResults": max_results
+                    }
+                )
+                
+                # Process members from response
+                if "values" in members_response:
+                    for member in members_response["values"]:
+                        group_members.append({
+                            "account_id": member.get("accountId"),
+                            "display_name": member.get("displayName"),
+                            "active": member.get("active"),
+                            "email_address": member.get("emailAddress")
+                        })
+                
+                # Check if we need to fetch more members
+                if not members_response.get("isLast", True):
+                    start_at += max_results
+                else:
+                    break
+                    
+        except Exception as e:
+            LOGGER.warning(f"Failed to fetch members for group {group_name}: {str(e)}")
+        
+        # Store in cache for future use
+        self._group_members_cache[group_name] = group_members
+        return group_members
+
+    def get_project_roles(self, project: Dict[str, str]) -> List[Dict[str, Any]]:
+        """Process all roles for a single project"""
+        project_roles = []
+        try:
+            roles_response = Context.client.request(
+                self.tap_stream_id,
+                "GET",
+                f"/rest/api/2/project/{project['key']}/role"
+            )
+            
+            for role_name, role_url in roles_response.items():
+                role_details = self.process_role(project, role_name, role_url)
+                if role_details:
+                    project_roles.append(role_details)
+                    
+        except JiraNotFoundError:
+            LOGGER.info(f"Could not find project \"{project['key']}\", skipping")
+        except Exception as e:
+            LOGGER.error(f"Error processing project {project['key']}: {str(e)}")
+            
+        return project_roles
+
+    def process_role(self, project: Dict[str, str], role_name: str, role_url: str) -> Dict[str, Any]:
+        """Process a single role for a project"""
+        try:
+            role_id = role_url.split('/')[-1]
+            role_details = Context.client.request(
+                self.tap_stream_id,
+                "GET", 
+                f"/rest/api/2/project/{project['key']}/role/{role_id}"
+            )
+            
+            # Enhance the role details with project information
+            role_details["project_id"] = project["id"]
+            role_details["project_key"] = project["key"]
+            role_details["project_name"] = project["name"]
+            role_details["role_name"] = role_name
+            
+            # Process actors separately (users and groups)
+            users = []
+            groups = []
+            group_names = set()
+            
+            if "actors" in role_details:
+                for actor in role_details["actors"]:
+                    if actor["type"] == "atlassian-user-role-actor":
+                        users.append({
+                            "id": actor.get("actorUser", {}).get("accountId"),
+                            "name": actor.get("displayName"),
+                            "email": actor.get("actorUser", {}).get("emailAddress")
+                        })
+                    elif actor["type"] == "atlassian-group-role-actor":
+                        group_name = actor.get("displayName")
+                        if group_name:
+                            group_names.add(group_name)
+            
+            # Placeholder for groups with members - to be filled later with parallel processing
+            role_details["users"] = users
+            role_details["groups"] = [{"name": name, "members": []} for name in group_names]
+            role_details["group_names"] = list(group_names)
+            
+            return role_details
+            
+        except Exception as e:
+            LOGGER.error(f"Error processing role {role_name} for project {project['key']}: {str(e)}")
+            return None
 
     def sync(self):
         # First get all projects
@@ -322,59 +445,62 @@ class Roles(Stream):
             if projects_data.get("isLast"):
                 break
             offset = offset + DEFAULT_PAGE_SIZE
-        # For each project, get all roles
-        for project in projects:
-            try:
-                roles_response = Context.client.request(
-                    self.tap_stream_id,
-                    "GET",
-                    f"/rest/api/2/project/{project['key']}/role"
-                )
+        
+        all_roles_data = []
+        all_groups = set()
+        
+        LOGGER.info(f"Processing roles for {len(projects)} projects in parallel")
+        # Base concept of what we want to retrieve: each project has a set of roles which
+        # can be shared across projects. We wish to retrieve access info: which users have
+        # direct access to projects, or indirect access via groups.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            future_to_project = {
+                executor.submit(self.get_project_roles, project): project 
+                for project in projects
+            }
+            
+            for future in concurrent.futures.as_completed(future_to_project):
+                project = future_to_project[future]
+                try:
+                    project_roles = future.result()
+                    for role in project_roles:
+                        all_roles_data.append(role)
+                        all_groups.update(role.get("group_names", []))
+                except Exception as e:
+                    LOGGER.error(f"Failed to process roles for project {project['key']}: {str(e)}")
+        
+        # Fetch all group members in parallel
+        LOGGER.info(f"Fetching members for {len(all_groups)} unique groups")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            # Start the operations and mark each future with its group name
+            future_to_group = {
+                executor.submit(self.get_group_members, group_name): group_name 
+                for group_name in all_groups
+            }
+            
+            # Process results as they become available
+            for future in concurrent.futures.as_completed(future_to_group):
+                group_name = future_to_group[future]
+                try:
+                    # Result is already stored in cache by get_group_members
+                    future.result()
+                except Exception as e:
+                    LOGGER.error(f"Error fetching members for group {group_name}: {str(e)}")
+        
+        # Now write all roles with their group members
+        for role_details in all_roles_data:
+            # Populate the groups with their members from cache
+            if "groups" in role_details:
+                for group in role_details["groups"]:
+                    group_name = group["name"]
+                    group["members"] = self._group_members_cache.get(group_name, [])
+            
+            # Remove the temporary group_names field
+            if "group_names" in role_details:
+                del role_details["group_names"]
                 
-                for role_name, role_url in roles_response.items():
-                    try:
-                        role_id = role_url.split('/')[-1]
-                        role_details = Context.client.request(
-                            self.tap_stream_id,
-                            "GET", 
-                            f"/rest/api/2/project/{project['key']}/role/{role_id}"
-                        )
-                        
-                        # Enhance the role details with project information to make it easier for downstream processing
-                        role_details["project_id"] = project["id"]
-                        role_details["project_key"] = project["key"]
-                        role_details["project_name"] = project["name"]
-                        role_details["role_name"] = role_name
-                        
-                        # Process actors separately (users and groups)
-                        users = []
-                        groups = []
-                        
-                        if "actors" in role_details:
-                            for actor in role_details["actors"]:
-                                if actor["type"] == "atlassian-user-role-actor":
-                                    users.append({
-                                        "id": actor.get("actorUser", {}).get("accountId"),
-                                        "name": actor.get("displayName"),
-                                        "email": actor.get("actorUser", {}).get("emailAddress")
-                                    })
-                                elif actor["type"] == "atlassian-group-role-actor":
-                                    groups.append({
-                                        "name": actor.get("displayName")
-                                    })
-                        
-                        role_details["users"] = users
-                        role_details["groups"] = groups
-                        
-                        extraction_time = singer.utils.now()
-                        singer.write_record(self.tap_stream_id, role_details, time_extracted=extraction_time)                        
-                    except Exception as e:
-                        LOGGER.error(f"Error processing role {role_name} for project {project['key']}: {str(e)}")
-                
-            except JiraNotFoundError:
-                LOGGER.info(f"Could not find project \"{project['key']}\", skipping")
-            except Exception as e:
-                LOGGER.error(f"Error processing project {project['key']}: {str(e)}")
+            extraction_time = singer.utils.now()
+            singer.write_record(self.tap_stream_id, role_details, time_extracted=extraction_time)
 
 
 class Issues(Stream):
