@@ -293,6 +293,90 @@ class Users(Stream):
                 LOGGER.info("Could not find group \"%s\", skipping", group)
 
 
+class Roles(Stream):
+    def __init__(self, tap_stream_id, pk_fields, indirect_stream=False):
+        self.tap_stream_id = tap_stream_id
+        self.pk_fields = pk_fields
+        # Only used to skip streams in the main sync function
+        self.indirect_stream = indirect_stream
+
+    def sync(self):
+        # First get all projects
+        offset = 0
+        projects = []
+        while True:
+            params = {
+                "expand": "description,lead,url,projectKeys",
+                "maxResults": DEFAULT_PAGE_SIZE,
+                "startAt": offset
+            }
+            projects_data = Context.client.request(
+                self.tap_stream_id, "GET", "/rest/api/3/project/search",
+                params=params)
+            for project in projects_data.get('values'):
+                projects.append({
+                    "id": project["id"],
+                    "key": project["key"],
+                    "name": project["name"]
+                })
+            if projects_data.get("isLast"):
+                break
+            offset = offset + DEFAULT_PAGE_SIZE
+        # For each project, get all roles
+        for project in projects:
+            try:
+                roles_response = Context.client.request(
+                    self.tap_stream_id,
+                    "GET",
+                    f"/rest/api/2/project/{project['key']}/role"
+                )
+                
+                for role_name, role_url in roles_response.items():
+                    try:
+                        role_id = role_url.split('/')[-1]
+                        role_details = Context.client.request(
+                            self.tap_stream_id,
+                            "GET", 
+                            f"/rest/api/2/project/{project['key']}/role/{role_id}"
+                        )
+                        
+                        # Enhance the role details with project information to make it easier for downstream processing
+                        role_details["project_id"] = project["id"]
+                        role_details["project_key"] = project["key"]
+                        role_details["project_name"] = project["name"]
+                        role_details["role_name"] = role_name
+                        
+                        # Process actors separately (users and groups)
+                        users = []
+                        groups = []
+                        
+                        if "actors" in role_details:
+                            for actor in role_details["actors"]:
+                                if actor["type"] == "atlassian-user-role-actor":
+                                    users.append({
+                                        "id": actor.get("actorUser", {}).get("accountId"),
+                                        "name": actor.get("displayName"),
+                                        "email": actor.get("actorUser", {}).get("emailAddress")
+                                    })
+                                elif actor["type"] == "atlassian-group-role-actor":
+                                    groups.append({
+                                        "name": actor.get("displayName")
+                                    })
+                        
+                        role_details["users"] = users
+                        role_details["groups"] = groups
+                        
+                        extraction_time = singer.utils.now()
+                        singer.write_record(self.tap_stream_id, role_details, time_extracted=extraction_time)                        
+                    except Exception as e:
+                        LOGGER.error(f"Error processing role {role_name} for project {project['key']}: {str(e)}")
+                
+            except JiraNotFoundError:
+                LOGGER.info(f"Could not find project \"{project['key']}\", skipping")
+            except Exception as e:
+                LOGGER.error(f"Error processing project {project['key']}: {str(e)}")
+
+
 class Issues(Stream):
 
     def sync(self):
@@ -401,7 +485,7 @@ ALL_STREAMS = [
     ProjectTypes("project_types", ["key"]),
     Stream("project_categories", ["id"], path="/rest/api/2/projectCategory"),
     Stream("resolutions", ["id"], path="/rest/api/2/resolution"),
-    Stream("roles", ["id"], path="/rest/api/2/role"),
+    Roles("roles", ["id"]),
     Users("users", ["accountId"]),
     ISSUES,
     ISSUE_COMMENTS,

@@ -10,23 +10,27 @@ from .context import Context
 from .http import Client
 
 LOGGER = singer.get_logger()
-REQUIRED_CONFIG_KEYS_CLOUD = ["start_date",
-                              "user_agent",
-                              "cloud_id",
-                              "access_token",
-                              "refresh_token",
-                              "oauth_client_id",
-                              "oauth_client_secret"]
-REQUIRED_CONFIG_KEYS_HOSTED = ["start_date",
-                               "username",
-                               "password",
-                               "base_url",
-                               "user_agent"]
+REQUIRED_CONFIG_KEYS_CLOUD = [
+    "start_date",
+    "user_agent",
+    "cloud_id",
+    "access_token",
+    "refresh_token",
+    "oauth_client_id",
+    "oauth_client_secret",
+]
+REQUIRED_CONFIG_KEYS_HOSTED = [
+    "start_date",
+    "username",
+    "password",
+    "base_url",
+    "user_agent",
+]
 
 
 def get_args():
     unchecked_args = utils.parse_args([])
-    if 'username' in unchecked_args.config.keys():
+    if "username" in unchecked_args.config.keys():
         return utils.parse_args(REQUIRED_CONFIG_KEYS_HOSTED)
 
     return utils.parse_args(REQUIRED_CONFIG_KEYS_CLOUD)
@@ -52,12 +56,15 @@ def discover():
 
         mdata = generate_metadata(stream, schema)
 
-        catalog.streams.append(CatalogEntry(
-            stream=stream.tap_stream_id,
-            tap_stream_id=stream.tap_stream_id,
-            key_properties=stream.pk_fields,
-            schema=schema,
-            metadata=mdata))
+        catalog.streams.append(
+            CatalogEntry(
+                stream=stream.tap_stream_id,
+                tap_stream_id=stream.tap_stream_id,
+                key_properties=stream.pk_fields,
+                schema=schema,
+                metadata=mdata,
+            )
+        )
     return catalog
 
 
@@ -68,13 +75,17 @@ def generate_metadata(stream, schema):
     if stream.tap_stream_id == "users" and Context.client.is_on_prem_instance:
         stream.pk_fields = ["key"]
 
-    mdata = metadata.write(mdata, (), 'table-key-properties', stream.pk_fields)
+    mdata = metadata.write(mdata, (), "table-key-properties", stream.pk_fields)
 
     for field_name in schema.properties.keys():
         if field_name in stream.pk_fields:
-            mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
+            mdata = metadata.write(
+                mdata, ("properties", field_name), "inclusion", "automatic"
+            )
         else:
-            mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'available')
+            mdata = metadata.write(
+                mdata, ("properties", field_name), "inclusion", "available"
+            )
 
     return metadata.to_list(mdata)
 
@@ -86,7 +97,6 @@ def output_schema(stream):
 
 def sync():
     streams_.validate_dependencies()
-
 
     # two loops through streams are necessary so that the schema is output
     # BEFORE syncing any streams. Otherwise, the first stream might generate
@@ -120,12 +130,10 @@ def main():
 
     # Setup Context
     Context.client = jira_client
-    catalog = Catalog.from_dict(args.properties) \
-        if args.properties else discover()
+    catalog = Catalog.from_dict(args.properties) if args.properties else discover()
     Context.config = jira_config
     Context.state = args.state
     Context.catalog = catalog
-
     try:
         if args.discover:
             discover().dump()
