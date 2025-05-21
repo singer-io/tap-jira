@@ -45,6 +45,7 @@
     "lead": {
       "$ref": "user"
     },
+    "permissions": {},
     "components": {
       "type": [
         "null",
