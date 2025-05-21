@@ -1,0 +1,26 @@
+{
+  // launch.json
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Tap Jira execute",
+      "type": "debugpy",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "module": "tap_jira.__init__",
+      "args": ["--config", ".secrets/config.json"],
+      "python": "${command:python.interpreterPath}",
+      "justMyCode": false
+    },
+    {
+      "name": "Tap Jira execute",
+      "type": "debugpy",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "module": "tap_jira.__init__",
+      "args": ["--config", ".secrets/config.json", "--discover"],
+      "python": "${command:python.interpreterPath}",
+      "justMyCode": false
+    }
+  ]
+}

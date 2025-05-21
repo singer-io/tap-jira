@@ -31,6 +31,32 @@
         "string"
       ]
     },
+    "project_id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "project_key": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "project_name": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "role_name": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "users": {},
+    "groups": {},
     "actors": {
       "type": [
         "null",
