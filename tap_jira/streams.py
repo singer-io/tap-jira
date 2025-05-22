@@ -230,7 +230,7 @@ class Projects(Stream):
                 # are handled at company-level, and will have explicit permissions, through groups and users (see: roles)
                 # The only way to know the access level of a simplified project is a non-public API, this is dirty but
                 # we don't have a choice. Other name for simplified projects is "team-managed projects"
-                # Assume private by default, for safety concerns. Possible values are PRIVATE, OPEN and FREE
+                # Assume private by default, for safety concerns. Possible values are PRIVATE, LIMITED, OPEN and FREE
                 access_level = "PRIVATE"
                 if project.get("simplified"):
                     try:
@@ -244,6 +244,7 @@ class Projects(Stream):
                                     'content-type': 'application/json',
                                 }
                             )
+                        LOGGER.info(f"Access level for project {project.get('id')}: {access_level_req}")
                         if isinstance(access_level_req, dict):
                             # For traditional projects, an error is returned as a string (local translated)
                             access_level = access_level_req.get("value")

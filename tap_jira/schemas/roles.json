@@ -57,6 +57,7 @@
     },
     "users": {},
     "groups": {},
+    "scopes": {},
     "actors": {
       "type": [
         "null",
