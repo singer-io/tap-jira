@@ -248,6 +248,21 @@ class Client():
             timer.tags[metrics.Tag.http_status_code] = response.status_code
         check_status(response)
         return response.json()
+    
+    @backoff.on_exception(backoff.constant,
+                          JiraBackoffError,
+                          max_tries=10,
+                          interval=60)
+    def request_internal(self, tap_stream_id, *args, **kwargs):
+        # Similar to the above, but using the internal API - which does not have an errorMessages field
+        wait = (self.next_request_at - datetime.now()).total_seconds()
+        if wait > 0:
+            time.sleep(wait)
+        with metrics.http_request_timer(tap_stream_id) as timer:
+            response = self.send(*args, **kwargs)
+            self.next_request_at = datetime.now() + TIME_BETWEEN_REQUESTS
+            timer.tags[metrics.Tag.http_status_code] = response.status_code
+        return response.json()
 
     # backoff for Timeout error is already included in "Exception"
     # as it's a parent class of "Timeout" error
