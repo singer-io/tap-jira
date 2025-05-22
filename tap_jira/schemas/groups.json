@@ -1,0 +1,96 @@
+{
+    "title": "Group",
+    "type": [
+        "null",
+        "object"
+    ],
+    "properties": {
+        "name": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "groupId": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "users": {
+            "type": [
+                "null",
+                "array"
+            ],
+            "items": {
+                "type": [
+                    "null",
+                    "object"
+                ],
+                "properties": {
+                    "self": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "format": "uri"
+                    },
+                    "key": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "accountId": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "name": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "emailAddress": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "displayName": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "active": {
+                        "type": [
+                            "null",
+                            "boolean"
+                        ]
+                    },
+                    "timeZone": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "accountType": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    }
+                }
+            }
+        }
+    }
+}
