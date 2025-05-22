@@ -321,6 +321,38 @@ class Users(Stream):
             except JiraNotFoundError:
                 LOGGER.info("Could not find group \"%s\", skipping", group)
 
+class Groups(Stream):
+    def sync(self):
+        groups = []
+        pager = Paginator(Context.client, items_key='values')
+        for grp_page in pager.pages(self.tap_stream_id, "GET", "/rest/api/2/group/bulk"):
+            for grp in grp_page:
+                group_name = grp["name"]
+                users = []
+                try:
+                    params = {
+                        "groupname": group_name,
+                        "maxResults": 50, 
+                        "includeInactiveUsers": False
+                    }
+                    pager = Paginator(Context.client, items_key='values')
+                    for usr_page in pager.pages(self.tap_stream_id, "GET","/rest/api/2/group/member", params=params):
+                        for usr_data in usr_page:
+                            # Remove a bit of bloat
+                            usr_data.pop("avatarUrls", None)
+                            usr_data.pop("expand", None)
+                            users.append(usr_data)
+                except JiraNotFoundError:
+                    LOGGER.info("Could not find group \"%s\", skipping", group_name)
+                except Exception as e:
+                    LOGGER.warning("Failed to fetch members for group \"%s\": %s", group_name, str(e))
+                grp["id"] = grp["groupId"]
+                grp["users"] = users
+                groups.append(grp)
+
+            extraction_time = singer.utils.now()
+            singer.write_record(self.tap_stream_id, grp, time_extracted=extraction_time)
+
 
 class Roles(Stream):
     # Class-level cache for group members: groups are likely to be common across projects
@@ -641,6 +673,7 @@ ALL_STREAMS = [
     Stream("resolutions", ["id"], path="/rest/api/2/resolution"),
     Roles("roles", ["id"]),
     Users("users", ["accountId"]),
+    Groups("groups", ["id"]),
     ISSUES,
     ISSUE_COMMENTS,
     CHANGELOGS,
