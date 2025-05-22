@@ -226,6 +226,32 @@ class Projects(Stream):
                 # syncing versions separately, pop this key just in case it
                 # appears.
                 project.pop("versions", None)
+                # For simplified projects, we want to know if the project is public or not. Non simplified projects
+                # are handled at company-level, and will have explicit permissions, through groups and users (see: roles)
+                # The only way to know the access level of a simplified project is a non-public API, this is dirty but
+                # we don't have a choice. Other name for simplified projects is "team-managed projects"
+                # Assume private by default, for safety concerns. Possible values are PRIVATE, OPEN and FREE
+                access_level = "PRIVATE"
+                if project.get("simplified"):
+                    try:
+                        access_level_req = Context.client.request_internal(
+                                self.tap_stream_id,
+                                "GET",
+                                # Jira internal API, may change at any time - keep an eye on this
+                                f"/rest/internal/simplified/1.0/accesslevel/project/{project.get('id')}",
+                                {
+                                    'accept': 'application/json,text/javascript,*/*',
+                                    'content-type': 'application/json',
+                                }
+                            )
+                        if isinstance(access_level_req, dict):
+                            # For traditional projects, an error is returned as a string (local translated)
+                            access_level = access_level_req.get("value")
+                    except RequestException as e:
+                        # If the request fails, we assume the project is private
+                        LOGGER.warning(f"Failed to get access level for project {project.get('id')}: {e}")
+                project["accessLevel"] = access_level
+
             self.write_page(projects.get('values'))
             if Context.is_selected(VERSIONS.tap_stream_id):
                 for project in projects.get('values'):
@@ -440,7 +466,9 @@ class Roles(Stream):
                 projects.append({
                     "id": project["id"],
                     "key": project["key"],
-                    "name": project["name"]
+                    "name": project["name"],
+                    "simplified": project.get("simplified"),
+                    "style": project.get("style"),
                 })
             if projects_data.get("isLast"):
                 break
