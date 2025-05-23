@@ -351,8 +351,8 @@ class Groups(Stream):
                 grp["users"] = users
                 groups.append(grp)
 
-            extraction_time = singer.utils.now()
-            singer.write_record(self.tap_stream_id, grp, time_extracted=extraction_time)
+                extraction_time = singer.utils.now()
+                singer.write_record(self.tap_stream_id, grp, time_extracted=extraction_time)
 
 
 class Roles(Stream):
