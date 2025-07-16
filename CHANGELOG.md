@@ -1,5 +1,8 @@
 # Changelog
 
+## [v2.2.1]
+  * Bump depedency versions for twistlock compliance [#118](https://github.com/singer-io/tap-jira/pull/118)
+
 ## [v2.2.0]
   * Updates to run on python 3.11.7 [#111](https://github.com/singer-io/tap-jira/pull/111)
 ## [v2.1.5]
