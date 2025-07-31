@@ -38,13 +38,14 @@ This tap:
     {
         "start_date": "2010-01-01",
         "username": "your-jira-username",
-        "password": "your-jira-password",
+        "password": "your-jira-token",
         "base_url": "https://your-jira-domain",
         "user_agent": "<user-agent>",
         "request_timeout": 300,
         "groups": "jira-administrators, site-admins, jira-software-users"
     }
     ```
+    Check [this tutorial](https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/) to generate your jira token for Basic Auth.
 
    or (for OAuth):
 
