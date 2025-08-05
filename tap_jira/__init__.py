@@ -69,6 +69,7 @@ def generate_metadata(stream, schema):
         stream.pk_fields = ["key"]
 
     mdata = metadata.write(mdata, (), 'table-key-properties', stream.pk_fields)
+    mdata = metadata.write(mdata, (), 'forced-replication-method', stream.replication_method)
 
     for field_name in schema.properties.keys():
         if field_name in stream.pk_fields:
