@@ -127,15 +127,16 @@ class Stream():
     :var pk_fields: A list of primary key fields
     :var indirect_stream: If True, this indicates the stream cannot be synced
     directly, but instead has its data generated via a separate stream.
-    :var replication_method: Replication method of the stream"""
+    :var forced_replication_method: Replication method of the stream"""
 
-    def __init__(self, tap_stream_id, pk_fields, replication_method, indirect_stream=False, path=None):
+    def __init__(self, tap_stream_id, pk_fields, forced_replication_method, parent_tap_stream_id=None, indirect_stream=False, path=None):
         self.tap_stream_id = tap_stream_id
+        self.parent_tap_stream_id = parent_tap_stream_id
         self.pk_fields = pk_fields
         # Only used to skip streams in the main sync function
         self.indirect_stream = indirect_stream
         self.path = path
-        self.replication_method = replication_method
+        self.forced_replication_method = forced_replication_method
 
     def __repr__(self):
         return "<Stream(" + self.tap_stream_id + ")>"
@@ -388,30 +389,30 @@ class Worklogs(Stream):
             if last_page:
                 break
 
-
-VERSIONS = Stream("versions", ["id"], indirect_stream=True, replication_method="FULL_TABLE")
-COMPONENTS = Stream("components", ["id"], indirect_stream=True, replication_method="FULL_TABLE")
-ISSUES = Issues("issues", ["id"], replication_method="INCREMENTAL")
-ISSUE_COMMENTS = Stream("issue_comments", ["id"], indirect_stream=True, replication_method="INCREMENTAL")
+PROJECTS = Projects("projects", ["id"], forced_replication_method="FULL_TABLE")
+VERSIONS = Stream("versions", ["id"], parent_tap_stream_id="projects", indirect_stream=True, forced_replication_method="FULL_TABLE")
+COMPONENTS = Stream("components", ["id"], parent_tap_stream_id="projects", indirect_stream=True, forced_replication_method="FULL_TABLE")
+ISSUES = Issues("issues", ["id"], forced_replication_method="INCREMENTAL")
+ISSUE_COMMENTS = Stream("issue_comments", ["id"], parent_tap_stream_id="issues", indirect_stream=True, forced_replication_method="INCREMENTAL")
 ISSUE_TRANSITIONS = Stream("issue_transitions", ["id","issueId"], # Composite primary key
-                           indirect_stream=True, replication_method="INCREMENTAL")
-PROJECTS = Projects("projects", ["id"], replication_method="FULL_TABLE")
-CHANGELOGS = Stream("changelogs", ["id"], indirect_stream=True, replication_method="INCREMENTAL")
+                           parent_tap_stream_id="issues", indirect_stream=True,
+                           forced_replication_method="INCREMENTAL")
+CHANGELOGS = Stream("changelogs", ["id"], parent_tap_stream_id="issues", indirect_stream=True, forced_replication_method="INCREMENTAL")
 
 ALL_STREAMS = [
     PROJECTS,
     VERSIONS,
     COMPONENTS,
-    ProjectTypes("project_types", ["key"], replication_method="FULL_TABLE"),
-    Stream("project_categories", ["id"], path="/rest/api/2/projectCategory", replication_method="FULL_TABLE"),
-    Stream("resolutions", ["id"], path="/rest/api/2/resolution", replication_method="FULL_TABLE"),
-    Stream("roles", ["id"], path="/rest/api/2/role", replication_method="FULL_TABLE"),
-    Users("users", ["accountId"], replication_method="FULL_TABLE"),
+    ProjectTypes("project_types", ["key"], forced_replication_method="FULL_TABLE"),
+    Stream("project_categories", ["id"], path="/rest/api/2/projectCategory", forced_replication_method="FULL_TABLE"),
+    Stream("resolutions", ["id"], path="/rest/api/2/resolution", forced_replication_method="FULL_TABLE"),
+    Stream("roles", ["id"], path="/rest/api/2/role", forced_replication_method="FULL_TABLE"),
+    Users("users", ["accountId"], forced_replication_method="FULL_TABLE"),
     ISSUES,
     ISSUE_COMMENTS,
     CHANGELOGS,
     ISSUE_TRANSITIONS,
-    Worklogs("worklogs", ["id"], replication_method="INCREMENTAL"),
+    Worklogs("worklogs", ["id"], forced_replication_method="INCREMENTAL"),
 ]
 
 ALL_STREAM_IDS = [s.tap_stream_id for s in ALL_STREAMS]
