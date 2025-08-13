@@ -63,8 +63,9 @@ jobs:
           command: |
             source /usr/local/share/virtualenvs/tap-jira/bin/activate
             source /usr/local/share/virtualenvs/tap-jira/dev_env.sh
-            uv pip install nose2 parameterized nose2[coverage_plugin]>=0.6.5
-            nose2 --with-coverage -v -s tests/unittests
+            uv pip install pytest coverage parameterized
+            coverage run -m pytest --rootdir=tests/unittests tests/unittests
+            coverage html
       - store_test_results:
           path: test_output/report.xml
       - store_artifacts:
