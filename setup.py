@@ -17,7 +17,8 @@ setup(name="tap-jira",
           'dev': [
               'pylint',
               'nose2',
-              'ipdb'
+              'ipdb',
+              'tzdata'
           ]
       },
       entry_points="""

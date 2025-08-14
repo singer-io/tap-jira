@@ -64,7 +64,6 @@ jobs:
             source /usr/local/share/virtualenvs/tap-jira/bin/activate
             source /usr/local/share/virtualenvs/tap-jira/dev_env.sh
             uv pip install pytest coverage parameterized
-            export TZ='America/New_York'
             coverage run -m pytest --rootdir=tests/unittests tests/unittests
             coverage html
       - store_test_results:
