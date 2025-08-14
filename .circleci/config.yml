@@ -63,7 +63,7 @@ jobs:
           command: |
             source /usr/local/share/virtualenvs/tap-jira/bin/activate
             source /usr/local/share/virtualenvs/tap-jira/dev_env.sh
-            uv pip install pytest coverage parameterized
+            uv pip install pytest coverage parameterized tzdata
             coverage run -m pytest --rootdir=tests/unittests tests/unittests
             coverage html
       - store_test_results:
