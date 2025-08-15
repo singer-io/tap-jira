@@ -41,7 +41,7 @@ class TestBasicAuthInDiscoverMode(unittest.TestCase):
             self.assertEqual(e.response.status_code, 401)
             expected_error_message = "HTTP-error-code: 401, Error: Invalid authorization credentials."
             # Verifying the message formed for the custom exception
-            self.assertEquals(str(e), expected_error_message)
+            self.assertEqual(str(e), expected_error_message)
 
         self.assertEqual(mocked_discover.call_count, 0)
 
