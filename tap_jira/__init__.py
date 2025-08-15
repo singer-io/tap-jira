@@ -69,6 +69,9 @@ def generate_metadata(stream, schema):
         stream.pk_fields = ["key"]
 
     mdata = metadata.write(mdata, (), 'table-key-properties', stream.pk_fields)
+    mdata = metadata.write(mdata, (), 'forced-replication-method', stream.forced_replication_method)
+    if stream.parent_tap_stream_id is not None:
+        mdata = metadata.write(mdata, (), 'parent-tap-stream-id', stream.parent_tap_stream_id)
 
     for field_name in schema.properties.keys():
         if field_name in stream.pk_fields:
