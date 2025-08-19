@@ -45,21 +45,8 @@
         "null",
         "object"
       ],
-      "properties": {
-        "properties": {
-          "type": [
-            "null",
-            "object"
-          ],
-          "patternProperties": {
-            ".+": {
-              "type": [
-                "null",
-                "string"
-              ]
-            }
-          }
-        }
+      "patternProperties": {
+        ".+": {}
       }
     },
     "names": {

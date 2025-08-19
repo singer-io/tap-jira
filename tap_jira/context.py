@@ -59,3 +59,11 @@ class Context():
         response = cls.client.send("GET", "/rest/api/2/myself")
         check_status(response)
         return response.json()["timeZone"]
+
+    @classmethod
+    def is_property_selected(cls, stream_name, property_name):
+        stream = cls.get_catalog_entry(stream_name)
+        properties_selected = [x["breadcrumb"][1] for x in stream.metadata \
+            if len(x["breadcrumb"]) == 2 and x["breadcrumb"][0] == "properties" \
+            and x["metadata"].get("selected", False) == True]
+        return property_name in properties_selected

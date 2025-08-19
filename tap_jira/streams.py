@@ -6,7 +6,7 @@ import dateparser
 from singer import metrics, utils, metadata, Transformer
 from singer.transform import SchemaMismatch
 from dateutil.parser._parser import ParserError
-from .http import Paginator,JiraNotFoundError
+from .http import check_status, Paginator, JiraNotFoundError
 from .context import Context
 
 DEFAULT_PAGE_SIZE = 50
@@ -311,6 +311,8 @@ class Issues(Stream):
                   "jql": jql}
         page_num = Context.bookmark(page_num_offset) or 0
         pager = Paginator(Context.client, items_key="issues", page_num=page_num)
+        has_properties = Context.is_property_selected(ISSUES.tap_stream_id, "properties")
+
         for page in pager.pages(self.tap_stream_id,
                                 "GET", "/rest/api/2/search",
                                 params=params):
@@ -327,6 +329,14 @@ class Issues(Stream):
                 # the "menu" bar for each issue. This is of questionable utility,
                 # so we decided to just strip the field out for now.
                 issue['fields'].pop('operations', None)
+                # Get the properties for the issue. The properties are not fetched
+                # on a search call, the only way is to get the issue again but ask
+                # for all properties
+                if has_properties:
+                    path = "/rest/api/3/issue/{}?properties=*all".format(issue["id"])
+                    response = Context.client.send("GET", path)
+                    check_status(response)
+                    issue["properties"] = response.json()["properties"]
 
             # Grab last_updated before transform in write_page
             last_updated = utils.strptime_to_utc(page[-1]["fields"]["updated"])
