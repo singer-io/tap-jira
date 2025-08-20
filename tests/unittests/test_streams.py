@@ -3,7 +3,7 @@ import pytz
 from tap_jira.context import Context
 from unittest.mock import Mock, MagicMock
 from tap_jira.streams import Issues
-from tap_jira.http import Paginator
+from tap_jira.http import Paginator, NewPaginator
 from datetime import datetime
 
 class TestLocalizedRequests(unittest.TestCase):
@@ -27,4 +27,4 @@ class TestLocalizedRequests(unittest.TestCase):
                   "expand": "changelog,transitions",
                   "validateQuery": "strict",
                   "jql": "updated >= '{}' order by updated asc".format(expected_start_date)}
-        Paginator.pages.assert_called_once_with('issues','GET','/rest/api/2/search/jql',params=params)
+        NewPaginator.pages.assert_called_once_with('issues','GET','/rest/api/2/search/jql',params=params)

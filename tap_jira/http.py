@@ -353,7 +353,7 @@ class NewPaginator(Paginator):
             # Accounts for responses that don't nest their results in a
             # key by falling back to the params `maxResults` setting.
             if 'isLast' in response:
-               has_more_pages = True if not response["isLast"] else False
+               has_more_pages = bool(not response["isLast"])
 
             self.next_page_num = response.get("nextPageToken") or None
 
