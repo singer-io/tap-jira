@@ -1,6 +1,6 @@
 # Changelog
 
-## [v2.2.2]
+## [v2.3.0]
   * Change endpoint for `issues` Stream [#122](https://github.com/singer-io/tap-jira/pull/122)
 
 ## [v2.2.1]
