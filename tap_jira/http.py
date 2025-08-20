@@ -339,8 +339,9 @@ class NewPaginator(Paginator):
         has_more_pages = True
 
         while has_more_pages:
-            if self.next_page_num:
-                params["nextPageToken"] = self.next_page_num
+            if self.next_page_num: 
+                if type(self.next_page_num) is str:
+                    params["nextPageToken"] = self.next_page_num
             if self.order_by:
                 params["orderBy"] = self.order_by
             response = self.client.request(*args, params=params, **kwargs)
