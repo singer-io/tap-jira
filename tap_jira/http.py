@@ -324,3 +324,37 @@ class Paginator():
 
             if page:
                 yield page
+
+class NewPaginator(Paginator):
+
+    def pages(self, *args, **kwargs):
+        """Returns a generator which yields pages of data. When a given page is
+        yielded, the next_page_num property can be used to know what the index
+        of the next page is (useful for bookmarking).
+
+        :param args: Passed to Client.request
+        :param kwargs: Passed to Client.request
+        """
+        params = kwargs.pop("params", {}).copy()
+        has_more_pages = True
+
+        while has_more_pages:
+            if self.next_page_num:
+                params["nextPageToken"] = self.next_page_num
+            if self.order_by:
+                params["orderBy"] = self.order_by
+            response = self.client.request(*args, params=params, **kwargs)
+            if self.items_key:
+                page = response[self.items_key]
+            else:
+                page = response
+
+            # Accounts for responses that don't nest their results in a
+            # key by falling back to the params `maxResults` setting.
+            if 'isLast' in response:
+               has_more_pages = False if response["isLast"] == True else True
+
+            self.next_page_num = response.get("nextPageToken") or None
+
+            if page:
+                yield page
