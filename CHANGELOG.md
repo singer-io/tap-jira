@@ -1,5 +1,8 @@
 # Changelog
 
+## [v2.2.2]
+  * Change endpoint for `issues` Stream [#122](https://github.com/singer-io/tap-jira/pull/122)
+
 ## [v2.2.1]
   * Bump depedency versions for twistlock compliance [#118](https://github.com/singer-io/tap-jira/pull/118)
 

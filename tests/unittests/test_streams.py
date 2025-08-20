@@ -3,7 +3,7 @@ import pytz
 from tap_jira.context import Context
 from unittest.mock import Mock, MagicMock
 from tap_jira.streams import Issues
-from tap_jira.http import Paginator
+from tap_jira.http import Paginator, IssuesPaginator
 from datetime import datetime
 
 class TestLocalizedRequests(unittest.TestCase):
@@ -13,7 +13,7 @@ class TestLocalizedRequests(unittest.TestCase):
         Context.retrieve_timezone = Mock(return_value=self.tzname)
         Context.bookmark = Mock()
         Context.set_bookmark = Mock()
-        Paginator.pages = Mock(return_value=[])
+        IssuesPaginator.pages = Mock(return_value=[])
 
     def test_issues_local_timezone_in_request(self):
         issues = Issues('issues', ['pk_fields'])
@@ -27,4 +27,4 @@ class TestLocalizedRequests(unittest.TestCase):
                   "expand": "changelog,transitions",
                   "validateQuery": "strict",
                   "jql": "updated >= '{}' order by updated asc".format(expected_start_date)}
-        Paginator.pages.assert_called_once_with('issues','GET','/rest/api/2/search',params=params)
+        IssuesPaginator.pages.assert_called_once_with('issues','GET','/rest/api/2/search/jql',params=params)
