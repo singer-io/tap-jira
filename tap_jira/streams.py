@@ -6,7 +6,7 @@ import dateparser
 from singer import metrics, utils, metadata, Transformer
 from singer.transform import SchemaMismatch
 from dateutil.parser._parser import ParserError
-from .http import Paginator,JiraNotFoundError,NewPaginator
+from .http import Paginator,JiraNotFoundError,IssuesPaginator
 from .context import Context
 
 DEFAULT_PAGE_SIZE = 50
@@ -310,7 +310,7 @@ class Issues(Stream):
                   "validateQuery": "strict",
                   "jql": jql}
         page_num = Context.bookmark(page_num_offset) or 0
-        pager = NewPaginator(Context.client, items_key="issues", page_num=page_num)
+        pager = IssuesPaginator(Context.client, items_key="issues", page_num=page_num)
         for page in pager.pages(self.tap_stream_id,
                                 "GET", "/rest/api/2/search/jql",
                                 params=params):

@@ -325,7 +325,7 @@ class Paginator():
             if page:
                 yield page
 
-class NewPaginator(Paginator):
+class IssuesPaginator(Paginator):
 
     def pages(self, *args, **kwargs):
         """Returns a generator which yields pages of data. When a given page is
@@ -353,7 +353,7 @@ class NewPaginator(Paginator):
             # Accounts for responses that don't nest their results in a
             # key by falling back to the params `maxResults` setting.
             if 'isLast' in response:
-               has_more_pages = bool(not response["isLast"])
+                has_more_pages = bool(not response["isLast"])
 
             self.next_page_num = response.get("nextPageToken") or None
 
