@@ -312,7 +312,7 @@ class Issues(Stream):
         page_num = Context.bookmark(page_num_offset) or 0
         pager = Paginator(Context.client, items_key="issues", page_num=page_num)
         for page in pager.pages(self.tap_stream_id,
-                                "GET", "/rest/api/2/search",
+                                "GET", "/rest/api/2/search/jql",
                                 params=params):
             # sync comments and changelogs for each issue
             sync_sub_streams(page)
