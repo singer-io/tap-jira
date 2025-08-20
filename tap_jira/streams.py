@@ -8,7 +8,7 @@ import singer
 import datetime
 
 from singer import metrics, utils, metadata, Transformer, Timer
-from .http import Paginator
+from .http import Paginator, EnhancedSearchPaginator
 from .context import Context
 from itertools import chain
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -16,6 +16,84 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from minware_singer_utils import SecureLogger
 
 LOGGER = SecureLogger(singer.get_logger())
+
+def partition_list(lst, batch_size):
+    """Partition a list into batches of specified size."""
+    for i in range(0, len(lst), batch_size):
+        yield lst[i:i + batch_size]
+
+def bulk_fetch_issues_parallel(client, tap_stream_id, issue_ids, fields=None, max_workers=10):
+    """
+    Fetch issue details in parallel using bulk fetch API.
+    
+    :param client: Jira client instance
+    :param tap_stream_id: Stream ID for metrics
+    :param issue_ids: List of issue IDs to fetch
+    :param fields: List of fields to return
+    :param max_workers: Maximum number of parallel workers
+    :return: List of all fetched issues
+    """
+    if not issue_ids:
+        return []
+    
+    # Partition into batches of 100 (max for bulk fetch API)
+    batches = list(partition_list(issue_ids, 100))
+    LOGGER.info(f"Fetching {len(issue_ids)} issues in {len(batches)} parallel batches")
+    
+    all_issues = []
+    
+    def fetch_batch(batch):
+        return client.bulk_fetch_issues(tap_stream_id, batch, fields)
+    
+    # Use ThreadPoolExecutor for parallel fetching
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(fetch_batch, batch) for batch in batches]
+        
+        for future in as_completed(futures):
+            try:
+                issues = future.result()
+                all_issues.extend(issues)
+                LOGGER.info(f"Fetched batch of {len(issues)} issues")
+            except Exception as exc:
+                LOGGER.error(f"Batch fetch failed: {exc}")
+                raise exc
+    
+    LOGGER.info(f"Completed parallel fetch: {len(all_issues)} total issues")
+    return all_issues
+
+def bulk_fetch_changelogs_for_issues(client, tap_stream_id, issue_ids):
+    """
+    Bulk fetch changelogs for a list of issues using the bulk changelog API.
+    
+    :param client: Jira client instance
+    :param tap_stream_id: Stream ID for metrics
+    :param issue_ids: List of issue IDs to fetch changelogs for
+    :return: Dictionary mapping issue_id to list of changelogs
+    """
+    if not issue_ids:
+        return {}
+    
+    changelog_map = {}
+    
+    # Process in batches of 1000 (API limit)
+    for batch in partition_list(issue_ids, 1000):
+        LOGGER.info(f"Bulk fetching changelogs for {len(batch)} issues")
+        
+        for changelog_page in client.bulk_fetch_changelogs(tap_stream_id, batch):
+            for changelog in changelog_page:
+                issue_id = changelog.get("issueId")
+                if issue_id:
+                    # Ensure consistent string type for issue ID
+                    issue_id_str = str(issue_id)
+                    if issue_id_str not in changelog_map:
+                        changelog_map[issue_id_str] = []
+                    changelog_map[issue_id_str].append(changelog)
+                else:
+                    LOGGER.warning(f"Changelog missing issueId: {changelog.keys()}")
+    
+    LOGGER.info(f"Bulk fetched changelogs for {len(changelog_map)} issues total")
+    
+    return changelog_map
 
 def raise_if_bookmark_cannot_advance(worklogs):
     # Worklogs can only be queried with a `since` timestamp and
@@ -72,7 +150,7 @@ def should_exclude_field(field_id, field_name):
     
     return False
 
-def sync_sub_streams(page, issue_changelog_updated):
+def sync_sub_streams(page, issue_changelog_updated, changelog_map=None):
     for issue in page:
         comments = issue["fields"].pop("comment")["comments"]
         if comments and Context.is_selected(ISSUE_COMMENTS.tap_stream_id):
@@ -81,23 +159,21 @@ def sync_sub_streams(page, issue_changelog_updated):
             ISSUE_COMMENTS.write_page(comments)
 
         if Context.is_selected(CHANGELOGS.tap_stream_id):
-            changelog_response = issue.pop("changelog")
-            changelogs = changelog_response["histories"]
             changelogs_to_write = []
-
-            # when expanding changelogs for an issue, jira returns 100
-            if changelog_response['maxResults'] >= changelog_response['total']:
-                for changelog in changelogs:
-                    changelogs_to_write.append(changelog)
+            issue_id = str(issue["id"])  # Ensure consistent string type
+            
+            # Use bulk-fetched changelog data
+            if changelog_map is not None and issue_id in changelog_map:
+                changelogs_to_write = changelog_map[issue_id]
+                # Ensure issueId is set on each changelog
+                for changelog in changelogs_to_write:
+                    changelog["issueId"] = issue_id
+            elif changelog_map is not None:
+                # No changelogs found for this issue (empty list)
+                changelogs_to_write = []
             else:
-                pager = Paginator(Context.client)
-                for page in pager.pages(
-                    CHANGELOGS.tap_stream_id,
-                    "GET",
-                    "/rest/api/2/issue/{}/changelog".format(issue["id"])
-                ):
-                    for changelog in page:
-                        changelogs_to_write.append(changelog)
+                # This should not happen since we always bulk fetch if changelogs are selected
+                raise Exception(f"Changelog map is None but changelogs are selected for issue {issue_id}")
 
 
             for changelog in changelogs_to_write:
@@ -120,11 +196,10 @@ def sync_sub_streams(page, issue_changelog_updated):
                 [{ **changelog, 'issueId': issue["id"] } for changelog in changelogs_to_write]
             )
 
-        transitions = issue.pop("transitions")
-        if transitions and Context.is_selected(ISSUE_TRANSITIONS.tap_stream_id):
-            for transition in transitions:
-                transition["issueId"] = issue["id"]
-            ISSUE_TRANSITIONS.write_page(transitions)
+        # Note: Transitions are not available via expand in API v3
+        # We will need to fetch them separately if they are needed
+        # These are just the transitions that are available for the issue
+        # And we don't need them for the current use case
 
 
 def advance_bookmark(worklogs):
@@ -341,33 +416,25 @@ class Issues(Stream):
                 if result["status"] != "success":
                     LOGGER.warning(f"Project sync for ALL_PROJECTS completed with status: {result['status']}")
         else:
-            # Process projects in parallel using ThreadPoolExecutor
-            with ThreadPoolExecutor(max_workers=6) as executor:
-                func_call_futures = []
-                for project_key_or_id in projectsToSync:
-                    ctx = contextvars.copy_context()
-                    func_call = functools.partial(ctx.run, self._sync_project_with_error_handling, fieldNames, knownFields, project_key_or_id)
-                    func_call_futures.append(executor.submit(func_call))
-                
-                # Process results from all threads
-                success_count = 0
-                error_count = 0
-                failed_projects = []
-                
-                for future in as_completed(func_call_futures):
-                    try:
-                        result = future.result()
-                        if result["status"] == "success":
-                            success_count += 1
-                        else:
-                            # This should only happen for handled 400 errors
-                            error_count += 1
-                            failed_projects.append(result["project"])
-                    except Exception as exc:
-                        # This will happen for any re-raised exceptions from _sync_project_with_error_handling
-                        # We need to re-raise to ensure the tap fails properly
-                        LOGGER.error(f"A project sync failed with an unhandled error: {exc}")
-                        raise exc
+            # Process projects sequentially to avoid rate limit quota bursts and connection pool exhaustion
+            success_count = 0
+            error_count = 0
+            failed_projects = []
+            
+            for project_key_or_id in projectsToSync:
+                try:
+                    result = self._sync_project_with_error_handling(fieldNames, knownFields, project_key_or_id)
+                    if result["status"] == "success":
+                        success_count += 1
+                    else:
+                        # This should only happen for handled 400 errors
+                        error_count += 1
+                        failed_projects.append(result["project"])
+                except Exception as exc:
+                    # This will happen for any re-raised exceptions from _sync_project_with_error_handling
+                    # We need to re-raise to ensure the tap fails properly
+                    LOGGER.error(f"A project sync failed with an unhandled error: {exc}")
+                    raise exc
             
             LOGGER.info(f"Completed processing {len(projectsToSync)} projects:")
             LOGGER.info(f"  - {success_count} succeeded")
@@ -419,7 +486,7 @@ class Issues(Stream):
             return {"status": "success", "project": project_key_or_id}
         except requests.exceptions.HTTPError as http_err:
             # Handle specific 400 errors at the project level
-            if http_err.response.status_code == 400 and '/rest/api/2/search' in http_err.response.url:
+            if http_err.response.status_code == 400 and '/rest/api/3/search/jql' in http_err.response.url:
                 LOGGER.warning(f"Project {project_key_or_id}: Encountered a handled 400 error with Jira search API")
                 LOGGER.warning(f"URL: {http_err.response.url}")
                 LOGGER.warning(f"Response body: {http_err.response.text}")
@@ -470,28 +537,54 @@ class Issues(Stream):
 
         LOGGER.info('using updated >= \'{}\''.format(start_date))
 
-        # Now fetch all the actual issues, translating custom fields
+        # Two-phase approach for optimal performance
         jql = "{} updated >= '{}' order by updated asc".format(projectsJql, start_date).strip()
-        params = {"fields": "*all",
-                  "expand": "changelog,transitions",
-                  "validateQuery": "strict",
-                  "maxResults": 100,
-                  "jql": jql}
-        page_num = Context.bookmark(page_num_offset) or 0
-        pager = Paginator(Context.client, items_key="issues", page_num=page_num)
-
-        page_index = 0
-        for page in pager.pages(self.tap_stream_id,
-                                "GET", "/rest/api/2/search",
-                                params=params):
-
-            LOGGER.info(
-                "Fetched page %d with %d issues for project %s",
-                page_index, len(page), project_key_or_id
-            )
+        
+        # Phase 1: Fetch all issue IDs returned by the JQL query (fast, up to 5000 per request)
+        LOGGER.info("Phase 1: Fetching all issue IDs returned by the JQL query for project %s", project_key_or_id)
+        id_pager = EnhancedSearchPaginator(Context.client, max_results=5000, ids_only=True)
+        all_issue_ids = []
+        
+        for page in id_pager.pages(self.tap_stream_id, jql):
+            issue_ids = [issue["id"] for issue in page]
+            all_issue_ids.extend(issue_ids)
+            LOGGER.info("Collected %d issue IDs (total: %d)", len(issue_ids), len(all_issue_ids))
+        
+        LOGGER.info("Phase 1 complete: Found %d total issues for project %s", len(all_issue_ids), project_key_or_id)
+        
+        if not all_issue_ids:
+            LOGGER.info("No issues found for project %s", project_key_or_id)
+            return
+        
+        # Phase 2: Bulk fetch issue details in parallel
+        LOGGER.info("Phase 2: Bulk fetching issue details for project %s", project_key_or_id)
+        fields = ["*all"]
+        all_issues = bulk_fetch_issues_parallel(Context.client, self.tap_stream_id, all_issue_ids, fields)
+        
+        # Phase 3: Bulk fetch changelogs if needed
+        changelog_map = None
+        if Context.is_selected(CHANGELOGS.tap_stream_id):
+            LOGGER.info("Phase 3: Bulk fetching changelogs for project %s", project_key_or_id)
+            changelog_map = bulk_fetch_changelogs_for_issues(Context.client, CHANGELOGS.tap_stream_id, all_issue_ids)
+            LOGGER.info("Found changelogs for %s issues", len(changelog_map) if changelog_map else 0)
+        else:
+            LOGGER.info("Changelogs stream is NOT selected - skipping changelog fetch")
+        
+        # Process issues in batches for progress tracking and state emission
+        LOGGER.info("Processing %d issues in batches for project %s", len(all_issues), project_key_or_id)
+        batch_size = 100
+        
+        for batch_index, batch_start in enumerate(range(0, len(all_issues), batch_size)):
+            batch_end = min(batch_start + batch_size, len(all_issues))
+            issue_batch = all_issues[batch_start:batch_end]
+            
+            LOGGER.info("Processing batch %d (%d-%d) with %d issues for project %s", 
+                       batch_index, batch_start, batch_end-1, len(issue_batch), project_key_or_id)
+            
             # sync comments and changelogs for each issue
-            sync_sub_streams(page, issue_changelogs_updated)
-            for issue in page:
+            sync_sub_streams(issue_batch, issue_changelogs_updated, changelog_map)
+            
+            for issue in issue_batch:
                 issue['fields'].pop('worklog', None)
                 # The JSON schema for the search endpoint indicates an "operations"
                 # field can be present. This field is self-referential, making it
@@ -528,22 +621,18 @@ class Issues(Stream):
                         del issue['fields'][k]
                 issue['fields']['_custom'] = json.dumps(customFields)
 
-
             # Grab last_updated before transform in write_page
-            last_updated = utils.strptime_to_utc(page[-1]["fields"]["updated"])
-            LOGGER.info("Writing issues for page %d, project %s...", page_index, project_key_or_id)
+            last_updated = utils.strptime_to_utc(issue_batch[-1]["fields"]["updated"])
+            LOGGER.info("Writing batch %d with %d issues for project %s...", batch_index, len(issue_batch), project_key_or_id)
             with self.write_lock:
-                self.write_page(page)
-
-                Context.set_bookmark(page_num_offset, pager.next_page_num)
+                self.write_page(issue_batch)
                 singer.write_state(Context.state)
             
-            LOGGER.info("Finished writing issues for page %d, project %s", page_index, project_key_or_id)
-            page_index += 1
+            LOGGER.info("Finished writing batch %d for project %s", batch_index, project_key_or_id)
         
         # After the loop completes
         with self.write_lock:
-            Context.set_bookmark(page_num_offset, None)
+            # Remove page number bookmarking since enhanced API uses tokens
             Context.set_bookmark(updated_bookmark, last_updated)
             Context.set_bookmark(issue_changelogs_updated_bookmark_path, issue_changelogs_sync_time)
             singer.write_state(Context.state)

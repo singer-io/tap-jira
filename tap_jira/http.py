@@ -1,10 +1,11 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import time
 import threading
 import re
 from requests.exceptions import HTTPError
 from requests.auth import HTTPBasicAuth
 import requests
+from requests.adapters import HTTPAdapter
 import atlassian_jwt
 from singer import metrics
 import backoff
@@ -38,6 +39,17 @@ class Client():
         self.jwt_client_key = config.get('jwt_client_key')
         self.jwt_shared_secret = config.get('jwt_shared_secret')
         self.session = requests.Session()
+        
+        # Configure connection pool for parallel bulk fetching
+        # Increase pool_connections and pool_maxsize to handle concurrent requests within each project
+        adapter = HTTPAdapter(
+            pool_connections=20,  # Number of urllib3 connection pools to cache
+            pool_maxsize=20,      # Maximum number of connections to save in the pool
+            max_retries=0         # We handle retries manually with Retry-After headers
+        )
+        self.session.mount('https://', adapter)
+        self.session.mount('http://', adapter)
+        
         self.next_request_at = datetime.now()
         self.user_agent = config.get("user_agent")
         self.login_timer = None
@@ -127,24 +139,50 @@ class Client():
                                        **kwargs)
         return self.session.send(request.prepare())
 
-    @backoff.on_exception(backoff.constant,
-                          RateLimitException,
-                          max_tries=10,
-                          interval=60)
     def request(self, tap_stream_id, *args, **kwargs):
-        wait = (self.next_request_at - datetime.now()).total_seconds()
-        if wait > 0:
-            time.sleep(wait)
-        with metrics.http_request_timer(tap_stream_id) as timer:
-            response = self.send(*args, **kwargs)
-            self.next_request_at = datetime.now() + TIME_BETWEEN_REQUESTS
-            timer.tags[metrics.Tag.http_status_code] = response.status_code
-        if response.status_code == 429:
-            raise RateLimitException()
-        elif response.text and response.status_code >= 400:
-            self.logger.warn('Response body: {}'.format(response.text))
-        response.raise_for_status()
-        return response.json()
+        max_tries = 10
+        
+        for attempt in range(max_tries):
+            # Honor rate limiting delay
+            wait = (self.next_request_at - datetime.now()).total_seconds()
+            if wait > 0:
+                time.sleep(wait)
+            
+            # Make the request
+            with metrics.http_request_timer(tap_stream_id) as timer:
+                response = self.send(*args, **kwargs)
+                self.next_request_at = datetime.now() + TIME_BETWEEN_REQUESTS
+                timer.tags[metrics.Tag.http_status_code] = response.status_code
+            
+            # Handle rate limiting (429)
+            if response.status_code == 429:
+                if attempt >= max_tries - 1:
+                    # Final attempt - give up
+                    raise RateLimitException()
+                
+                # Try to get sleep time from Retry-After header
+                retry_after = response.headers.get('Retry-After')
+                if retry_after:
+                    try:
+                        sleep_seconds = int(retry_after)
+                        self.logger.info(f"Rate limited. Waiting {sleep_seconds}s as per Retry-After header (attempt {attempt + 1}/{max_tries})")
+                    except (ValueError, TypeError):
+                        sleep_seconds = 60 * (2 ** attempt)  # Exponential backoff fallback
+                        self.logger.info(f"Rate limited. Invalid Retry-After header, using exponential backoff: {sleep_seconds}s (attempt {attempt + 1}/{max_tries})")
+                else:
+                    sleep_seconds = 60 * (2 ** attempt)  # Exponential backoff
+                    self.logger.info(f"Rate limited. Using exponential backoff: {sleep_seconds}s (attempt {attempt + 1}/{max_tries})")
+                
+                time.sleep(sleep_seconds)
+                continue
+            
+            # Log error responses for debugging
+            if response.text and response.status_code >= 400:
+                self.logger.warn('Response body: {}'.format(response.text))
+            
+            # Raise for any other HTTP errors
+            response.raise_for_status()
+            return response.json()
 
     def refresh_credentials(self):
         body = {"grant_type": "refresh_token",
@@ -167,9 +205,114 @@ class Client():
             self.login_timer.start()
 
     def test_credentials_are_authorized(self):
-        # Assume that everyone has issues, so we try and hit that endpoint
-        self.request("issues", "GET", "/rest/api/2/search",
-                     params={"maxResults": 1})
+        # Test with the new enhanced search API endpoint
+        body = {
+            "jql": "ORDER BY created DESC",
+            "maxResults": 1,
+            "fields": ["id"]
+        }
+        self.request("issues", "POST", "/rest/api/3/search/jql", json=body)
+
+    def bulk_fetch_issues(self, tap_stream_id, issue_ids, fields=None):
+        """
+        Bulk fetch issue details using the /rest/api/3/issue/bulkfetch endpoint.
+        
+        :param tap_stream_id: Stream ID for metrics
+        :param issue_ids: List of issue IDs to fetch
+        :param fields: List of fields to return (defaults to ["*all"])
+        :return: List of issue objects
+        """
+        if fields is None:
+            fields = ["*all"]
+            
+        body = {
+            "issueIdsOrKeys": issue_ids,
+            "fields": fields
+        }
+        
+        self.logger.info(f"Bulk fetching {len(issue_ids)} issues with fields: {fields}")
+        
+        response = self.request(
+            tap_stream_id,
+            "POST", 
+            "/rest/api/3/issue/bulkfetch",
+            json=body
+        )
+        
+        return response.get("issues", [])
+
+    def bulk_fetch_changelogs(self, tap_stream_id, issue_ids, field_ids=None):
+        """
+        Bulk fetch changelogs using the /rest/api/3/changelog/bulkfetch endpoint.
+        
+        :param tap_stream_id: Stream ID for metrics
+        :param issue_ids: List of issue IDs to fetch changelogs for (max 1000)
+        :param field_ids: List of field IDs to filter by (optional, max 10)
+        :return: Generator yielding changelog pages
+        """
+        if len(issue_ids) > 1000:
+            raise ValueError("Cannot fetch changelogs for more than 1000 issues at once")
+        
+        if field_ids and len(field_ids) > 10:
+            raise ValueError("Cannot filter by more than 10 field IDs")
+        
+        next_page_token = None
+        page_count = 0
+        
+        while True:
+            body = {
+                "issueIdsOrKeys": issue_ids,
+                "maxResults": 10000  # this is the max number of reults that can be fetched in one request
+            }
+            
+            if field_ids:
+                body["fieldIds"] = field_ids
+                
+            if next_page_token:
+                body["nextPageToken"] = next_page_token
+            
+            page_count += 1
+            if page_count == 1:
+                self.logger.info(f"Fetching changelogs for {len(issue_ids)} issues")
+            
+            response = self.request(
+                tap_stream_id,
+                "POST", 
+                "/rest/api/3/changelog/bulkfetch",
+                json=body
+            )
+            
+            # Extract changelogs from the bulk response structure
+            issue_change_logs = response.get("issueChangeLogs", [])
+            all_changelogs = []
+            
+            for issue_changelog in issue_change_logs:
+                issue_id = issue_changelog.get("issueId")
+                change_histories = issue_changelog.get("changeHistories", [])
+                
+                # Add issueId to each changelog entry for consistency with existing format
+                for changelog in change_histories:
+                    changelog["issueId"] = issue_id
+                    
+                    # Convert Unix timestamp (milliseconds) to ISO datetime string if needed
+                    if "created" in changelog and isinstance(changelog["created"], (int, float)):
+                        # Convert milliseconds to seconds, then to ISO format
+                        timestamp_seconds = changelog["created"] / 1000
+                        changelog["created"] = datetime.fromtimestamp(timestamp_seconds, tz=timezone.utc).isoformat()
+                    
+                    all_changelogs.append(changelog)
+            
+            if all_changelogs:
+                self.logger.info(f"Found {len(all_changelogs)} changelogs from {len(issue_change_logs)} issues in page {page_count}")
+                yield all_changelogs
+            
+            # Check for next page - break if no nextPageToken or if it's the same as previous
+            new_next_page_token = response.get("nextPageToken")
+            if not new_next_page_token or new_next_page_token == next_page_token:
+                self.logger.info(f"Completed changelog pagination after {page_count} pages for {len(issue_ids)} issues")
+                break
+            
+            next_page_token = new_next_page_token
 
 
 class Paginator():
@@ -212,3 +355,64 @@ class Paginator():
 
             if page:
                 yield page
+
+
+class EnhancedSearchPaginator():
+    """
+    Specialized paginator for the new Jira enhanced search API (/rest/api/3/search/jql).
+    Uses nextPageToken instead of startAt for pagination and POST requests with JSON bodies.
+    """
+    def __init__(self, client, max_results=100, ids_only=False):
+        self.client = client
+        self.max_results = max_results
+        self.next_page_token = None
+        self.ids_only = ids_only
+
+    def pages(self, tap_stream_id, jql, fields=None):
+        """Returns a generator which yields pages of issues from the enhanced search API.
+        
+        :param tap_stream_id: Stream ID for metrics
+        :param jql: JQL query string
+        :param fields: List of fields to return (defaults to ["*all"] unless ids_only=True)
+        """
+        # For ID-only fetches, don't specify fields for maximum performance
+        if self.ids_only:
+            fields = None
+        elif fields is None:
+            fields = ["*all"]
+
+        while True:
+            # Build the request body
+            body = {
+                "jql": jql,
+                "maxResults": self.max_results
+            }
+            
+            # Only add fields parameter if we need field data
+            if fields is not None:
+                body["fields"] = fields
+            
+            if self.next_page_token:
+                body["nextPageToken"] = self.next_page_token
+
+            # Make POST request with JSON body
+            response = self.client.request(
+                tap_stream_id, 
+                "POST", 
+                "/rest/api/3/search/jql",
+                json=body
+            )
+
+            # Extract issues from response
+            issues = response.get("issues", [])
+            
+            # Update pagination token
+            self.next_page_token = response.get("nextPageToken")
+
+            # Yield the page if it has issues
+            if issues:
+                yield issues
+
+            # Stop if no more pages
+            if not self.next_page_token:
+                break
