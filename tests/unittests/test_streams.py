@@ -27,4 +27,4 @@ class TestLocalizedRequests(unittest.TestCase):
                   "expand": "changelog,transitions",
                   "validateQuery": "strict",
                   "jql": "updated >= '{}' order by updated asc".format(expected_start_date)}
-        Paginator.pages.assert_called_once_with('issues','GET','/rest/api/2/search',params=params)
+        Paginator.pages.assert_called_once_with('issues','GET','/rest/api/2/search/jql',params=params)
