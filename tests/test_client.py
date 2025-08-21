@@ -145,8 +145,8 @@ class TestClient():
 
     def test_credentials_are_authorized(self):
         # Assume that everyone has issues, so we try and hit that endpoint
-        self.request("issues", "GET", "/rest/api/3/search/jql",
-                     params={"jql": "order by created desc", "maxResults": 1})
+        self.request("issues", "GET", "/rest/api/2/search",
+                     params={"maxResults": 1})
 
 
 class Paginator():
