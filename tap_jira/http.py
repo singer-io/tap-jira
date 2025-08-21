@@ -275,8 +275,8 @@ class Client():
 
     def test_credentials_are_authorized(self):
         # Assume that everyone has issues, so we try and hit that endpoint
-        self.request("issues", "GET", "/rest/api/2/search",
-                     params={"maxResults": 1})
+        self.request("issues", "GET", "/rest/api/3/search/jql",
+                     params={"jql": "updated >= -1d", "maxResults": 1})
 
     def test_basic_credentials_are_authorized(self):
         # Make a call to myself endpoint for verify creds
@@ -321,6 +321,41 @@ class Paginator():
                 self.next_page_num = None
             else:
                 self.next_page_num += max_results
+
+            if page:
+                yield page
+
+class IssuesPaginator(Paginator):
+
+    def pages(self, *args, **kwargs):
+        """Returns a generator which yields pages of data. When a given page is
+        yielded, the next_page_num property can be used to know what the index
+        of the next page is (useful for bookmarking).
+
+        :param args: Passed to Client.request
+        :param kwargs: Passed to Client.request
+        """
+        params = kwargs.pop("params", {}).copy()
+        has_more_pages = True
+
+        while has_more_pages:
+            if self.next_page_num:
+                if isinstance(self.next_page_num, str):
+                    params["nextPageToken"] = self.next_page_num
+            if self.order_by:
+                params["orderBy"] = self.order_by
+            response = self.client.request(*args, params=params, **kwargs)
+            if self.items_key:
+                page = response[self.items_key]
+            else:
+                page = response
+
+            # Accounts for responses that don't nest their results in a
+            # key by falling back to the params `maxResults` setting.
+            if 'isLast' in response:
+                has_more_pages = bool(not response["isLast"])
+
+            self.next_page_num = response.get("nextPageToken") or None
 
             if page:
                 yield page
