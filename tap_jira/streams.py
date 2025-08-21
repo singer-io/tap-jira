@@ -271,6 +271,35 @@ class ProjectTypes(Stream):
             type_.pop("icon")
         self.write_page(types)
 
+        # make the length of records longer a coupletimes, should make sampled schemas different
+        for rec in types:
+            rec["formattedKey"] += rec["formattedKey"]
+
+        stream = Context.get_catalog_entry(self.tap_stream_id)
+        stream_metadata = metadata.to_map(stream.metadata)
+        extraction_time = singer.utils.now()
+        for rec in types:
+            with Transformer() as transformer:
+                try:
+                    rec = transformer.transform(rec, stream.schema.to_dict(), stream_metadata)
+                except SchemaMismatch as ex:
+                    # Checking if schema-mismatch is occurring for datetime value
+                    # TDL-19174: Transformation issue for "date out of range"
+                    if handle_date_time_schema_mis_match(ex, rec, self.pk_fields):
+                        continue    # skipping record for this error
+            singer.write_record(self.tap_stream_id, rec, time_extracted=extraction_time)
+        for rec in types:
+            rec["formattedKey"] += rec["formattedKey"]
+        for rec in types:
+            with Transformer() as transformer:
+                try:
+                    rec = transformer.transform(rec, stream.schema.to_dict(), stream_metadata)
+                except SchemaMismatch as ex:
+                    # Checking if schema-mismatch is occurring for datetime value
+                    # TDL-19174: Transformation issue for "date out of range"
+                    if handle_date_time_schema_mis_match(ex, rec, self.pk_fields):
+                        continue    # skipping record for this error
+            singer.write_record(self.tap_stream_id, rec, time_extracted=extraction_time)
 
 class Users(Stream):
     def sync(self):
