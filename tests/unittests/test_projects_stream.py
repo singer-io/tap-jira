@@ -46,7 +46,7 @@ class TestProjectsPagination(unittest.TestCase):
         mock_stream = MockStreams()
         MockStreams.streams = "projects"
         Context.catalog = [mock_stream] # setting the context catalog
-        projects = streams.Projects('projects', ['id'])
+        projects = streams.Projects('projects', ['id'], "INCREMENTAL")
         projects.sync()
 
         self.assertEqual([
@@ -65,7 +65,7 @@ class TestProjectsEndpointForSync(unittest.TestCase):
         mock_stream = MockStreams()
         MockStreams.streams = "projects"
         Context.catalog = [mock_stream] # setting the context catalog
-        projects = streams.Projects('projects', ['id'])
+        projects = streams.Projects('projects', ['id'], "INCREMENTAL")
         projects.sync()
         print(last_page)
         print(mock_request.mock_calls)
@@ -83,7 +83,7 @@ class TestProjectsEndpointForSync(unittest.TestCase):
         mock_stream = MockStreams()
         MockStreams.streams = "projects"
         Context.catalog = [mock_stream] # setting the context catalog
-        projects = streams.Projects('projects', ['id'])
+        projects = streams.Projects('projects', ['id'], "INCREMENTAL")
         projects.sync()
         print(mock_request.mock_calls)
 

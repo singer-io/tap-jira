@@ -16,7 +16,7 @@ class TestLocalizedRequests(unittest.TestCase):
         IssuesPaginator.pages = Mock(return_value=[])
 
     def test_issues_local_timezone_in_request(self):
-        issues = Issues('issues', ['pk_fields'])
+        issues = Issues('issues', ['pk_fields'], "INCREMENTAL")
         issues.sync()
 
         user_tz = pytz.timezone(self.tzname)
