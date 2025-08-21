@@ -127,7 +127,8 @@ class Stream():
     :var pk_fields: A list of primary key fields
     :var indirect_stream: If True, this indicates the stream cannot be synced
     directly, but instead has its data generated via a separate stream.
-    :var forced_replication_method: Replication method of the stream"""
+    :var forced_replication_method: Replication method of the stream
+    :var parent_tap_stream_id: The parent class of the stream (optional)"""
 
     def __init__(self, tap_stream_id, pk_fields, forced_replication_method, parent_tap_stream_id=None, indirect_stream=False, path=None):
         self.tap_stream_id = tap_stream_id
