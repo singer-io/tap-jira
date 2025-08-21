@@ -341,3 +341,43 @@ class Paginator():
 
             if page:
                 yield page
+
+class CursorPaginator():
+    def __init__(self, client, items_key="issues"):
+        self.client = client
+        self.items_key = items_key
+        self.next_page_token = None
+
+    def pages(self, *args, **kwargs):
+        """Returns a generator which yields pages of data using cursor-based pagination.
+        Uses nextPageToken for the Jira v3/search/api endpoint.
+
+        :param args: Passed to Client.request
+        :param kwargs: Passed to Client.request
+        """
+        params = kwargs.pop("params", {}).copy()
+        
+        while True:
+            # Add nextPageToken if we have one from previous page
+            if self.next_page_token:
+                params["nextPageToken"] = self.next_page_token
+            
+            response = self.client.request(*args, params=params, **kwargs)
+            
+            # Extract the page data
+            if self.items_key:
+                page = response.get(self.items_key, [])
+            else:
+                page = response
+            
+            # Always yield the page (even if empty)
+            yield page
+            
+            # Check if this is the last page
+            if response.get("isLast", True):
+                break
+                
+            # Get the next page token
+            self.next_page_token = response.get("nextPageToken")
+            if not self.next_page_token:
+                break
