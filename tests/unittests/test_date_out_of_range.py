@@ -32,7 +32,7 @@ class TestOutOfRangeDate(unittest.TestCase):
         mock_stream.schema.to_dict.return_value = mock_schema
         mock_metadata.to_map.return_value = {}  # mock_metadata
 
-        stream_obj = Stream("stream_id", ["id","id2"])
+        stream_obj = Stream("stream_id", ["id","id2"], "INCREMENTAL")
         stream_obj.write_page(mock_records)
 
         # Verify that only records with valid date ranges (2 records) are written
