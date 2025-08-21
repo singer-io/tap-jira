@@ -1,8 +1,9 @@
 # Changelog
 
+## [v2.4.0]
+  * Adds `forced_replication_method` and `parent_tap_stream_id` as discoverable metadata [#120](https://github.com/singer-io/tap-jira/pull/120)
 ## [v2.3.0]
   * Change endpoint for `issues` Stream [#122](https://github.com/singer-io/tap-jira/pull/122)
-
 ## [v2.2.1]
   * Bump depedency versions for twistlock compliance [#118](https://github.com/singer-io/tap-jira/pull/118)
 
