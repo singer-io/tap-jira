@@ -11,6 +11,7 @@ from dateutil.parser._parser import ParserError
 from requests.exceptions import RequestException
 from .http import Paginator, CursorPaginator, JiraNotFoundError
 from .context import Context
+from .jira_utils.flatten_description import flatten_description
 
 DEFAULT_PAGE_SIZE = 50
 
@@ -606,6 +607,13 @@ class Issues(Stream):
                 # the "menu" bar for each issue. This is of questionable utility,
                 # so we decided to just strip the field out for now.
                 issue['fields'].pop('operations', None)
+                if "description" in issue["fields"] and issue["fields"]["description"]:
+                    try:
+                        issue["fields"]["description"] = flatten_description(issue["fields"]["description"])
+                    except Exception as e:
+                        # Log the error and keep original description
+                        print(f"Error flattening description: {e}")
+                        raise Exception(f"Failed to flatten description: {e}")
 
             # Grab last_updated before transform in write_page
             last_updated = utils.strptime_to_utc(page[-1]["fields"]["updated"])
