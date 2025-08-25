@@ -11,7 +11,7 @@ from dateutil.parser._parser import ParserError
 from requests.exceptions import RequestException
 from .http import Paginator, CursorPaginator, JiraNotFoundError
 from .context import Context
-from .jira_utils.flatten_description import flatten_description
+from tap_jira.jira_utils.flatten_description import flatten_description
 
 DEFAULT_PAGE_SIZE = 50
 
