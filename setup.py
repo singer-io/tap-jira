@@ -24,7 +24,7 @@ setup(name="tap-jira",
           [console_scripts]
           tap-jira=tap_jira:main
       """,
-      packages=["tap_jira"],
+      packages=["tap_jira", "tap_jira.jira_utils"],
       package_data = {
           "schemas": ["tap_jira/schemas/*.json"]
       },
