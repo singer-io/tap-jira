@@ -3,6 +3,7 @@ import functools
 import json
 import threading
 import pytz
+import psutil
 import requests
 import singer
 import datetime
@@ -17,10 +18,28 @@ from minware_singer_utils import SecureLogger
 
 LOGGER = SecureLogger(singer.get_logger())
 
+def log_memory(message, *args):
+    """
+    Log current process memory usage with a custom message.
+    Returns the current memory in MB for further processing if needed.
+    """
+    current_process = psutil.Process()
+    current_memory_mb = current_process.memory_info().rss / 1024 / 1024
+    
+    # Format message with args if provided
+    if args:
+        formatted_message = message % args
+    else:
+        formatted_message = message
+    
+    LOGGER.info(f"{formatted_message}: {current_memory_mb:.1f} MB")
+    return current_memory_mb
+
 def partition_list(lst, batch_size):
     """Partition a list into batches of specified size."""
     for i in range(0, len(lst), batch_size):
         yield lst[i:i + batch_size]
+
 
 def bulk_fetch_issues_parallel(client, tap_stream_id, issue_ids, fields=None, max_workers=10):
     """
@@ -45,6 +64,9 @@ def bulk_fetch_issues_parallel(client, tap_stream_id, issue_ids, fields=None, ma
     def fetch_batch(batch):
         return client.bulk_fetch_issues(tap_stream_id, batch, fields)
     
+    # Monitor memory before parallel fetching
+    initial_memory_mb = log_memory("Memory before parallel fetch")
+    
     # Use ThreadPoolExecutor for parallel fetching
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(fetch_batch, batch) for batch in batches]
@@ -53,12 +75,16 @@ def bulk_fetch_issues_parallel(client, tap_stream_id, issue_ids, fields=None, ma
             try:
                 issues = future.result()
                 all_issues.extend(issues)
-                LOGGER.info(f"Fetched batch of {len(issues)} issues")
+                # Monitor memory after each parallel batch fetch
+                log_memory(f"Fetched batch of {len(issues)} issues")
             except Exception as exc:
                 LOGGER.error(f"Batch fetch failed: {exc}")
                 raise exc
     
-    LOGGER.info(f"Completed parallel fetch: {len(all_issues)} total issues")
+    # Monitor memory after all parallel fetching completes
+    final_memory_mb = log_memory(f"Completed parallel fetch: {len(all_issues)} total issues")
+    memory_growth = final_memory_mb - initial_memory_mb
+    LOGGER.info(f"Memory growth during parallel fetch: {memory_growth:.1f} MB")
     return all_issues
 
 def bulk_fetch_changelogs_for_issues(client, tap_stream_id, issue_ids):
@@ -73,12 +99,17 @@ def bulk_fetch_changelogs_for_issues(client, tap_stream_id, issue_ids):
     if not issue_ids:
         return {}
     
+    # Monitor memory before changelog fetching
+    initial_memory_mb = log_memory("Memory before changelog fetch")
+    
     changelog_map = {}
+    total_changelogs = 0
     
     # Process in batches of 1000 (API limit)
-    for batch in partition_list(issue_ids, 1000):
-        LOGGER.info(f"Bulk fetching changelogs for {len(batch)} issues")
+    for batch_index, batch in enumerate(partition_list(issue_ids, 1000)):
+        LOGGER.info(f"Bulk fetching changelogs for batch {batch_index} ({len(batch)} issues)")
         
+        batch_changelogs = 0
         for changelog_page in client.bulk_fetch_changelogs(tap_stream_id, batch):
             for changelog in changelog_page:
                 issue_id = changelog.get("issueId")
@@ -88,10 +119,18 @@ def bulk_fetch_changelogs_for_issues(client, tap_stream_id, issue_ids):
                     if issue_id_str not in changelog_map:
                         changelog_map[issue_id_str] = []
                     changelog_map[issue_id_str].append(changelog)
+                    batch_changelogs += 1
                 else:
                     LOGGER.warning(f"Changelog missing issueId: {changelog.keys()}")
+        
+        total_changelogs += batch_changelogs
+        # Monitor memory after each batch
+        log_memory(f"After changelog batch {batch_index}: {batch_changelogs} changelogs fetched")
     
-    LOGGER.info(f"Bulk fetched changelogs for {len(changelog_map)} issues total")
+    # Final memory report
+    final_memory_mb = log_memory(f"Bulk fetched {total_changelogs} changelogs for {len(changelog_map)} issues")
+    memory_growth = final_memory_mb - initial_memory_mb
+    LOGGER.info(f"Memory growth during changelog fetch: {memory_growth:.1f} MB")
     
     return changelog_map
 
@@ -195,6 +234,11 @@ def sync_sub_streams(page, issue_changelog_updated, changelog_map=None):
             CHANGELOGS.write_page(
                 [{ **changelog, 'issueId': issue["id"] } for changelog in changelogs_to_write]
             )
+            
+            # Monitor memory after processing large changelog sets
+            if len(changelogs_to_write) > 100:
+                log_memory("Memory after %d changelogs for issue %s", 
+                          len(changelogs_to_write), issue["id"])
 
         # Note: Transitions are not available via expand in API v3
         # We will need to fetch them separately if they are needed
@@ -506,6 +550,9 @@ class Issues(Stream):
             project_key_or_id = self.ALL_PROJECTS_BOOKMARK_KEY
 
         LOGGER.info('Begin syncing issues for project {}'.format(project_key_or_id))
+        
+        # Monitor memory at start of project sync
+        log_memory("Starting memory for project %s", project_key_or_id)
 
         # build projects filter from config, if any
         projectsJql = "" if project_key_or_id == self.ALL_PROJECTS_BOOKMARK_KEY \
@@ -540,103 +587,151 @@ class Issues(Stream):
         # Two-phase approach for optimal performance
         jql = "{} updated >= '{}' order by updated asc".format(projectsJql, start_date).strip()
         
-        # Phase 1: Fetch all issue IDs returned by the JQL query (fast, up to 5000 per request)
-        LOGGER.info("Phase 1: Fetching all issue IDs returned by the JQL query for project %s", project_key_or_id)
+        # Phase 1: Get ALL issue IDs in chronological order (fast, guaranteed ordering)
+        # JQL "ORDER BY updated ASC" ensures IDs are returned in chronological sequence
+        LOGGER.info("Phase 1: Fetching all issue IDs in chronological order for project %s", project_key_or_id)
         id_pager = EnhancedSearchPaginator(Context.client, max_results=5000, ids_only=True)
-        all_issue_ids = []
+        all_issue_ids = []  # This will contain IDs in chronological order by 'updated' timestamp
         
-        for page in id_pager.pages(self.tap_stream_id, jql):
-            issue_ids = [issue["id"] for issue in page]
-            all_issue_ids.extend(issue_ids)
+        for id_page in id_pager.pages(self.tap_stream_id, jql):
+            issue_ids = [issue["id"] for issue in id_page]
+            all_issue_ids.extend(issue_ids)  # Preserves chronological order from JQL
             LOGGER.info("Collected %d issue IDs (total: %d)", len(issue_ids), len(all_issue_ids))
         
-        LOGGER.info("Phase 1 complete: Found %d total issues for project %s", len(all_issue_ids), project_key_or_id)
+        LOGGER.info("Phase 1 complete: Found %d total issues in chronological order for project %s", len(all_issue_ids), project_key_or_id)
         
         if not all_issue_ids:
             LOGGER.info("No issues found for project %s", project_key_or_id)
             return
         
-        # Phase 2: Bulk fetch issue details in parallel
-        LOGGER.info("Phase 2: Bulk fetching issue details for project %s", project_key_or_id)
-        fields = ["*all"]
-        all_issues = bulk_fetch_issues_parallel(Context.client, self.tap_stream_id, all_issue_ids, fields)
+        # Phase 2: Process ordered IDs in batches using bulk fetch (preserves order from Phase 1)
+        LOGGER.info("Phase 2: Processing %d ordered issue IDs in batches", len(all_issue_ids))
+        batch_size = 5000  # Bulk fetch batch size
+        sub_batch_size = 100  # Writing sub-batch size
+        max_updated_seen = None
         
-        # Phase 3: Bulk fetch changelogs if needed
-        changelog_map = None
-        if Context.is_selected(CHANGELOGS.tap_stream_id):
-            LOGGER.info("Phase 3: Bulk fetching changelogs for project %s", project_key_or_id)
-            changelog_map = bulk_fetch_changelogs_for_issues(Context.client, CHANGELOGS.tap_stream_id, all_issue_ids)
-            LOGGER.info("Found changelogs for %s issues", len(changelog_map) if changelog_map else 0)
-        else:
-            LOGGER.info("Changelogs stream is NOT selected - skipping changelog fetch")
+        for batch_start in range(0, len(all_issue_ids), batch_size):
+            batch_end = min(batch_start + batch_size, len(all_issue_ids))
+            batch_ids = all_issue_ids[batch_start:batch_end]  # Maintains JQL order!
+            
+            batch_index = batch_start // batch_size
+            LOGGER.info("Processing batch %d: issues %d-%d (%d issues) for project %s", 
+                       batch_index, batch_start, batch_end-1, len(batch_ids), project_key_or_id)
+            
+            # Monitor memory at start of batch
+            log_memory("Memory before processing batch %d for project %s", batch_index, project_key_or_id)
+            
+            # Bulk fetch issues for this batch (parallel execution scrambles the order)
+            batch_issues = bulk_fetch_issues_parallel(Context.client, self.tap_stream_id, batch_ids, ["*all"])
+            
+            # CRITICAL: Restore chronological order that was scrambled by parallel bulk fetch
+            # - batch_ids contains IDs in JQL chronological order (ORDER BY updated ASC)
+            # - batch_issues contains the same issues but in random order due to parallel execution
+            # - We use issue IDs as lookup keys to rebuild the chronological sequence
+            LOGGER.info("Restoring chronological order for %d bulk-fetched issues", len(batch_issues))
+            id_to_issue = {issue["id"]: issue for issue in batch_issues}  # Create lookup map
+            ordered_batch_issues = []
+            for issue_id in batch_ids:  # Iterate in original JQL chronological order
+                if issue_id in id_to_issue:
+                    # Add issue back in chronological position (not sorted by ID, but by updated timestamp)
+                    ordered_batch_issues.append(id_to_issue[issue_id])
+                else:
+                    LOGGER.warning("Issue ID %s not found in bulk fetch results", issue_id)
+            
+            LOGGER.info("Batch %d: Restored chronological order for %d issues", batch_index, len(ordered_batch_issues))
+            
+            # Fetch changelogs for this batch if needed
+            changelog_map = None
+            if Context.is_selected(CHANGELOGS.tap_stream_id):
+                LOGGER.info("Fetching changelogs for batch %d (%d issues)", batch_index, len(batch_ids))
+                changelog_map = bulk_fetch_changelogs_for_issues(Context.client, CHANGELOGS.tap_stream_id, batch_ids)
+            
+            # Process batch in smaller sub-batches for writing (maintaining JQL order)
+            for sub_batch_index, sub_batch_start in enumerate(range(0, len(ordered_batch_issues), sub_batch_size)):
+                sub_batch_end = min(sub_batch_start + sub_batch_size, len(ordered_batch_issues))
+                issue_batch = ordered_batch_issues[sub_batch_start:sub_batch_end]
+                
+                LOGGER.info("Processing sub-batch %d (%d-%d) with %d issues from batch %d", 
+                           sub_batch_index, sub_batch_start, sub_batch_end-1, len(issue_batch), batch_index)
+                
+                # sync comments and changelogs for each issue
+                sync_sub_streams(issue_batch, issue_changelogs_updated, changelog_map)
+                
+                for issue in issue_batch:
+                    issue['fields'].pop('worklog', None)
+                    # The JSON schema for the search endpoint indicates an "operations"
+                    # field can be present. This field is self-referential, making it
+                    # difficult to deal with - we would have to flatten the operations
+                    # and just have each operation include the IDs of other operations
+                    # it references. However the operations field has something to do
+                    # with the UI within Jira - I believe the operations are parts of
+                    # the "menu" bar for each issue. This is of questionable utility,
+                    # so we decided to just strip the field out for now.
+                    issue['fields'].pop('operations', None)
+
+                    # Track maximum updated timestamp seen - in JQL order, this will be monotonically increasing
+                    issue_updated = utils.strptime_to_utc(issue["fields"]["updated"])
+                    if max_updated_seen is None or issue_updated > max_updated_seen:
+                        max_updated_seen = issue_updated
+
+                    # Rename all of the custom fields
+                    # filter excluded fields
+                    for k in list(issue['fields'].keys()):
+                        if k[:len('customfield_')] == 'customfield_':
+                            val = issue['fields'][k]
+                            del issue['fields'][k]
+                            issue['fields'][fieldNames[k]] = val
+
+                        if fieldNames[k] in issue['fields'] and should_exclude_field(k, fieldNames[k]):
+                            LOGGER.debug('Excluding field {} - {}'.format(k, fieldNames[k]))
+                            issue['fields'][fieldNames[k]] = '<REDACTED>'
+
+                    # Now, go through and separate fields we don't recognize into "_custom"
+                    customFields = {}
+                    for k in list(issue['fields'].keys()):
+                        # If we don't know about this field, then put it in a "_custom" object for
+                        # outputting as a single JSON
+                        if not k in knownFields:
+                            val = issue['fields'][k]
+                            # Don't include null values, which just waste a bunch of space
+                            if val != None:
+                                customFields[k] = val
+                            del issue['fields'][k]
+                    issue['fields']['_custom'] = json.dumps(customFields)
+                    
+                LOGGER.info("Writing sub-batch %d with %d issues from batch %d...", sub_batch_index, len(issue_batch), batch_index)
+                with self.write_lock:
+                    self.write_page(issue_batch)
+                    # Update bookmark with maximum updated timestamp (safe since issues are JQL-ordered)
+                    if max_updated_seen:
+                        Context.set_bookmark(updated_bookmark, max_updated_seen)
+                    Context.set_bookmark(issue_changelogs_updated_bookmark_path, issue_changelogs_sync_time)
+                    singer.write_state(Context.state)
+                
+                # Monitor memory usage after processing each batch
+                log_memory("Memory after sub-batch %d from batch %d", sub_batch_index, batch_index)
+                
+                LOGGER.info("Finished writing sub-batch %d from batch %d", sub_batch_index, batch_index)
+            
+            # Batch complete - clear variables to help with memory cleanup
+            log_memory("Memory at end of batch %d (should decrease on next batch)", batch_index)
+            del ordered_batch_issues
+            if changelog_map:
+                del changelog_map
         
-        # Process issues in batches for progress tracking and state emission
-        LOGGER.info("Processing %d issues in batches for project %s", len(all_issues), project_key_or_id)
-        batch_size = 100
-        
-        for batch_index, batch_start in enumerate(range(0, len(all_issues), batch_size)):
-            batch_end = min(batch_start + batch_size, len(all_issues))
-            issue_batch = all_issues[batch_start:batch_end]
-            
-            LOGGER.info("Processing batch %d (%d-%d) with %d issues for project %s", 
-                       batch_index, batch_start, batch_end-1, len(issue_batch), project_key_or_id)
-            
-            # sync comments and changelogs for each issue
-            sync_sub_streams(issue_batch, issue_changelogs_updated, changelog_map)
-            
-            for issue in issue_batch:
-                issue['fields'].pop('worklog', None)
-                # The JSON schema for the search endpoint indicates an "operations"
-                # field can be present. This field is self-referential, making it
-                # difficult to deal with - we would have to flatten the operations
-                # and just have each operation include the IDs of other operations
-                # it references. However the operations field has something to do
-                # with the UI within Jira - I believe the operations are parts of
-                # the "menu" bar for each issue. This is of questionable utility,
-                # so we decided to just strip the field out for now.
-                issue['fields'].pop('operations', None)
-
-                # Rename all of the custom fields
-                # filter excluded fields
-                for k in list(issue['fields'].keys()):
-                    if k[:len('customfield_')] == 'customfield_':
-                        val = issue['fields'][k]
-                        del issue['fields'][k]
-                        issue['fields'][fieldNames[k]] = val
-
-                    if fieldNames[k] in issue['fields'] and should_exclude_field(k, fieldNames[k]):
-                        LOGGER.debug('Excluding field {} - {}'.format(k, fieldNames[k]))
-                        issue['fields'][fieldNames[k]] = '<REDACTED>'
-
-                # Now, go through and separate fields we don't recognize into "_custom"
-                customFields = {}
-                for k in list(issue['fields'].keys()):
-                    # If we don't know about this field, then put it in a "_custom" object for
-                    # outputting as a single JSON
-                    if not k in knownFields:
-                        val = issue['fields'][k]
-                        # Don't include null values, which just waste a bunch of space
-                        if val != None:
-                            customFields[k] = val
-                        del issue['fields'][k]
-                issue['fields']['_custom'] = json.dumps(customFields)
-
-            # Grab last_updated before transform in write_page
-            last_updated = utils.strptime_to_utc(issue_batch[-1]["fields"]["updated"])
-            LOGGER.info("Writing batch %d with %d issues for project %s...", batch_index, len(issue_batch), project_key_or_id)
-            with self.write_lock:
-                self.write_page(issue_batch)
-                singer.write_state(Context.state)
-            
-            LOGGER.info("Finished writing batch %d for project %s", batch_index, project_key_or_id)
-        
-        # After the loop completes
+        # All batches complete - final state update
+        LOGGER.info("All ordered batches complete for project %s", project_key_or_id)
         with self.write_lock:
-            # Remove page number bookmarking since enhanced API uses tokens
-            Context.set_bookmark(updated_bookmark, last_updated)
+            # Final bookmark update with maximum updated timestamp seen
+            if max_updated_seen:
+                Context.set_bookmark(updated_bookmark, max_updated_seen)
+                LOGGER.info("Final bookmark set to maximum updated timestamp: %s", max_updated_seen)
             Context.set_bookmark(issue_changelogs_updated_bookmark_path, issue_changelogs_sync_time)
             singer.write_state(Context.state)
 
+        # Final memory report for this project
+        log_memory("Final memory after syncing project %s", project_key_or_id)
+        
         LOGGER.info('Done syncing project %s', project_key_or_id)
 
 

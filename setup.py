@@ -15,6 +15,7 @@ setup(name="tap-jira",
           "singer-python==5.12.1",
           "atlassian-jwt==3.0.0",
           "requests==2.20.0",
+          "psutil>=5.9.0",
           'minware_singer_utils@git+https://{}github.com/minwareco/minware-singer-utils.git@{}'.format(
               "{}@".format(os.environ.get("GITHUB_TOKEN")) if os.environ.get("GITHUB_TOKEN") else "",
               UTILS_VERSION
