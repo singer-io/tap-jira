@@ -244,7 +244,7 @@ class Client():
             response = self.send(*args, **kwargs)
             self.next_request_at = datetime.now() + TIME_BETWEEN_REQUESTS
             timer.tags[metrics.Tag.http_status_code] = response.status_code
-            timer.tags["http_method"] = args[0]
+            timer.tags["http_method"] = response.request.method
             timer.tags["tap_stream_id"] = tap_stream_id
             timer.tags["endpoint"] = response.url
         check_status(response)
