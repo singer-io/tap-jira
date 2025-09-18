@@ -9,6 +9,9 @@ def get_mock_http_response(*args, **kwargs):
     response = requests.Response()
     response.status_code = 200
     response._content = contents.encode()
+    response.url = ""
+    response.request = requests.Request()
+    response.request.method = ""
     return response
 
 

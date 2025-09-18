@@ -23,6 +23,9 @@ def get_mock_http_response(status_code, content={}):
     response.status_code = status_code
     response.headers = {}
     response._content = contents.encode()
+    response.url = ""
+    response.request = requests.Request()
+    response.request.method = ""
     return response
 
 @mock.patch('tap_jira.http.Client.send')
