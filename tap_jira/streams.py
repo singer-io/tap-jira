@@ -165,6 +165,7 @@ class Stream():
 
         with metrics.record_counter(self.tap_stream_id) as counter:
             counter.increment(rec_count) # Do not increment counter for skipped records
+            counter.tags["tap_stream_id"] = self.tap_stream_id
 
 def update_user_date(page):
     """

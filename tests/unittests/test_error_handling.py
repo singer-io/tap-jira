@@ -13,6 +13,9 @@ class Mockresponse:
         self.content = content
         self.headers = headers
         self.raise_error = raise_error
+        self.url = ""
+        self.request = mock.Mock()
+        self.request.method = ""
 
     def prepare(self):
         return (self.json_data, self.status_code, self.content, self.headers, self.raise_error)
