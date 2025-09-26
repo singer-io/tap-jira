@@ -64,7 +64,7 @@ def discover():
 def generate_metadata(stream, schema):
     mdata = metadata.new()
 
-    # Update pk for users stream to key for on prem jira instance
+    # Update pk for users stream to key for on-prem Jira instance
     if stream.tap_stream_id == "users" and Context.client.is_on_prem_instance:
         stream.pk_fields = ["key"]
 
@@ -82,9 +82,14 @@ def generate_metadata(stream, schema):
     return metadata.to_list(mdata)
 
 
-def output_schema(stream):
-    schema = load_schema(stream.tap_stream_id)
-    singer.write_schema(stream.tap_stream_id, schema, stream.pk_fields)
+def write_schema(stream_obj):
+    stream = Context.catalog.get_stream(stream_obj.tap_stream_id)
+    schema = stream.schema.to_dict()
+    try:
+        singer.write_schema(stream_obj.tap_stream_id, schema, stream.key_properties)
+    except OSError as err:
+        LOGGER.info('OS Error writing schema for: %s', stream_obj.tap_stream_id)
+        raise err
 
 
 def sync():
@@ -96,7 +101,7 @@ def sync():
     # data for the second stream, but the second stream hasn't output its
     # schema yet
     for stream in streams_.ALL_STREAMS:
-        output_schema(stream)
+        write_schema(stream)
 
     for stream in streams_.ALL_STREAMS:
         if not Context.is_selected(stream.tap_stream_id):
@@ -111,7 +116,6 @@ def sync():
         stream.sync()
     Context.state["currently_syncing"] = None
     singer.write_state(Context.state)
-
 
 @singer.utils.handle_top_exception(LOGGER)
 def main():
@@ -131,7 +135,7 @@ def main():
 
     try:
         if args.discover:
-            discover().dump()
+            catalog.dump()
             print()
         else:
             sync()
