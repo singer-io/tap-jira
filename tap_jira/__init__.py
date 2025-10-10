@@ -21,10 +21,12 @@ REQUIRED_CONFIG_KEYS_HOSTED = ["start_date",
                                "username",
                                "password",
                                "base_url",
-                               "user_agent"]
+                               "user_agent",
+                               "project"]
 
 
 def get_args():
+    LOGGER.info(utils.parse_args(REQUIRED_CONFIG_KEYS_HOSTED))
     unchecked_args = utils.parse_args([])
     if 'username' in unchecked_args.config.keys():
         return utils.parse_args(REQUIRED_CONFIG_KEYS_HOSTED)
@@ -82,10 +84,12 @@ def generate_metadata(stream, schema):
     return metadata.to_list(mdata)
 
 
-def output_schema(stream):
-    schema = load_schema(stream.tap_stream_id)
-    singer.write_schema(stream.tap_stream_id, schema, stream.pk_fields)
-
+def output_schema(catalog_entry):
+    singer.write_schema(
+        catalog_entry.tap_stream_id,
+        catalog_entry.schema.to_dict(),
+        catalog_entry.key_properties,
+    )
 
 def sync():
     streams_.validate_dependencies()
@@ -96,7 +100,7 @@ def sync():
     # data for the second stream, but the second stream hasn't output its
     # schema yet
     for stream in streams_.ALL_STREAMS:
-        output_schema(stream)
+        output_schema(Context.get_catalog_entry(stream.tap_stream_id))
 
     for stream in streams_.ALL_STREAMS:
         if not Context.is_selected(stream.tap_stream_id):
