@@ -119,7 +119,7 @@ class Client():
         )
 
     @backoff.on_exception(backoff.expo,
-                          (requests.exceptions.ConnectionError, HTTPError),
+                          (requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError, HTTPError),
                           jitter=None,
                           max_tries=6,
                           giveup=lambda e: not should_retry_httperror(e))
