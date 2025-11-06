@@ -20,8 +20,7 @@ REQUIRED_CONFIG_KEYS_CLOUD = ["start_date",
 REQUIRED_CONFIG_KEYS_HOSTED = ["start_date",
                                "username",
                                "password",
-                               "base_url",
-                               "user_agent"]
+                               "base_url"]
 
 
 def get_args():
