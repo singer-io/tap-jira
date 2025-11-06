@@ -14,6 +14,7 @@ class TestLocalizedRequests(unittest.TestCase):
         Context.bookmark = Mock()
         Context.set_bookmark = Mock()
         IssuesPaginator.pages = Mock(return_value=[])
+        Context.client = Mock()
 
     def test_issues_local_timezone_in_request(self):
         issues = Issues('issues', ['pk_fields'], "INCREMENTAL")
