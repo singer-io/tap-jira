@@ -317,10 +317,30 @@ class Issues(Stream):
                   "validateQuery": "strict",
                   "jql": jql}
         page_num = Context.bookmark(page_num_offset) or 0
-        pager = IssuesPaginator(Context.client, items_key="issues", page_num=page_num)
-        for page in pager.pages(self.tap_stream_id,
-                                "GET", "/rest/api/2/search/jql",
-                                params=params):
+        endpoint = "/rest/api/2/search/jql"
+        # Validate which endpoint works
+        try:
+            # Use a minimal validation request to reduce unnecessary data transfer
+            validation_params = dict(params)
+            validation_params["maxResults"] = 1
+            Context.client.request(tap_stream_id=self.tap_stream_id, method="GET", path=endpoint, params=validation_params)
+            pager = IssuesPaginator(Context.client, items_key="issues", page_num=page_num)
+            issues_pages = pager.pages(self.tap_stream_id,
+                                "GET", endpoint,
+                                params=params)
+        except JiraNotFoundError as ex:
+            if "HTTP-error-code: 404" in str(ex) or "resource you have specified cannot be found" in str(ex).lower():
+                LOGGER.warning(
+                "Endpoint /rest/api/2/search/jql not supported on this JIRA instance. " \
+                "Falling back to /rest/api/2/search."
+                )
+                pager = Paginator(Context.client, items_key="issues", page_num=page_num)
+                issues_pages = pager.pages(self.tap_stream_id,
+                                    "GET", "/rest/api/2/search",
+                                    params=params)
+            else:
+                raise
+        for page in issues_pages:
             # sync comments and changelogs for each issue
             sync_sub_streams(page)
             for issue in page:
