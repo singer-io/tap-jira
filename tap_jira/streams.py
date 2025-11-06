@@ -6,7 +6,7 @@ import dateparser
 from singer import metrics, utils, metadata, Transformer
 from singer.transform import SchemaMismatch
 from dateutil.parser._parser import ParserError
-from .http import Client,Paginator,JiraNotFoundError,IssuesPaginator
+from .http import Paginator,JiraNotFoundError,IssuesPaginator
 from .context import Context
 
 DEFAULT_PAGE_SIZE = 50
@@ -318,9 +318,13 @@ class Issues(Stream):
                   "jql": jql}
         page_num = Context.bookmark(page_num_offset) or 0
         endpoint = "/rest/api/2/search/jql"
-        # Step 1: Validate which endpoint works
+        # Validate which endpoint works
         try:
-            Context.client.request(tap_stream_id=self.tap_stream_id, method="GET", path=endpoint, params=params)
+            # Use a minimal validation request to reduce unnecessary data transfer
+            validation_params = dict(params)
+            validation_params["maxResults"] = 1
+            Context.client.request(tap_stream_id=self.tap_stream_id, method="GET", path=endpoint, params=validation_params)
+            pager = IssuesPaginator(Context.client, items_key="issues", page_num=page_num)
             issues_pages = pager.pages(self.tap_stream_id,
                                 "GET", endpoint,
                                 params=params)
@@ -330,10 +334,12 @@ class Issues(Stream):
                 "Endpoint /rest/api/2/search/jql not supported on this JIRA instance. " \
                 "Falling back to /rest/api/2/search."
                 )
-            pager = Paginator(Context.client, items_key="issues", page_num=page_num)
-            issues_pages = pager.pages(self.tap_stream_id,
-                                "GET", "/rest/api/2/search",
-                                params=params)
+                pager = Paginator(Context.client, items_key="issues", page_num=page_num)
+                issues_pages = pager.pages(self.tap_stream_id,
+                                    "GET", "/rest/api/2/search",
+                                    params=params)
+            else:
+                raise
         for page in issues_pages:
             # sync comments and changelogs for each issue
             sync_sub_streams(page)

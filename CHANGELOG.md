@@ -1,5 +1,8 @@
 # Changelog
 
+## [v2.6.0]
+  * Fallback mechanism for JIRA API requests to support on-premises instances [#131](https://github.com/singer-io/tap-jira/pull/131)
+
 ## [v2.5.0]
   * Add extra tags to `http_request_timer` metrics and `record_counter` metrics [#129](https://github.com/singer-io/tap-jira/pull/129)
 
