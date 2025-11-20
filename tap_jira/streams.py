@@ -379,8 +379,8 @@ class Issues(Stream):
             last_updated = utils.strptime_to_utc(page[-1]["fields"]["updated"])
             self.write_page(page)
             Context.set_bookmark(page_num_offset, pager.next_page_num)
-            # copy parent's bookmark to children
-            self.set_bookmarks_for_issue_sub_streams(page_num_offset, pager.next_page_num)
+            # Copy parent's bookmark to children
+            self.set_bookmarks_for_issue_sub_streams(page_num_offset.copy(), pager.next_page_num)
             singer.write_state(Context.state)
         Context.set_bookmark(page_num_offset, None)
         Context.set_bookmark(updated_bookmark, last_updated)

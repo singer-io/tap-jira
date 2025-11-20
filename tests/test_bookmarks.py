@@ -35,11 +35,7 @@ class BookmarkTest(BaseTapTest):
 
         # Select all streams and no fields within streams
         found_catalogs = menagerie.get_catalogs(conn_id)
-
-        # IF THERE ARE STREAMS THAT SHOULD NOT BE TESTED
-        # REPLACE THE EMPTY SET BELOW WITH THOSE STREAMS
-        untested_streams = self.child_streams().union({"issue_comments", "issue_transitions", "changelogs"})
-        expected_streams = self.expected_streams().difference(untested_streams)
+        expected_streams = self.expected_streams()
 
         incremental_streams = {key for key, value in self.expected_replication_method().items()
                                if value == self.INCREMENTAL}
@@ -55,7 +51,6 @@ class BookmarkTest(BaseTapTest):
         self.assertEqual(set(first_sync_record_count.keys()), expected_streams)
 
         first_sync_state = menagerie.get_state(conn_id)
-
         # Get data about actual rows synced
         first_sync_records = runner.get_records_from_target_output()
         first_max_bookmarks = self.max_bookmarks_by_stream(first_sync_records)
@@ -69,8 +64,7 @@ class BookmarkTest(BaseTapTest):
         second_sync_records = runner.get_records_from_target_output()
         second_min_bookmarks = self.min_bookmarks_by_stream(second_sync_records)
 
-        # THIS MAKES AN ASSUMPTION THAT CHILD STREAMS DO NOT HAVE BOOKMARKS.
-        # ADJUST IF NECESSARY
+        issues_child_streams = ["issue_comments", "changelogs", "issue_transitions"]
         for stream in expected_streams:
             with self.subTest(stream=stream):
 
@@ -81,10 +75,13 @@ class BookmarkTest(BaseTapTest):
                     stream_bookmark_key = stream_bookmark_key.pop()
                     state_value = first_sync_state.get("bookmarks", {}).get(
                         stream, {None: None}).get(stream_bookmark_key)
+                    # issues child stream's bookmarks mirrors the parent.
+                    # Their records do not have the replication key
+                    stream_name = "issues" if stream in issues_child_streams else stream
                     target_value = first_max_bookmarks.get(
-                        stream, {None: None}).get(stream_bookmark_key)
+                        stream_name, {None: None}).get(stream_bookmark_key)
                     target_min_value = first_min_bookmarks.get(
-                        stream, {None: None}).get(stream_bookmark_key)
+                        stream_name, {None: None}).get(stream_bookmark_key)
 
                     # verify that there is data with different bookmark values - setup necessary
                     self.assertGreaterEqual(
@@ -107,9 +104,12 @@ class BookmarkTest(BaseTapTest):
                         msg="second syc didn't have less records, bookmark usage not verified",
                         logging="verify less data is replicated on the second sync")
 
+                    # issues child stream's bookmarks mirrors the parent.
+                    # Their records do not have the replication key
+                    stream_name = "issues" if stream in issues_child_streams else stream
                     # verify all data from 2nd sync >= 1st bookmark
                     target_value = second_min_bookmarks.get(
-                        stream, {None: None}).get(stream_bookmark_key)
+                        stream_name, {None: None}).get(stream_bookmark_key)
 
                     # verify that the minimum bookmark sent to the target for the second sync
                     # is greater than or equal to the bookmark from the first sync
