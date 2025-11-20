@@ -304,25 +304,24 @@ class Issues(Stream):
     def set_bookmarks_for_issue_sub_streams(self, bookmark_path, bookmark_value):
         '''ISSUE_COMMENTS, CHANGELOGS, and ISSUE_TRANSITIONS are all
         incremental child streams of the incremental stream ISSUES. The
-        ISSUES' bookmark is used to query the data to load for both parent
-        and child streams. We add child bookmarks here because their
-        presence is required downstream to correctly calculate
-        target_state.
+        ISSUES' bookmark is used to query the data for both parent and
+        child streams. We add child bookmarks here because their presence
+        is required downstream to correctly calculate target_state.
         These child stream bookmarks are not used during the sync.
         '''
         if Context.is_selected(ISSUE_COMMENTS.tap_stream_id):
             bookmark_path[0] = ISSUE_COMMENTS.tap_stream_id
             Context.set_bookmark(bookmark_path, bookmark_value)
-            
+
         if Context.is_selected(CHANGELOGS.tap_stream_id):
             bookmark_path[0] = CHANGELOGS.tap_stream_id
             Context.set_bookmark(bookmark_path, bookmark_value)
-            
+
         if Context.is_selected(ISSUE_TRANSITIONS.tap_stream_id):
             bookmark_path[0] = ISSUE_TRANSITIONS.tap_stream_id
             Context.set_bookmark(bookmark_path, bookmark_value)
 
-        
+
     def sync(self):
         updated_bookmark = [self.tap_stream_id, "updated"]
         page_num_offset = [self.tap_stream_id, "offset", "page_num"]
