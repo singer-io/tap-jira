@@ -44,6 +44,12 @@ class Context():
         cls.bookmark(path[:-1])[path[-1]] = val
 
     @classmethod
+    def clear_bookmark(cls, stream):
+        if "bookmarks" not in cls.state:
+            return None
+        return cls.state["bookmarks"].pop(stream, None)
+    
+    @classmethod
     def update_start_date_bookmark(cls, path):
         val = cls.bookmark(path)
         if not val:

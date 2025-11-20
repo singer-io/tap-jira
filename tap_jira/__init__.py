@@ -107,8 +107,17 @@ def sync():
         if stream.indirect_stream:
             continue
         Context.state["currently_syncing"] = stream.tap_stream_id
+
+        # If the Issues' bookmark has been reset, check to clear the child stream bookmarks so they remain synchronized. 
+        if stream.tap_stream_id == "issues" and "issues" not in Context.bookmarks():
+            children_streams = ["issue_comments", "changelogs", "issue_transitions"]
+            for stream in children_streams:
+                cleared = Context.clear_bookmark(stream)
+                if cleared:
+                    LOGGER.info(f"Parent stream 'issues' bookmark is empty. Clearing state for child stream: {stream}")
         singer.write_state(Context.state)
         stream.sync()
+        
     Context.state["currently_syncing"] = None
     singer.write_state(Context.state)
 
