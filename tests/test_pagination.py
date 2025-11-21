@@ -38,7 +38,7 @@ class PaginationTest(BaseTapTest):
         actual_fields_by_stream = runner.examine_target_output_for_fields()
       
         synced_recs = runner.get_records_from_target_output()
-
+        issues_child_streams = ["issue_comments", "changelogs", "issue_transitions"]
         for stream in self.expected_streams():
             with self.subTest(stream=stream):
 
@@ -62,14 +62,27 @@ class PaginationTest(BaseTapTest):
                     logging="verify the number of records replicated exceeds the stream api limit"
                 )
 
+                
                 # verify that the automatic fields are sent to the target
-                self.assertTrue(
-                    replicated_fields.issuperset(
-                        self.expected_primary_keys().get(stream, set()) |
-                        self.top_level_replication_key_fields().get(stream, set()) |
-                        self.expected_foreign_keys().get(stream, set())),
-                    logging="verify the automatic fields are sent to the target"
-                )
+                if stream in issues_child_streams:
+                    # issue child stream's do not replication key values
+                    # in the records. Their bookmarks are not used by the
+                    # tap and are only needed downstream for target_state
+                    # calculations.
+                    self.assertTrue(
+                        replicated_fields.issuperset(
+                            self.expected_primary_keys().get(stream, set()) |
+                            self.expected_foreign_keys().get(stream, set())),
+                        logging="verify the automatic fields are sent to the target"
+                    )
+                else:
+                    self.assertTrue(
+                        replicated_fields.issuperset(
+                            self.expected_primary_keys().get(stream, set()) |
+                            self.top_level_replication_key_fields().get(stream, set()) |
+                            self.expected_foreign_keys().get(stream, set())),
+                        logging="verify the automatic fields are sent to the target"
+                    )
 
                 # verify we have more fields sent to the target than just automatic fields
                 # SKIP THIS ASSERTION IF ALL FIELDS ARE INTENTIONALLY AUTOMATIC FOR THIS STREAM

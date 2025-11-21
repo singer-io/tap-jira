@@ -43,15 +43,18 @@ class MinimumSelectionTest(BaseTapTest):
 
         actual_fields_by_stream = runner.examine_target_output_for_fields()
         synced_records = runner.get_records_from_target_output()
-
+        issues_child_streams = ["issue_comments", "changelogs", "issue_transitions"]
         for stream in expected_streams:
             with self.subTest(stream=stream):
-
                 # gather expectations
                 expected_primary_keys = self.expected_primary_keys().get(stream, set())
-                expected_automatic_fields = (expected_primary_keys |
-                                             self.top_level_replication_key_fields().get(stream, set()) |
-                                             self.expected_foreign_keys().get(stream, set()))
+                if stream in issues_child_streams:
+                    expected_automatic_fields = (expected_primary_keys |
+                                                 self.expected_foreign_keys().get(stream, set()))
+                else:
+                    expected_automatic_fields = (expected_primary_keys |
+                                                 self.top_level_replication_key_fields().get(stream, set()) |
+                                                 self.expected_foreign_keys().get(stream, set()))
                 api_limit = self.expected_metadata().get(stream, {}).get(self.API_LIMIT)
 
                 # collect results
