@@ -302,6 +302,26 @@ class Users(Stream):
 
 
 class Issues(Stream):
+    def set_bookmarks_for_issue_sub_streams(self, bookmark_path, bookmark_value):
+        '''ISSUE_COMMENTS, CHANGELOGS, and ISSUE_TRANSITIONS are all
+        incremental child streams of the incremental stream ISSUES. The
+        ISSUES' bookmark is used to query the data for both parent and
+        child streams. Every incremental stream is required to have a
+        bookmark.
+        These child stream bookmarks are not used during the sync.
+        '''
+        if Context.is_selected(ISSUE_COMMENTS.tap_stream_id):
+            bookmark_path[0] = ISSUE_COMMENTS.tap_stream_id
+            Context.set_bookmark(bookmark_path, bookmark_value)
+
+        if Context.is_selected(CHANGELOGS.tap_stream_id):
+            bookmark_path[0] = CHANGELOGS.tap_stream_id
+            Context.set_bookmark(bookmark_path, bookmark_value)
+
+        if Context.is_selected(ISSUE_TRANSITIONS.tap_stream_id):
+            bookmark_path[0] = ISSUE_TRANSITIONS.tap_stream_id
+            Context.set_bookmark(bookmark_path, bookmark_value)
+
 
     def sync(self):
         updated_bookmark = [self.tap_stream_id, "updated"]
@@ -357,13 +377,16 @@ class Issues(Stream):
 
             # Grab last_updated before transform in write_page
             last_updated = utils.strptime_to_utc(page[-1]["fields"]["updated"])
-
             self.write_page(page)
-
             Context.set_bookmark(page_num_offset, pager.next_page_num)
+            # Copy parent's bookmark to children
+            self.set_bookmarks_for_issue_sub_streams(page_num_offset.copy(), pager.next_page_num)
             singer.write_state(Context.state)
         Context.set_bookmark(page_num_offset, None)
         Context.set_bookmark(updated_bookmark, last_updated)
+        # copy parent's bookmark to children
+        self.set_bookmarks_for_issue_sub_streams(page_num_offset, None)
+        self.set_bookmarks_for_issue_sub_streams(updated_bookmark, last_updated)
         singer.write_state(Context.state)
 
 

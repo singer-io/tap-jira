@@ -76,7 +76,7 @@ class BaseTapTest(BaseCase):
     @staticmethod
     def forced_incremental_streams():
         # "key" refers to the path in state and "path" refers to the path in the record
-        return {"issues": {"bookmark_path": "updated", "record_path": ("fields", "updated")}, "worklogs": "updated"}
+        return {"issues": {"bookmark_path": "updated", "record_path": ("fields", "updated")}, "worklogs": "updated", "issue_comments": {"bookmark_path": "updated", "record_path": ("fields", "updated")}, "issue_transitions": {"bookmark_path": "updated", "record_path": ("fields", "updated")}, "changelogs": {"bookmark_path": "updated", "record_path": ("fields", "updated")}}
 
     def expected_metadata(self):
         """The expected streams and metadata about the streams"""
@@ -305,9 +305,10 @@ class BaseTapTest(BaseCase):
         string compared which works for ISO date-time strings
         """
         max_bookmarks = {}
+        issues_child_streams = ["issue_comments", "changelogs", "issue_transitions"]
         # get incremental streams
         incremental_streams = [key for key, value in self.expected_replication_method().items()
-                               if value == self.INCREMENTAL]
+                               if value == self.INCREMENTAL and key not in issues_child_streams]
         for stream, batch in sync_records.items():
             # skip stream that is not incremental
             # as bookmark will be written for incremental streams
@@ -329,7 +330,6 @@ class BaseTapTest(BaseCase):
                     return get_bookmark(message_data[stream_record_key[0]],
                                         stream_record_key[1:])
                 return message_data[stream_record_key]
-
             bk_values = [get_bookmark(message['data'], stream_record_key) for message in upsert_messages]
             max_bookmarks[stream] = {stream_bookmark_key: None}
             for bk_value in bk_values:
@@ -346,9 +346,10 @@ class BaseTapTest(BaseCase):
     def min_bookmarks_by_stream(self, sync_records):
         """Return the minimum value for the replication key for each stream"""
         min_bookmarks = {}
+        issues_child_streams = ["issue_comments", "changelogs", "issue_transitions"]
         # get incremental streams
         incremental_streams = [key for key, value in self.expected_replication_method().items()
-                               if value == self.INCREMENTAL]
+                               if value == self.INCREMENTAL and key not in issues_child_streams]
         for stream, batch in sync_records.items():
             # skip stream that is not incremental
             # as bookmark will be written for incremental streams
