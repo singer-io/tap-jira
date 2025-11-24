@@ -67,8 +67,8 @@ class BookmarkTest(BaseTapTest):
         issues_child_streams = ["issue_comments", "changelogs", "issue_transitions"]
         for child in issues_child_streams:
             # Assert Issue child streams copy parent stream bookmark
-            self.assertEquals(first_sync_state['bookmarks']['issues'], first_sync_state['bookmarks'][child])
-            self.assertEquals(second_sync_state['bookmarks']['issues'], second_sync_state['bookmarks'][child])
+            self.assertEqual(first_sync_state['bookmarks']['issues'], first_sync_state['bookmarks'][child])
+            self.assertEqual(second_sync_state['bookmarks']['issues'], second_sync_state['bookmarks'][child])
 
         for stream in expected_streams:
             with self.subTest(stream=stream):
