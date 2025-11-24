@@ -300,6 +300,7 @@ class Users(Stream):
             except JiraNotFoundError:
                 LOGGER.info("Could not find group \"%s\", skipping", group)
 
+
 class Issues(Stream):
     def set_bookmarks_for_issue_sub_streams(self, bookmark_path, bookmark_value):
         '''ISSUE_COMMENTS, CHANGELOGS, and ISSUE_TRANSITIONS are all

@@ -90,11 +90,11 @@ def output_schema(stream):
 def sync():
     streams_.validate_dependencies()
 
+    
     # two loops through streams are necessary so that the schema is output
     # BEFORE syncing any streams. Otherwise, the first stream might generate
     # data for the second stream, but the second stream hasn't output its
-    # schema yet
-    
+    # schema yet    
     for stream in streams_.ALL_STREAMS:
         output_schema(stream)
 
@@ -108,9 +108,7 @@ def sync():
             continue
         Context.state["currently_syncing"] = stream.tap_stream_id
         singer.write_state(Context.state)
-
         stream.sync()
-
     Context.state["currently_syncing"] = None
     singer.write_state(Context.state)
 
