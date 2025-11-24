@@ -90,21 +90,22 @@ def output_schema(stream):
 def sync():
     streams_.validate_dependencies()
 
+    # If the Issues' bookmark has been reset, check to clear the child stream bookmarks so they remain synchronized.
+    # Update bookmark before first state message is emitted
+    if "issues" not in Context.bookmarks():
+        children_streams = ["issue_comments", "changelogs", "issue_transitions"]
+        for child in children_streams:
+            cleared_bookmark = Context.clear_bookmark(child)
+            cleared_target_state = Context.clear_target_state(child)
+            if cleared_bookmark or cleared_target_state:
+                LOGGER.info(f"Parent stream 'issues' bookmark is empty. Clearing state for child stream: {child}")
 
     # two loops through streams are necessary so that the schema is output
     # BEFORE syncing any streams. Otherwise, the first stream might generate
     # data for the second stream, but the second stream hasn't output its
     # schema yet
+    
     for stream in streams_.ALL_STREAMS:
-        # If the Issues' bookmark has been reset, check to clear the child stream bookmarks so they remain synchronized.
-        # Update bookmark before first state message is emitted
-        if stream.tap_stream_id == "issues" and "issues" not in Context.bookmarks():
-            children_streams = ["issue_comments", "changelogs", "issue_transitions"]
-            for child in children_streams:
-                cleared = Context.clear_bookmark(child)
-                if cleared:
-                    LOGGER.info(f"Parent stream 'issues' bookmark is empty. Clearing state for child stream: {child}")
-
         output_schema(stream)
 
     for stream in streams_.ALL_STREAMS:
