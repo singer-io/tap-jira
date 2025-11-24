@@ -306,8 +306,8 @@ class Issues(Stream):
         '''ISSUE_COMMENTS, CHANGELOGS, and ISSUE_TRANSITIONS are all
         incremental child streams of the incremental stream ISSUES. The
         ISSUES' bookmark is used to query the data for both parent and
-        child streams. We add child bookmarks here because their presence
-        is required downstream to correctly calculate target_state.
+        child streams. Every incremental stream is required to have a
+        bookmark.
         These child stream bookmarks are not used during the sync.
         '''
         if Context.is_selected(ISSUE_COMMENTS.tap_stream_id):
