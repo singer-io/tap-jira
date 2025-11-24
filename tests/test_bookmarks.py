@@ -65,6 +65,11 @@ class BookmarkTest(BaseTapTest):
         second_min_bookmarks = self.min_bookmarks_by_stream(second_sync_records)
 
         issues_child_streams = ["issue_comments", "changelogs", "issue_transitions"]
+        for child in issues_child_streams:
+            # Assert Issue child streams copy parent stream bookmark
+            self.assertEquals(first_sync_state['bookmarks']['issues'], first_sync_state['bookmarks'][child])
+            self.assertEquals(second_sync_state['bookmarks']['issues'], second_sync_state['bookmarks'][child])
+            
         for stream in expected_streams:
             with self.subTest(stream=stream):
 
