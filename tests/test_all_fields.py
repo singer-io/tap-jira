@@ -72,12 +72,16 @@ class AllFieldsTest(BaseTapTest):
             expected_streams, synced_stream_names,
             logging=f"verify no unexpected streams are replicated: {expected_streams}"
         )
-
+        issues_child_streams = ["issue_comments", "changelogs", "issue_transitions"]
         for stream in expected_streams:
             with self.subTest(stream=stream):
                 # expected values
-                expected_automatic_keys = self.expected_primary_keys().get(stream, set()) | \
-                    self.top_level_replication_key_fields().get(stream, set()) | self.expected_foreign_keys().get(stream, set())
+                if stream in issues_child_streams:
+                    expected_automatic_keys = self.expected_primary_keys().get(stream, set()) | \
+                        self.expected_foreign_keys().get(stream, set())
+                else:
+                    expected_automatic_keys = self.expected_primary_keys().get(stream, set()) | \
+                        self.top_level_replication_key_fields().get(stream, set()) | self.expected_foreign_keys().get(stream, set())
                 # get all expected keys
                 expected_all_keys = stream_to_all_catalog_fields[stream]
 

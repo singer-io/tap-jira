@@ -13,6 +13,7 @@ class TestLocalizedRequests(unittest.TestCase):
         Context.retrieve_timezone = Mock(return_value=self.tzname)
         Context.bookmark = Mock()
         Context.set_bookmark = Mock()
+        Context.is_selected = Mock()
         IssuesPaginator.pages = Mock(return_value=[])
         Context.client = Mock()
 
