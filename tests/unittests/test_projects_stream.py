@@ -53,6 +53,7 @@ class TestProjectsPagination(unittest.TestCase):
         projects.sync()
 
         self.assertEqual([
+            mock.call('test', 'GET', '/rest/api/2/myself'), # call for basic auth
             mock.call('users', 'GET', '/rest/api/2/serverInfo'), # call for getting server info
             mock.call('projects', 'GET', '/rest/api/2/project/search', params={'expand': 'description,lead,url,projectKeys', 'maxResults': 50, 'startAt': 0}), # page 1 call
             mock.call('projects', 'GET', '/rest/api/2/project/search', params={'expand': 'description,lead,url,projectKeys', 'maxResults': 50, 'startAt': 50}) # page 2 call
