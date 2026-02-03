@@ -285,6 +285,7 @@ class Client():
         # Make a call to myself endpoint for verify creds
         # Here, we are retrieving serverInfo for the Jira instance by which credentials will also be verified.
         # Assign True value to is_on_prem_instance property for on-prem Jira instance
+        self.is_on_prem_instance = self.request("test","GET","/rest/api/2/myself")
         self.is_on_prem_instance = self.request("users","GET","/rest/api/2/serverInfo").get('deploymentType') == "Server"
 
 class Paginator():
