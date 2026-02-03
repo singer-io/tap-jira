@@ -58,6 +58,7 @@ class TestProjectsPagination(unittest.TestCase):
             mock.call('projects', 'GET', '/rest/api/2/project/search', params={'expand': 'description,lead,url,projectKeys', 'maxResults': 50, 'startAt': 0}), # page 1 call
             mock.call('projects', 'GET', '/rest/api/2/project/search', params={'expand': 'description,lead,url,projectKeys', 'maxResults': 50, 'startAt': 50}) # page 2 call
             ], mock_request.mock_calls)
+        print(mock_request.mock_calls)
 
 class TestProjectsEndpointForSync(unittest.TestCase):
     @mock.patch("tap_jira.http.Client.request", side_effect = [cloud_resp, last_page])
