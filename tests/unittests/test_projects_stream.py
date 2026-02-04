@@ -51,7 +51,7 @@ class TestProjectsPagination(unittest.TestCase):
         Context.catalog = [mock_stream] # setting the context catalog
         projects = streams.Projects('projects', ['id'], "INCREMENTAL")
         projects.sync()
-        print(mock_request.mock_calls)
+
         self.assertEqual([
             mock.call('test', 'GET', '/rest/api/2/myself'), # call for basic auth
             mock.call('users', 'GET', '/rest/api/2/serverInfo'), # call for getting server info
@@ -77,7 +77,7 @@ class TestProjectsEndpointForSync(unittest.TestCase):
 
         self.assertEqual(
             mock.call('projects', 'GET', '/rest/api/2/project/search', params={'expand': 'description,lead,url,projectKeys', 'maxResults': 50, 'startAt': 0}), # verify it calls project/search endpoint
-            mock_request.mock_calls[1])
+            mock_request.mock_calls[2])
 
     @mock.patch("tap_jira.http.Client.request", side_effect = [on_prem_resp,on_prem_resp, on_prem_page])
     @mock.patch('tap_jira.context.Context.get_catalog_entry')
@@ -94,4 +94,4 @@ class TestProjectsEndpointForSync(unittest.TestCase):
 
         self.assertEqual(
             mock.call('projects', 'GET', '/rest/api/2/project', params={'expand': 'description,lead,url,projectKeys'}), # verify it calls the project endpoint
-            mock_request.mock_calls[1])
+            mock_request.mock_calls[2])
