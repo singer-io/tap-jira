@@ -40,7 +40,7 @@ on_prem_resp = {"deploymentType": "Server"}
 
 class TestProjectsPagination(unittest.TestCase):
 
-    @mock.patch("tap_jira.http.Client.request", side_effect = [cloud_resp,first_page, last_page])
+    @mock.patch("tap_jira.http.Client.request", side_effect = [cloud_resp,cloud_resp,first_page, last_page])
     @mock.patch('tap_jira.context.Context.get_catalog_entry')
     def test_projects_stream_pagination(self, mock_catalog_entry, mock_request):
         '''Verify that the pagination works correctly with correct page size and breaks when breaking condition occurs'''
@@ -53,13 +53,15 @@ class TestProjectsPagination(unittest.TestCase):
         projects.sync()
 
         self.assertEqual([
+            mock.call('test', 'GET', '/rest/api/2/myself'), # call for basic auth
             mock.call('users', 'GET', '/rest/api/2/serverInfo'), # call for getting server info
             mock.call('projects', 'GET', '/rest/api/2/project/search', params={'expand': 'description,lead,url,projectKeys', 'maxResults': 50, 'startAt': 0}), # page 1 call
             mock.call('projects', 'GET', '/rest/api/2/project/search', params={'expand': 'description,lead,url,projectKeys', 'maxResults': 50, 'startAt': 50}) # page 2 call
             ], mock_request.mock_calls)
 
+
 class TestProjectsEndpointForSync(unittest.TestCase):
-    @mock.patch("tap_jira.http.Client.request", side_effect = [cloud_resp, last_page])
+    @mock.patch("tap_jira.http.Client.request", side_effect = [cloud_resp,cloud_resp, last_page])
     @mock.patch('tap_jira.context.Context.get_catalog_entry')
     def test_projects_sync_cloud(self, mock_catalog_entry, mock_request):
         '''Verify that project/search endpoint is called for cloud server'''
@@ -75,9 +77,9 @@ class TestProjectsEndpointForSync(unittest.TestCase):
 
         self.assertEqual(
             mock.call('projects', 'GET', '/rest/api/2/project/search', params={'expand': 'description,lead,url,projectKeys', 'maxResults': 50, 'startAt': 0}), # verify it calls project/search endpoint
-            mock_request.mock_calls[1])
+            mock_request.mock_calls[2])
 
-    @mock.patch("tap_jira.http.Client.request", side_effect = [on_prem_resp, on_prem_page])
+    @mock.patch("tap_jira.http.Client.request", side_effect = [on_prem_resp,on_prem_resp, on_prem_page])
     @mock.patch('tap_jira.context.Context.get_catalog_entry')
     def test_projects_sync_on_prem(self, mock_catalog_entry, mock_request):
         '''Verify that the project endpoint is called for on_prem server'''
@@ -92,4 +94,4 @@ class TestProjectsEndpointForSync(unittest.TestCase):
 
         self.assertEqual(
             mock.call('projects', 'GET', '/rest/api/2/project', params={'expand': 'description,lead,url,projectKeys'}), # verify it calls the project endpoint
-            mock_request.mock_calls[1])
+            mock_request.mock_calls[2])
