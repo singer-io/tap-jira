@@ -1,9 +1,11 @@
 # Changelog
 
+## [v2.8.0]
+  * Bump singer-python and requests modules to latest version. [#136](https://github.com/singer-io/tap-jira/pull/136)
+  * Add visibility fields to fields_to_remove section. [#137](https://github.com/singer-io/tap-jira/pull/137)
+
 ## [v2.7.0]
-  * Bumped singer-python and requests modules to latest version. [#136](https://github.com/singer-io/tap-jira/pull/136)
   * Copies the Issues parent stream's bookmark to its child streams [#132](https://github.com/singer-io/tap-jira/pull/132)
-  * Adding visibility fields to fields_to_remove section.[#137](https://github.com/singer-io/tap-jira/pull/137)
 ## [v2.6.0]
   * Fallback mechanism for JIRA API requests to support on-premises instances [#131](https://github.com/singer-io/tap-jira/pull/131)
 ## [v2.5.0]
