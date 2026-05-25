@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import json
 import time
 import threading
 import re
@@ -248,7 +249,25 @@ class Client():
             timer.tags["tap_stream_id"] = tap_stream_id
             timer.tags["endpoint"] = response.url
         check_status(response)
-        return response.json()
+        try:
+            return response.json()
+        except json.JSONDecodeError as exc:
+            # Walk backward from the error position to find the nearest
+            # preceding JSON field name — this tells us which field is
+            # responsible regardless of whether it is description, a custom
+            # field, a changelog item, a comment body, etc.
+            raw = response.text
+            look_back = raw[max(0, exc.pos - 2000): exc.pos]
+            field_matches = re.findall(r'"([a-zA-Z_][a-zA-Z0-9_]*)"\s*:', look_back)
+            nearest_field = field_matches[-1] if field_matches else "unknown"
+            LOGGER.warning(
+                "JSONDecodeError for stream '%s' at char offset %d "
+                "(line %d, col %d). Nearest preceding field: '%s'. "
+                "Falling back to json_repair.",
+                tap_stream_id, exc.pos, exc.lineno, exc.colno, nearest_field
+            )
+            from json_repair import repair_json
+            return json.loads(repair_json(raw))
 
     # backoff for Timeout error is already included in "Exception"
     # as it's a parent class of "Timeout" error
