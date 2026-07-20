@@ -375,8 +375,10 @@ class Issues(Stream):
                 # so we decided to just strip the field out for now.
                 issue['fields'].pop('operations', None)
 
-            # Grab last_updated before transform in write_page
-            last_updated = utils.strptime_to_utc(page[-1]["fields"]["updated"])
+                _updated = issue.get("fields", {}).get("updated")
+                if _updated:
+                    last_updated = utils.strptime_to_utc(_updated)
+
             self.write_page(page)
             Context.set_bookmark(page_num_offset, pager.next_page_num)
             # Copy parent's bookmark to children
