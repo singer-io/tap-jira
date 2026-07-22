@@ -1,7 +1,7 @@
 # Changelog
 
 ## [v2.8.1]
-  * Ignore missing `updated` field in issues record [#138](https://github.com/singer-io/tap-jira/pull/138)
+  * Handle missing `updated` field in issues records to prevent sync failures when Jira API omits the field from some records. [#138](https://github.com/singer-io/tap-jira/pull/138)
 
 ## [v2.8.0]
   * Bump singer-python and requests modules to latest version. [#136](https://github.com/singer-io/tap-jira/pull/136)
