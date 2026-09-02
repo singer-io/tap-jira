@@ -273,6 +273,13 @@ class ProjectTypes(Stream):
         self.write_page(types)
 
 
+class Groups(Stream):
+    def sync(self):
+        pager = Paginator(Context.client, items_key="values")
+        for page in pager.pages(self.tap_stream_id, "GET", self.path):
+            self.write_page(page)
+
+
 class Users(Stream):
     def sync(self):
         max_results = 2
@@ -460,6 +467,7 @@ ALL_STREAMS = [
     CHANGELOGS,
     ISSUE_TRANSITIONS,
     Worklogs("worklogs", ["id"], forced_replication_method="INCREMENTAL"),
+    Groups("groups", ["groupId"], path="/rest/api/2/group/bulk", forced_replication_method="FULL_TABLE"),
 ]
 
 ALL_STREAM_IDS = [s.tap_stream_id for s in ALL_STREAMS]

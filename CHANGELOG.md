@@ -1,5 +1,8 @@
 # Changelog
 
+## [v2.9.0]
+  * Add `groups` stream using the `/rest/api/2/group/bulk` endpoint.[#140](https://github.com/singer-io/tap-jira/pull/140)
+
 ## [v2.8.1]
   * Handle missing `updated` field in issues records to prevent sync failures when Jira API omits the field from some records. [#138](https://github.com/singer-io/tap-jira/pull/138)
 
