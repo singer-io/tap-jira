@@ -169,6 +169,12 @@ class BaseTapTest(BaseCase):
                 self.REPLICATION_METHOD: self.FULL,
                 self.API_LIMIT: 0,
             },
+            "group_users": {
+                self.PRIMARY_KEYS: {"accountId", "groupId"}, # Composite primary key
+                self.REPLICATION_METHOD: self.FULL,
+                self.PARENT_STREAM: "groups",
+                self.API_LIMIT: 0,
+            }
         }
 
     def environment_variables(self):
