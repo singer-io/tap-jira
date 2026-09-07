@@ -31,6 +31,7 @@ class AllFieldsTest(BaseTapTest):
         "resolutions": ["iconUrl"],
         # historyMetadata started showing up 01/24/2023 so commenting this out for now
         # "changelogs": ["historyMetadata"]
+        "group_users": ["name", "key"]
     }
 
     @staticmethod
