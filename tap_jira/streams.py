@@ -274,10 +274,23 @@ class ProjectTypes(Stream):
 
 
 class Groups(Stream):
+    def sync_group_users(self, group_id):
+        params = {"groupId": group_id, "includeInactiveUsers": True}
+        pager = Paginator(Context.client, items_key="values")
+        for page in pager.pages(GROUP_USERS.tap_stream_id, "GET",
+                                "/rest/api/2/group/member", params=params):
+            for user in page:
+                # groupId is not present on the member records, add it to key the composite PK
+                user["groupId"] = group_id
+            GROUP_USERS.write_page(page)
+
     def sync(self):
         pager = Paginator(Context.client, items_key="values")
         for page in pager.pages(self.tap_stream_id, "GET", self.path):
             self.write_page(page)
+            if Context.is_selected(GROUP_USERS.tap_stream_id):
+                for group in page:
+                    self.sync_group_users(group["groupId"])
 
 
 class Users(Stream):
@@ -452,6 +465,10 @@ ISSUE_TRANSITIONS = Stream("issue_transitions", ["id","issueId"], # Composite pr
                            parent_tap_stream_id="issues", indirect_stream=True,
                            forced_replication_method="INCREMENTAL")
 CHANGELOGS = Stream("changelogs", ["id"], parent_tap_stream_id="issues", indirect_stream=True, forced_replication_method="INCREMENTAL")
+GROUPS = Groups("groups", ["groupId"], path="/rest/api/2/group/bulk", forced_replication_method="FULL_TABLE")
+GROUP_USERS = Stream("group_users", ["groupId", "accountId"], # Composite primary key
+                    parent_tap_stream_id="groups", indirect_stream=True,
+                    forced_replication_method="FULL_TABLE")
 
 ALL_STREAMS = [
     PROJECTS,
@@ -467,7 +484,8 @@ ALL_STREAMS = [
     CHANGELOGS,
     ISSUE_TRANSITIONS,
     Worklogs("worklogs", ["id"], forced_replication_method="INCREMENTAL"),
-    Groups("groups", ["groupId"], path="/rest/api/2/group/bulk", forced_replication_method="FULL_TABLE"),
+    GROUPS,
+    GROUP_USERS,
 ]
 
 ALL_STREAM_IDS = [s.tap_stream_id for s in ALL_STREAMS]
@@ -494,6 +512,8 @@ def validate_dependencies():
             errs.append(msg_tmpl.format("Issue Comments", "Issues"))
         if ISSUE_TRANSITIONS.tap_stream_id in selected:
             errs.append(msg_tmpl.format("Issue Transitions", "Issues"))
+    if GROUP_USERS.tap_stream_id in selected and GROUPS.tap_stream_id not in selected:
+        errs.append(msg_tmpl.format("Group Users", "Groups"))
     if errs:
         raise DependencyException(" ".join(errs))
 

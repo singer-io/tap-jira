@@ -9,9 +9,10 @@ class TestGroupsSync(unittest.TestCase):
         through the Paginator and writes every page it receives.
     '''
 
+    @mock.patch("tap_jira.streams.Context.is_selected", return_value=False)
     @mock.patch("tap_jira.streams.Stream.write_page")
     @mock.patch("tap_jira.streams.Paginator.pages")
-    def test_groups_sync_calls_paginator_with_expected_endpoint(self, mock_pages, mock_write_page):
+    def test_groups_sync_calls_paginator_with_expected_endpoint(self, mock_pages, mock_write_page, mock_is_selected):
         mock_pages.return_value = []
 
         groups = streams.Groups("groups", ["groupId"], "FULL_TABLE", path="/rest/api/2/group/bulk")
@@ -20,9 +21,10 @@ class TestGroupsSync(unittest.TestCase):
         mock_pages.assert_called_with("groups", "GET", "/rest/api/2/group/bulk")
         mock_write_page.assert_not_called()
 
+    @mock.patch("tap_jira.streams.Context.is_selected", return_value=False)
     @mock.patch("tap_jira.streams.Stream.write_page")
     @mock.patch("tap_jira.streams.Paginator.pages")
-    def test_groups_sync_writes_every_page(self, mock_pages, mock_write_page):
+    def test_groups_sync_writes_every_page(self, mock_pages, mock_write_page, mock_is_selected):
         mock_pages.return_value = [["group1", "group2"], ["group3"]]
 
         groups = streams.Groups("groups", ["groupId"], "FULL_TABLE", path="/rest/api/2/group/bulk")
@@ -35,10 +37,11 @@ class TestGroupsSync(unittest.TestCase):
             mock.call(["group3"]),
         ])
 
+    @mock.patch("tap_jira.streams.Context.is_selected", return_value=False)
     @mock.patch("tap_jira.streams.Paginator", wraps=streams.Paginator)
     @mock.patch("tap_jira.streams.Stream.write_page")
     @mock.patch("tap_jira.streams.Context.client")
-    def test_groups_sync_paginator_uses_values_items_key(self, mock_client, mock_write_page, mock_paginator_cls):
+    def test_groups_sync_paginator_uses_values_items_key(self, mock_client, mock_write_page, mock_paginator_cls, mock_is_selected):
         # First page is short (less than default maxResults) so pagination stops after one call
         mock_client.request.return_value = {
             "isLast": True,
@@ -59,6 +62,60 @@ class TestGroupsSync(unittest.TestCase):
             {"groupId": "id-1", "name": "jdog-developers"},
             {"groupId": "id-2", "name": "juvenal-bot"},
         ])
+
+
+class TestGroupsSyncGroupUsers(unittest.TestCase):
+    '''
+        Verify `group_users` is synced as a child of `groups`: only when
+        `group_users` is selected, and only via the `groups` stream's sync.
+    '''
+
+    @mock.patch("tap_jira.streams.Context.is_selected", return_value=False)
+    @mock.patch("tap_jira.streams.Stream.write_page")
+    @mock.patch("tap_jira.streams.Paginator.pages")
+    def test_group_users_not_synced_when_not_selected(self, mock_pages, mock_write_page, mock_is_selected):
+        mock_pages.return_value = [[{"groupId": "id-1", "name": "jdog-developers"}]]
+
+        groups = streams.Groups("groups", ["groupId"], "FULL_TABLE", path="/rest/api/2/group/bulk")
+        groups.sync()
+
+        # Only the `groups` page endpoint should be requested, never group/member
+        mock_pages.assert_called_once_with("groups", "GET", "/rest/api/2/group/bulk")
+
+    @mock.patch("tap_jira.streams.Context.is_selected", return_value=True)
+    @mock.patch("tap_jira.streams.Stream.write_page")
+    @mock.patch("tap_jira.streams.Paginator.pages")
+    def test_group_users_synced_for_each_group_when_selected(self, mock_pages, mock_write_page, mock_is_selected):
+        mock_pages.side_effect = [
+            [[{"groupId": "id-1", "name": "jdog-developers"},
+              {"groupId": "id-2", "name": "juvenal-bot"}]],
+            [],  # members for id-1
+            [],  # members for id-2
+        ]
+
+        groups = streams.Groups("groups", ["groupId"], "FULL_TABLE", path="/rest/api/2/group/bulk")
+        groups.sync()
+
+        mock_pages.assert_any_call("group_users", "GET", "/rest/api/2/group/member",
+                                   params={"groupId": "id-1", "includeInactiveUsers": True})
+        mock_pages.assert_any_call("group_users", "GET", "/rest/api/2/group/member",
+                                   params={"groupId": "id-2", "includeInactiveUsers": True})
+
+    @mock.patch("tap_jira.streams.Stream.write_page")
+    @mock.patch("tap_jira.streams.Context.is_selected", return_value=True)
+    def test_sync_group_users_injects_group_id_and_writes_page(self, mock_is_selected, mock_write_page):
+        with mock.patch("tap_jira.streams.Paginator.pages") as mock_pages:
+            mock_pages.return_value = [
+                [{"accountId": "acc-1"}, {"accountId": "acc-2"}],
+            ]
+
+            groups = streams.Groups("groups", ["groupId"], "FULL_TABLE", path="/rest/api/2/group/bulk")
+            groups.sync_group_users("id-1")
+
+            mock_write_page.assert_called_once_with([
+                {"accountId": "acc-1", "groupId": "id-1"},
+                {"accountId": "acc-2", "groupId": "id-1"},
+            ])
 
 
 class TestGroupsStreamRegistration(unittest.TestCase):
