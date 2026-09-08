@@ -130,7 +130,7 @@ class Stream():
     :var forced_replication_method: Replication method of the stream
     :var parent_tap_stream_id: The parent class of the stream (optional)"""
 
-    def __init__(self, tap_stream_id, pk_fields, forced_replication_method, parent_tap_stream_id=None, indirect_stream=False, path=None):
+    def __init__(self, tap_stream_id, pk_fields, forced_replication_method, parent_tap_stream_id=None, indirect_stream=False, path=None, cloud_only=False):
         self.tap_stream_id = tap_stream_id
         self.parent_tap_stream_id = parent_tap_stream_id
         self.pk_fields = pk_fields
@@ -138,6 +138,9 @@ class Stream():
         self.indirect_stream = indirect_stream
         self.path = path
         self.forced_replication_method = forced_replication_method
+        # True for streams backed by Cloud-only endpoints; excluded from the
+        # catalog for on-prem instances (see Context.client.is_on_prem_instance)
+        self.cloud_only = cloud_only
 
     def __repr__(self):
         return "<Stream(" + self.tap_stream_id + ")>"
@@ -285,6 +288,13 @@ class Groups(Stream):
             GROUP_USERS.write_page(page)
 
     def sync(self):
+        # /rest/api/2/group/bulk is a Cloud-only endpoint. Streams marked
+        # `cloud_only` are excluded from the catalog for on-prem instances,
+        # but guard here too in case an older catalog still has it selected.
+        if Context.client.is_on_prem_instance:
+            LOGGER.warning("The `groups` stream is not supported for on-premise "
+                           "Jira instances, skipping sync.")
+            return
         pager = Paginator(Context.client, items_key="values")
         for page in pager.pages(self.tap_stream_id, "GET", self.path):
             self.write_page(page)
@@ -465,10 +475,10 @@ ISSUE_TRANSITIONS = Stream("issue_transitions", ["id","issueId"], # Composite pr
                            parent_tap_stream_id="issues", indirect_stream=True,
                            forced_replication_method="INCREMENTAL")
 CHANGELOGS = Stream("changelogs", ["id"], parent_tap_stream_id="issues", indirect_stream=True, forced_replication_method="INCREMENTAL")
-GROUPS = Groups("groups", ["groupId"], path="/rest/api/2/group/bulk", forced_replication_method="FULL_TABLE")
+GROUPS = Groups("groups", ["groupId"], path="/rest/api/2/group/bulk", forced_replication_method="FULL_TABLE", cloud_only=True)
 GROUP_USERS = Stream("group_users", ["groupId", "accountId"], # Composite primary key
                     parent_tap_stream_id="groups", indirect_stream=True,
-                    forced_replication_method="FULL_TABLE")
+                    forced_replication_method="FULL_TABLE", cloud_only=True)
 
 ALL_STREAMS = [
     PROJECTS,

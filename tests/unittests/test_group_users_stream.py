@@ -16,6 +16,7 @@ class TestGroupUsersStreamRegistration(unittest.TestCase):
         self.assertIsInstance(group_users_stream, streams.Stream)
         self.assertEqual(group_users_stream.pk_fields, ["groupId", "accountId"])
         self.assertEqual(group_users_stream.forced_replication_method, "FULL_TABLE")
+        self.assertTrue(group_users_stream.cloud_only)
 
     def test_group_users_is_an_indirect_child_of_groups(self):
         # `group_users` data is only produced via `groups`.sync(), so the
