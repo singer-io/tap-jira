@@ -1,0 +1,21 @@
+{
+    "title": "Group",
+    "type": [
+        "null",
+        "object"
+    ],
+    "properties": {
+        "groupId": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "name": {
+            "type": [
+                "null",
+                "string"
+            ]
+        }
+    }
+}

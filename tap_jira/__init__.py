@@ -48,6 +48,12 @@ def load_schema(tap_stream_id):
 def discover():
     catalog = Catalog([])
     for stream in streams_.ALL_STREAMS:
+        # Cloud-only streams (e.g. `groups`, backed by /rest/api/2/group/bulk)
+        # have no on-prem equivalent endpoint, so exclude them from the
+        # catalog entirely for on-prem instances.
+        if stream.cloud_only and Context.client.is_on_prem_instance:
+            continue
+
         schema = Schema.from_dict(load_schema(stream.tap_stream_id))
 
         mdata = generate_metadata(stream, schema)

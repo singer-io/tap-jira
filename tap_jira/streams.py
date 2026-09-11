@@ -130,7 +130,7 @@ class Stream():
     :var forced_replication_method: Replication method of the stream
     :var parent_tap_stream_id: The parent class of the stream (optional)"""
 
-    def __init__(self, tap_stream_id, pk_fields, forced_replication_method, parent_tap_stream_id=None, indirect_stream=False, path=None):
+    def __init__(self, tap_stream_id, pk_fields, forced_replication_method, parent_tap_stream_id=None, indirect_stream=False, path=None, cloud_only=False):
         self.tap_stream_id = tap_stream_id
         self.parent_tap_stream_id = parent_tap_stream_id
         self.pk_fields = pk_fields
@@ -138,6 +138,9 @@ class Stream():
         self.indirect_stream = indirect_stream
         self.path = path
         self.forced_replication_method = forced_replication_method
+        # True for streams backed by Cloud-only endpoints; excluded from the
+        # catalog for on-prem instances (see Context.client.is_on_prem_instance)
+        self.cloud_only = cloud_only
 
     def __repr__(self):
         return "<Stream(" + self.tap_stream_id + ")>"
@@ -271,6 +274,33 @@ class ProjectTypes(Stream):
         for type_ in types:
             type_.pop("icon")
         self.write_page(types)
+
+
+class Groups(Stream):
+    def sync_group_users(self, group_id):
+        params = {"groupId": group_id, "includeInactiveUsers": True}
+        pager = Paginator(Context.client, items_key="values")
+        for page in pager.pages(GROUP_USERS.tap_stream_id, "GET",
+                                "/rest/api/2/group/member", params=params):
+            for user in page:
+                # groupId is not present on the member records, add it to key the composite PK
+                user["groupId"] = group_id
+            GROUP_USERS.write_page(page)
+
+    def sync(self):
+        # /rest/api/2/group/bulk is a Cloud-only endpoint. Streams marked
+        # `cloud_only` are excluded from the catalog for on-prem instances,
+        # but guard here too in case an older catalog still has it selected.
+        if Context.client.is_on_prem_instance:
+            LOGGER.warning("The `groups` stream is not supported for on-premise "
+                           "Jira instances, skipping sync.")
+            return
+        pager = Paginator(Context.client, items_key="values")
+        for page in pager.pages(self.tap_stream_id, "GET", self.path):
+            self.write_page(page)
+            if Context.is_selected(GROUP_USERS.tap_stream_id):
+                for group in page:
+                    self.sync_group_users(group["groupId"])
 
 
 class Users(Stream):
@@ -445,6 +475,10 @@ ISSUE_TRANSITIONS = Stream("issue_transitions", ["id","issueId"], # Composite pr
                            parent_tap_stream_id="issues", indirect_stream=True,
                            forced_replication_method="INCREMENTAL")
 CHANGELOGS = Stream("changelogs", ["id"], parent_tap_stream_id="issues", indirect_stream=True, forced_replication_method="INCREMENTAL")
+GROUPS = Groups("groups", ["groupId"], path="/rest/api/2/group/bulk", forced_replication_method="FULL_TABLE", cloud_only=True)
+GROUP_USERS = Stream("group_users", ["groupId", "accountId"], # Composite primary key
+                    parent_tap_stream_id="groups", indirect_stream=True,
+                    forced_replication_method="FULL_TABLE", cloud_only=True)
 
 ALL_STREAMS = [
     PROJECTS,
@@ -460,6 +494,8 @@ ALL_STREAMS = [
     CHANGELOGS,
     ISSUE_TRANSITIONS,
     Worklogs("worklogs", ["id"], forced_replication_method="INCREMENTAL"),
+    GROUPS,
+    GROUP_USERS,
 ]
 
 ALL_STREAM_IDS = [s.tap_stream_id for s in ALL_STREAMS]
@@ -486,6 +522,8 @@ def validate_dependencies():
             errs.append(msg_tmpl.format("Issue Comments", "Issues"))
         if ISSUE_TRANSITIONS.tap_stream_id in selected:
             errs.append(msg_tmpl.format("Issue Transitions", "Issues"))
+    if GROUP_USERS.tap_stream_id in selected and GROUPS.tap_stream_id not in selected:
+        errs.append(msg_tmpl.format("Group Users", "Groups"))
     if errs:
         raise DependencyException(" ".join(errs))
 

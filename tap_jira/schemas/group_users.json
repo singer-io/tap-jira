@@ -1,0 +1,102 @@
+{
+    "title": "Group User",
+    "type": [
+        "null",
+        "object"
+    ],
+    "properties": {
+        "groupId": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "self": {
+            "type": [
+                "null",
+                "string"
+            ],
+            "format": "uri"
+        },
+        "key": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "accountId": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "name": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "emailAddress": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "avatarUrls": {
+            "type": [
+                "null",
+                "object"
+            ],
+            "properties": {
+                "16x16": {
+                    "type": [
+                        "null",
+                        "string"
+                    ]
+                },
+                "24x24": {
+                    "type": [
+                        "null",
+                        "string"
+                    ]
+                },
+                "32x32": {
+                    "type": [
+                        "null",
+                        "string"
+                    ]
+                },
+                "48x48": {
+                    "type": [
+                        "null",
+                        "string"
+                    ]
+                }
+            }
+        },
+        "displayName": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "active": {
+            "type": [
+                "null",
+                "boolean"
+            ]
+        },
+        "timeZone": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "accountType": {
+            "type": [
+                "null",
+                "string"
+            ]
+        }
+    }
+}
