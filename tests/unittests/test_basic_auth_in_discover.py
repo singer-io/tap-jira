@@ -51,9 +51,9 @@ class TestBasicAuthInDiscoverMode(unittest.TestCase):
     def test_basic_auth_access_200(self, mocked_discover, mocked_send, mocked_args):
         '''
             Verify discover mode is called if basic auth credentials are valid
-            and dicover function is called twice for setup Context and dicover mode.
+            and discover function is called once for setup Context.
         '''
         mocked_send.return_value = get_mock_http_response(200, {})
         mocked_args.return_value = Args()
         tap_jira.main()
-        self.assertEqual(mocked_discover.call_count, 2)
+        self.assertEqual(mocked_discover.call_count, 1)
