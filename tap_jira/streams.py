@@ -6,7 +6,7 @@ import dateparser
 from singer import metrics, utils, metadata, Transformer
 from singer.transform import SchemaMismatch
 from dateutil.parser._parser import ParserError
-from .http import Paginator,JiraNotFoundError,IssuesPaginator
+from .http import Paginator,JiraNotFoundError,IssuesPaginator,JiraForbiddenError
 from .context import Context
 
 DEFAULT_PAGE_SIZE = 50
@@ -145,6 +145,30 @@ class Stream():
     def __repr__(self):
         return "<Stream(" + self.tap_stream_id + ")>"
 
+    def probe_access(self, client):
+        """Make a minimal read request against the stream's endpoint.
+        Subclasses override this when the stream is not backed by a plain
+        GET on `self.path`. Errors (e.g. JiraForbiddenError) propagate."""
+        client.request(self.tap_stream_id, "GET", self.path)
+
+    def check_access(self, client):
+        """Verify that the credentials have read access to this stream.
+        Returns True if accessible, False if a 403 Forbidden error is raised.
+        Child streams always return True """
+        if self.parent_tap_stream_id:
+            return True
+
+        try:
+            self.probe_access(client)
+            return True
+        except JiraForbiddenError as exc:
+            LOGGER.warning(
+                "Unauthorized Stream: %s, excluding from catalog. HTTP-Error-Message:'%s'",
+                self.tap_stream_id,
+                exc,
+            )
+            return False
+
     def sync(self):
         page = Context.client.request(self.tap_stream_id, "GET", self.path)
         self.write_page(page)
@@ -185,6 +209,13 @@ def update_user_date(page):
     return page
 
 class Projects(Stream):
+    def probe_access(self, client):
+        if client.is_on_prem_instance:
+            client.request(self.tap_stream_id, "GET", "/rest/api/2/project")
+        else:
+            client.request(self.tap_stream_id, "GET", "/rest/api/2/project/search",
+                           params={"maxResults": 1})
+
     def sync_on_prem(self):
         """ Sync function for the on prem instances"""
         projects = Context.client.request(
@@ -268,6 +299,9 @@ class Projects(Stream):
             self.sync_cloud()
 
 class ProjectTypes(Stream):
+    def probe_access(self, client):
+        client.request(self.tap_stream_id, "GET", "/rest/api/2/project/type")
+
     def sync(self):
         path = "/rest/api/2/project/type"
         types = Context.client.request(self.tap_stream_id, "GET", path)
@@ -277,6 +311,9 @@ class ProjectTypes(Stream):
 
 
 class Groups(Stream):
+    def probe_access(self, client):
+        client.request(self.tap_stream_id, "GET", self.path, params={"maxResults": 1})
+
     def sync_group_users(self, group_id):
         params = {"groupId": group_id, "includeInactiveUsers": True}
         pager = Paginator(Context.client, items_key="values")
@@ -296,14 +333,77 @@ class Groups(Stream):
                            "Jira instances, skipping sync.")
             return
         pager = Paginator(Context.client, items_key="values")
+        # A Group Users 403 should not prevent Groups from syncing.
+        group_users_forbidden = False
         for page in pager.pages(self.tap_stream_id, "GET", self.path):
             self.write_page(page)
-            if Context.is_selected(GROUP_USERS.tap_stream_id):
+            if Context.is_selected(GROUP_USERS.tap_stream_id) and not group_users_forbidden:
                 for group in page:
-                    self.sync_group_users(group["groupId"])
+                    try:
+                        self.sync_group_users(group["groupId"])
+                    except JiraForbiddenError as exc:
+                        LOGGER.warning(
+                            "Unauthorized Stream: %s, skipping its sync and continuing with %s. "
+                            "HTTP-Error-Message:'%s'",
+                            GROUP_USERS.tap_stream_id, self.tap_stream_id, exc)
+                        group_users_forbidden = True
+                        break
+
+
+class GroupUsers(Stream):
+    """Indirect child of `groups`, synced through `Groups.sync()`.
+
+    /rest/api/2/group/member has its own Administer Jira permission
+    requirement, so access is validated independently of the parent."""
+
+    def check_access(self, client):
+        try:
+            groups = client.request(
+                self.parent_tap_stream_id, "GET", GROUPS.path,
+                params={"maxResults": 1}).get("values")
+        except JiraForbiddenError:
+            return False
+
+        if not groups:
+            LOGGER.info("No groups found, unable to verify access to the `%s` stream; "
+                        "keeping it in the catalog.", self.tap_stream_id)
+            return True
+
+        try:
+            client.request(self.tap_stream_id, "GET", "/rest/api/2/group/member",
+                           params={"groupId": groups[0]["groupId"], "maxResults": 1})
+            return True
+        except JiraForbiddenError as exc:
+            LOGGER.warning(
+                "Unauthorized Stream: %s, excluding from catalog. HTTP-Error-Message:'%s'",
+                self.tap_stream_id, exc)
+            return False
 
 
 class Users(Stream):
+    @staticmethod
+    def _configured_groups():
+        config = Context.config or {}
+        if config.get("groups"):
+            return [g.strip() for g in config["groups"].split(",")]
+        return ["jira-administrators",
+                "jira-software-users",
+                "jira-core-users",
+                "jira-users",
+                "users"]
+
+    def probe_access(self, client):
+        # Groups that do not exist (404) are skipped during sync, so they
+        # do not indicate a lack of access; only a 403 propagates.
+        for group in self._configured_groups():
+            try:
+                client.request(self.tap_stream_id, "GET", "/rest/api/2/group/member",
+                               params={"groupname": group,
+                                       "maxResults": 1,
+                                       "includeInactiveUsers": True})
+            except JiraNotFoundError:
+                continue
+
     def sync(self):
         max_results = 2
 
@@ -332,6 +432,14 @@ class Users(Stream):
 
 
 class Issues(Stream):
+    def probe_access(self, client):
+        params = {"jql": "updated >= -1d order by updated asc", "maxResults": 1}
+        try:
+            client.request(self.tap_stream_id, "GET", "/rest/api/2/search/jql", params=params)
+        except JiraNotFoundError:
+            # Same fallback as sync() for instances without /search/jql
+            client.request(self.tap_stream_id, "GET", "/rest/api/2/search", params=params)
+
     def set_bookmarks_for_issue_sub_streams(self, bookmark_path, bookmark_value):
         '''ISSUE_COMMENTS, CHANGELOGS, and ISSUE_TRANSITIONS are all
         incremental child streams of the incremental stream ISSUES. The
@@ -423,6 +531,11 @@ class Issues(Stream):
 
 
 class Worklogs(Stream):
+    def probe_access(self, client):
+        since_ts = int(utils.now().timestamp()) * 1000
+        client.request(self.tap_stream_id, "GET", "/rest/api/2/worklog/updated",
+                       params={"since": since_ts})
+
     def _fetch_ids(self, last_updated):
         # since_ts uses millisecond precision
         since_ts = int(last_updated.timestamp()) * 1000
@@ -476,7 +589,7 @@ ISSUE_TRANSITIONS = Stream("issue_transitions", ["id","issueId"], # Composite pr
                            forced_replication_method="INCREMENTAL")
 CHANGELOGS = Stream("changelogs", ["id"], parent_tap_stream_id="issues", indirect_stream=True, forced_replication_method="INCREMENTAL")
 GROUPS = Groups("groups", ["groupId"], path="/rest/api/2/group/bulk", forced_replication_method="FULL_TABLE", cloud_only=True)
-GROUP_USERS = Stream("group_users", ["groupId", "accountId"], # Composite primary key
+GROUP_USERS = GroupUsers("group_users", ["groupId", "accountId"], # Composite primary key
                     parent_tap_stream_id="groups", indirect_stream=True,
                     forced_replication_method="FULL_TABLE", cloud_only=True)
 

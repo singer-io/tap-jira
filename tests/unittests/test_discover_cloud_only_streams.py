@@ -28,7 +28,7 @@ class TestDiscoverCloudOnlyStreams(unittest.TestCase):
     def test_discover_excludes_cloud_only_streams_for_on_prem(self, mock_client):
         mock_client.is_on_prem_instance = True
 
-        catalog = tap_jira.discover()
+        catalog = tap_jira.discover(mock_client)
         stream_ids = {s.tap_stream_id for s in catalog.streams}
 
         self.assertNotIn("groups", stream_ids)
@@ -41,7 +41,7 @@ class TestDiscoverCloudOnlyStreams(unittest.TestCase):
     def test_discover_includes_cloud_only_streams_for_cloud(self, mock_client):
         mock_client.is_on_prem_instance = False
 
-        catalog = tap_jira.discover()
+        catalog = tap_jira.discover(mock_client)
         stream_ids = {s.tap_stream_id for s in catalog.streams}
 
         self.assertIn("groups", stream_ids)
