@@ -216,6 +216,39 @@ class Projects(Stream):
             client.request(self.tap_stream_id, "GET", "/rest/api/2/project/search",
                            params={"maxResults": 1})
 
+    @staticmethod
+    def _log_forbidden_child(child_stream, project, exc):
+        LOGGER.warning(
+            "Unauthorized Stream: %s for project %s, skipping its remaining sync for this "
+            "project and continuing. HTTP-Error-Message:'%s'",
+            child_stream.tap_stream_id, project["id"], exc)
+
+    def sync_project_versions(self, project):
+        """Sync `versions` of one project. A 403 here only skips the remaining
+        versions of this project; records already written are kept. Only
+        JiraForbiddenError is handled, every other error propagates."""
+        path = "/rest/api/2/project/{}/version".format(project["id"])
+        try:
+            pager = Paginator(Context.client, order_by="sequence")
+            for page in pager.pages(VERSIONS.tap_stream_id, "GET", path):
+                # Transform userReleaseDate and userStartDate values to 'yyyy-mm-dd' format.
+                for each_page in page:
+                    each_page = update_user_date(each_page)
+                VERSIONS.write_page(page)
+        except JiraForbiddenError as exc:
+            self._log_forbidden_child(VERSIONS, project, exc)
+
+    def sync_project_components(self, project):
+        """Sync `components` of one project, tolerating a 403 the same way as
+        `sync_project_versions`."""
+        path = "/rest/api/2/project/{}/component".format(project["id"])
+        try:
+            pager = Paginator(Context.client)
+            for page in pager.pages(COMPONENTS.tap_stream_id, "GET", path):
+                COMPONENTS.write_page(page)
+        except JiraForbiddenError as exc:
+            self._log_forbidden_child(COMPONENTS, project, exc)
+
     def sync_on_prem(self):
         """ Sync function for the on prem instances"""
         projects = Context.client.request(
@@ -231,19 +264,10 @@ class Projects(Stream):
         self.write_page(projects)
         if Context.is_selected(VERSIONS.tap_stream_id):
             for project in projects:
-                path = "/rest/api/2/project/{}/version".format(project["id"])
-                pager = Paginator(Context.client, order_by="sequence")
-                for page in pager.pages(VERSIONS.tap_stream_id, "GET", path):
-                    # Transform userReleaseDate and userStartDate values to 'yyyy-mm-dd' format.
-                    for each_page in page:
-                        each_page = update_user_date(each_page)
-                    VERSIONS.write_page(page)
+                self.sync_project_versions(project)
         if Context.is_selected(COMPONENTS.tap_stream_id):
             for project in projects:
-                path = "/rest/api/2/project/{}/component".format(project["id"])
-                pager = Paginator(Context.client)
-                for page in pager.pages(COMPONENTS.tap_stream_id, "GET", path):
-                    COMPONENTS.write_page(page)
+                self.sync_project_components(project)
 
     def sync_cloud(self):
         """ Sync function for the cloud instances"""
@@ -267,20 +291,10 @@ class Projects(Stream):
             self.write_page(projects.get('values'))
             if Context.is_selected(VERSIONS.tap_stream_id):
                 for project in projects.get('values'):
-                    path = "/rest/api/2/project/{}/version".format(project["id"])
-                    pager = Paginator(Context.client, order_by="sequence")
-                    for page in pager.pages(VERSIONS.tap_stream_id, "GET", path):
-                        # Transform userReleaseDate and userStartDate values to 'yyyy-mm-dd' format.
-                        for each_page in page:
-                            each_page = update_user_date(each_page)
-
-                        VERSIONS.write_page(page)
+                    self.sync_project_versions(project)
             if Context.is_selected(COMPONENTS.tap_stream_id):
                 for project in projects.get('values'):
-                    path = "/rest/api/2/project/{}/component".format(project["id"])
-                    pager = Paginator(Context.client)
-                    for page in pager.pages(COMPONENTS.tap_stream_id, "GET", path):
-                        COMPONENTS.write_page(page)
+                    self.sync_project_components(project)
 
             # `isLast` corresponds to whether it is the last page or not.
             if projects.get("isLast"):
