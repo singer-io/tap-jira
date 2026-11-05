@@ -1,5 +1,9 @@
 # Changelog
 
+## [v2.10.0]
+  * Exclude 403-forbidden streams from discovery instead of failing [#141](https://github.com/singer-io/tap-jira/pull/141)
+  * Add unit tests for discovery access checks.
+
 ## [v2.9.0]
   * Add `groups` and `group_users` streams. [#140](https://github.com/singer-io/tap-jira/pull/140)
 

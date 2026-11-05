@@ -13,8 +13,7 @@ class AllFieldsTest(BaseTapTest):
     fields_to_remove = {
         # Most of the fields will be included using "expand" parameter in the API Call
         # See backlog card: https://jira.talendforge.org/browse/TDL-17948 for more details
-        # visibility: only present when a worklog has a visibility restriction set
-        "worklogs": ["properties", "visibility"],
+        "worklogs": ["properties"],
         # removed in the Tap
         "project_types": ["icon"],
         # name, key: properties are deprected
@@ -24,7 +23,7 @@ class AllFieldsTest(BaseTapTest):
         "versions": ["expand", "moveUnfixedIssuesTo", "project", "remotelinks", "operations"],
         # fieldsToInclude: not found in the doc
         "issues": ["renderedFields", "schema", "editmeta", "fieldsToInclude", "versionedRepresentations", "names", "properties"],
-        "issue_comments": ["properties", "renderedBody", "visibility"],
+        "issue_comments": ["properties", "renderedBody"],
         "projects": ["roles", "issueTypes", "email", "assigneeType", "components"],
         "issue_transitions": ["fields", "expand"],
         # iconUrl: not found in the doc
@@ -32,6 +31,12 @@ class AllFieldsTest(BaseTapTest):
         # historyMetadata started showing up 01/24/2023 so commenting this out for now
         # "changelogs": ["historyMetadata"]
         "group_users": ["name", "key"]
+    }
+
+    # visibility: only present on comments/worklogs with a visibility restriction
+    optional_fields = {
+        "worklogs": ["visibility"],
+        "issue_comments": ["visibility"],
     }
 
     @staticmethod
@@ -115,6 +120,13 @@ class AllFieldsTest(BaseTapTest):
                 for field in fields:
                     LOGGER.info("removing field '%s' from expectations", field)
                     expected_all_keys.remove(field)
+
+                # optional fields may or may not be present in the synced data
+                for field in self.optional_fields.get(stream) or []:
+                    LOGGER.info("ignoring optional field '%s' in expectations and actual records", field)
+                    expected_all_keys.discard(field)
+                    actual_all_keys.discard(field)
+
                 self.assertSetEqual(
                     expected_all_keys, actual_all_keys,
                     logging="verify all discovered fields are replicated"

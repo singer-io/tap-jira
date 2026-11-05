@@ -277,9 +277,15 @@ class Client():
             self.login_timer.start()
 
     def test_credentials_are_authorized(self):
-        # Assume that everyone has issues, so we try and hit that endpoint
-        self.request("issues", "GET", "/rest/api/3/search/jql",
-                     params={"jql": "updated >= -1d", "maxResults": 1})
+        # Assume that everyone has issues, so we try and hit that endpoint.
+        # A 403 means the credentials are valid but cannot read issues; this
+        # must not abort the run, as the `issues` stream is excluded from the
+        # catalog during discovery instead (see `_apply_access_checks`).
+        try:
+            self.request("issues", "GET", "/rest/api/3/search/jql",
+                         params={"jql": "updated >= -1d", "maxResults": 1})
+        except JiraForbiddenError as exc:
+            LOGGER.warning("Credentials cannot read issues, HTTP-Error-Message:'%s'", exc)
 
     def test_basic_credentials_are_authorized(self):
         # Make a call to myself endpoint for verify creds
