@@ -2,7 +2,7 @@
 from setuptools import setup, find_packages
 
 setup(name="tap-jira",
-      version="2.9.0",
+      version="2.10.0",
       description="Singer.io tap for extracting data from the Jira API",
       author="Stitch",
       url="http://singer.io",
@@ -16,6 +16,8 @@ setup(name="tap-jira",
       extras_require={
           'dev': [
               'pylint',
+              'coverage',
+              'pytest',
               'nose2',
               'ipdb'
           ]
