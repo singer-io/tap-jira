@@ -73,12 +73,15 @@ def _apply_access_checks(client, schemas, field_metadata):
 
     Raises JiraForbiddenError if no streams are accessible.
     """
-    inaccessible_streams = [
-        stream.tap_stream_id
-        for stream in streams_.ALL_STREAMS
-        if stream.tap_stream_id in schemas
-        and not stream.check_access(client)
-    ]
+    inaccessible_streams = []
+    for stream in streams_.ALL_STREAMS:
+        if stream.tap_stream_id not in schemas:
+            continue
+        # ALL_STREAMS lists parents first; pruning drops these children below
+        if stream.parent_tap_stream_id in inaccessible_streams:
+            continue
+        if not stream.check_access(client):
+            inaccessible_streams.append(stream.tap_stream_id)
 
     for stream_name in inaccessible_streams:
         schemas.pop(stream_name, None)

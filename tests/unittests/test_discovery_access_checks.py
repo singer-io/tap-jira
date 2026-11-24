@@ -207,6 +207,13 @@ class TestGroupUsersDiscovery(DiscoveryAccessCheckBase):
         self.assertNotIn("groups", ids)
         self.assertNotIn("group_users", ids)
 
+    def test_groups_forbidden_does_not_probe_group_users(self):
+        self.mock_client.request.side_effect = forbidden(["/rest/api/2/group/bulk"])
+        self.discover_ids()
+        paths = [c.args[2] for c in self.mock_client.request.call_args_list]
+        self.assertEqual(paths.count("/rest/api/2/group/bulk"), 1)
+        self.assertEqual(group_id_member_calls(self.mock_client), [])
+
     def test_unrelated_forbidden_stream_does_not_affect_group_users(self):
         group_requests = groups_then(lambda _p: {})
 
