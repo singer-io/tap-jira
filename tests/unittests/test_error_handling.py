@@ -403,10 +403,16 @@ class TestUserGroupSync(unittest.TestCase):
             Verify that if user group found then write_page should be called
         '''
         mock_config.get.return_value = "test"
-        mock_get_pages.return_value = ["page1", "page2", "page3"] # return 3 mock pages
+        pages = [
+            [{"accountId": "user1"}],
+            [{"accountId": "user2"}],
+            [{"accountId": "user3"}],
+        ]
+        mock_get_pages.return_value = pages
 
         user = streams.Users("users", ["accountId"], "INCREMENTAL")
         user.sync()
 
-        # write_page should be called 3 times as three mock pages return
-        self.assertEqual(mocked_write_page.call_count, 3)
+        self.assertEqual(mocked_write_page.call_args_list, [
+            mock.call(page) for page in pages
+        ])

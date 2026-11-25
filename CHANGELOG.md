@@ -1,5 +1,9 @@
 # Changelog
 
+## [v2.9.1]
+  * Deduplicate users across groups and pages within each sync using the existing primary key.
+  * Initialize runtime primary keys from the loaded catalog so saved on-prem catalogs sync key-only users correctly. [#142](https://github.com/singer-io/tap-jira/pull/142)
+
 ## [v2.9.0]
   * Add `groups` and `group_users` streams. [#140](https://github.com/singer-io/tap-jira/pull/140)
 

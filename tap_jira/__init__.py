@@ -101,6 +101,9 @@ def sync():
     # data for the second stream, but the second stream hasn't output its
     # schema yet
     for stream in streams_.ALL_STREAMS:
+        catalog_entry = Context.get_catalog_entry(stream.tap_stream_id)
+        if catalog_entry is not None:
+            stream.pk_fields = list(catalog_entry.key_properties)
         output_schema(stream)
 
     for stream in streams_.ALL_STREAMS:

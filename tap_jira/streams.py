@@ -316,6 +316,7 @@ class Users(Stream):
                       "jira-users",
                       "users"]
 
+        seen_user_keys = set()
         for group in groups:
             group = group.strip()
             try:
@@ -326,7 +327,14 @@ class Users(Stream):
                 for page in pager.pages(self.tap_stream_id, "GET",
                                         "/rest/api/2/group/member",
                                         params=params):
-                    self.write_page(page)
+                    unique_users = []
+                    for user in page:
+                        user_key = tuple(user[field] for field in self.pk_fields)
+                        if user_key not in seen_user_keys:
+                            seen_user_keys.add(user_key)
+                            unique_users.append(user)
+                    if unique_users:
+                        self.write_page(unique_users)
             except JiraNotFoundError:
                 LOGGER.info("Could not find group \"%s\", skipping", group)
 

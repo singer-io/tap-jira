@@ -71,6 +71,10 @@ This tap:
    `https://mycompany.atlassian.net`.
 
    The `groups` specifies groups for users stream. It is an optional parameter. Default value is `["jira-administrators", "jira-software-users", "jira-core-users", "jira-users", "users"]`.
+   The users stream emits each user only once per sync across all configured groups,
+   using `accountId` on Jira Cloud or `key` on on-prem Jira. If a user appears more
+   than once, the first record encountered is emitted. Users are emitted again on
+   subsequent full-table syncs.
 
 4. Run the Tap in Discovery Mode
 

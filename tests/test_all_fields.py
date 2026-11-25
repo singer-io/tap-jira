@@ -110,11 +110,12 @@ class AllFieldsTest(BaseTapTest):
                     logging="verify the automatic fields are included on the records"
                 )
 
-                # remove some fields as data cannot be generated
+                # Do not require optional fields when the test data does not populate them.
                 fields = self.fields_to_remove.get(stream) or []
                 for field in fields:
-                    LOGGER.info("removing field '%s' from expectations", field)
-                    expected_all_keys.remove(field)
+                    if field not in actual_all_keys:
+                        LOGGER.info("removing field '%s' from expectations", field)
+                        expected_all_keys.discard(field)
                 self.assertSetEqual(
                     expected_all_keys, actual_all_keys,
                     logging="verify all discovered fields are replicated"

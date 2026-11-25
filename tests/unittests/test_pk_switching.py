@@ -120,3 +120,55 @@ class TestPkSwitchingForUserStream(unittest.TestCase):
 
         # Verify primary key of stream
         self.assertEqual(users_stream.pk_fields, ["id"])
+
+
+class TestSavedCatalogPrimaryKeys(unittest.TestCase):
+    def test_saved_catalog_keys_used_for_schema_and_user_sync(self):
+        users_stream = next(stream for stream in ALL_STREAMS if stream.tap_stream_id == "users")
+        for pk_field in ("key", "accountId"):
+            with self.subTest(pk_field=pk_field):
+                catalog = {
+                    "streams": [{
+                        "stream": "users",
+                        "tap_stream_id": "users",
+                        "key_properties": [pk_field],
+                        "schema": {
+                            "type": "object",
+                            "properties": {pk_field: {"type": "string"}},
+                        },
+                        "metadata": [
+                            {"breadcrumb": [], "metadata": {
+                                "selected": True, "table-key-properties": [pk_field],
+                            }},
+                            {"breadcrumb": ["properties", pk_field],
+                             "metadata": {"inclusion": "automatic"}},
+                        ],
+                    }],
+                }
+                args = Mock(config={"groups": "admins,users"}, state={},
+                            properties=catalog, discover=False)
+                client = Mock(is_on_prem_instance=pk_field == "key", login_timer=None)
+                records = [{pk_field: "user1"}, {pk_field: "user2"}]
+                with mock.patch.object(users_stream, "pk_fields", ["accountId"]), \
+                     mock.patch.multiple(Context, config=None, state=None, catalog=None,
+                                         client=None, stream_map={}), \
+                     mock.patch("tap_jira.get_args", return_value=args), \
+                     mock.patch("tap_jira.Client", return_value=client), \
+                     mock.patch("tap_jira.discover") as discover, \
+                     mock.patch("tap_jira.streams.Paginator.pages",
+                                side_effect=[[records], [[records[0]]]]), \
+                     mock.patch("singer.write_schema") as write_schema, \
+                     mock.patch("singer.write_state"), \
+                     mock.patch("singer.write_record") as write_record:
+                    tap_jira.main()
+
+                    discover.assert_not_called()
+                    self.assertEqual(users_stream.pk_fields, [pk_field])
+                    schema_calls = [
+                        call for call in write_schema.call_args_list if call.args[0] == "users"
+                    ]
+                    self.assertEqual(len(schema_calls), 1)
+                    self.assertEqual(schema_calls[0].args[2], [pk_field])
+                    self.assertEqual(
+                        [call.args[1] for call in write_record.call_args_list], records
+                    )
